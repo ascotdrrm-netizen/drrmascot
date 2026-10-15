@@ -1,0 +1,24 @@
+{
+    "name": "ASCOT DRRM",
+    "short_name": "ASCOT DRRM",
+    "description": "Report hazards, call for help and get disaster advisories from the ASCOT DRRM Office.",
+    "id": "/app",
+    "start_url": "/app",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0b0b0c",
+    "theme_color": "#0b0b0c",
+    "lang": "en-PH",
+    "categories": ["education", "utilities"],
+    "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        { "name": "SOS", "short_name": "SOS", "description": "Call for help now", "url": "/app/sos", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+        { "name": "Report a hazard", "short_name": "Report", "url": "/app/report", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+        { "name": "Emergency hotlines", "short_name": "Hotlines", "url": "/app/hotlines", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    ]
+}

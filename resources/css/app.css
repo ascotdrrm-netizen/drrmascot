@@ -1,0 +1,365 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+/* Class names chosen in PHP (badges, risk levels, statuses) and in config. */
+@source '../../app/**/*.php';
+@source '../../config/**/*.php';
+
+/*
+ * ASCOT-DRRMS design system (docs/PLAN.md §3).
+ *
+ * THEMES — dark by default, light by choice: <html data-theme="dark|light">,
+ * set before first paint by the inline script in every layout and switched by
+ * <x-theme-toggle> (remembered in localStorage). The views keep using plain
+ * Tailwind neutrals (bg-white, text-gray-600, border-gray-100…); the dark theme
+ * re-maps those scales below, so a card is "bg-white" in both themes and
+ * renders as charcoal in dark. Status colours (green/red/amber/blue) get dark
+ * tints the same way, so a "Resolved" chip stays readable in both.
+ *
+ * ACCENT — orange, for actions only: primary buttons, links, focus rings, the
+ * active nav item, the selected tab. Never for hazards: warnings use red/amber
+ * WITH an icon and a label, so a warning can't be mistaken for a button.
+ * Green now means one thing: safe / resolved / low risk.
+ *
+ * NOT-AI RULES — flat surfaces, hairline borders instead of shadows, no
+ * gradients, glows or blur; 12px cards, 8px controls, pills only for status
+ * chips and segmented controls; one icon set (Material Symbols via <x-icon>).
+ */
+@theme {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Barlow Condensed', 'Inter Variable', ui-sans-serif, sans-serif;
+
+    /* Fixed colours that do not change with the theme. */
+    --color-snow: #ffffff;
+    --color-night-700: #2a2a2e;
+    --color-night-800: #1e1e21;
+    --color-night-900: #141416;
+}
+
+/* Theme-dependent tokens, used as Tailwind colours (bg-accent, text-accent-ink…). */
+@theme inline {
+    --color-accent: var(--accent);
+    --color-accent-hover: var(--accent-hover);
+    --color-on-accent: var(--on-accent);
+    --color-accent-ink: var(--accent-ink);
+    --color-accent-soft: var(--accent-soft);
+    --color-accent-soft-hover: var(--accent-soft-hover);
+    --color-accent-line: var(--accent-line);
+    --color-canvas: var(--canvas);
+}
+
+/* ---------------- Light theme (and the defaults) ---------------- */
+:root {
+    color-scheme: light;
+    --canvas: #f6f5f3;
+    --accent: #c2410c;            /* white text 5.2:1 */
+    --accent-hover: #9a3412;
+    --on-accent: #ffffff;
+    --accent-ink: #c2410c;        /* links on white 5.2:1 */
+    --accent-soft: #fff1e7;
+    --accent-soft-hover: #ffe3cf;
+    --accent-line: #ea580c;
+}
+
+/* ---------------- Dark theme ---------------- */
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --canvas: #0b0b0c;
+    --accent: #f97316;
+    --accent-hover: #fb923c;
+    --on-accent: #1a0c02;         /* near-black on orange 7.6:1 */
+    --accent-ink: #fb923c;        /* on charcoal 7.3:1 */
+    --accent-soft: #2a1709;
+    --accent-soft-hover: #3a200c;
+    --accent-line: #f97316;
+
+    /* Neutrals: surfaces dark, text light. "white" is the card surface. */
+    --color-white: #161617;
+    --color-gray-50: #0f0f10;
+    --color-gray-100: #232326;
+    --color-gray-200: #2d2d31;
+    --color-gray-300: #3c3c41;
+    --color-gray-400: #66666e;
+    --color-gray-500: #8d8d96;
+    --color-gray-600: #a6a6ae;
+    --color-gray-700: #c8c8cf;
+    --color-gray-800: #e3e3e7;
+    --color-gray-900: #f4f4f5;
+    --color-gray-950: #fafafa;
+    --color-slate-100: #232326;
+    --color-slate-400: #66666e;
+    --color-slate-600: #a6a6ae;
+
+    /* Status tints: dark backgrounds (50–300), light text (500–900). */
+    --color-green-50: #0d1f14;
+    --color-green-100: #11301c;
+    --color-green-200: #1b4a2c;
+    --color-green-300: #86efac;
+    --color-green-400: #4ade80;
+    --color-green-500: #22c55e;
+    --color-green-600: #22c55e;
+    --color-green-700: #4ade80;
+    --color-green-800: #86efac;
+    --color-green-900: #bbf7d0;
+
+    --color-red-50: #2a1213;
+    --color-red-100: #3b1517;
+    --color-red-200: #5c1f22;
+    --color-red-300: #7f2a2d;
+    --color-red-400: #f87171;
+    --color-red-500: #ef4444;
+    --color-red-600: #dc2626;
+    --color-red-700: #f87171;
+    --color-red-800: #fca5a5;
+    --color-red-900: #fecaca;
+
+    --color-amber-50: #261c08;
+    --color-amber-100: #36270b;
+    --color-amber-200: #523b10;
+    --color-amber-300: #6e4f15;
+    --color-amber-500: #f59e0b;
+    --color-amber-600: #f59e0b;
+    --color-amber-700: #fbbf24;
+    --color-amber-800: #fcd34d;
+    --color-amber-900: #fde68a;
+    --color-amber-950: #fef3c7;
+
+    --color-blue-50: #0e1a2e;
+    --color-blue-100: #12233f;
+    --color-blue-200: #1b3560;
+    --color-blue-300: #24477f;
+    --color-blue-600: #3b82f6;
+    --color-blue-700: #60a5fa;
+    --color-blue-800: #93c5fd;
+    --color-blue-900: #bfdbfe;
+
+    --color-orange-50: #2a1709;
+    --color-orange-600: #fb923c;
+    --color-indigo-100: #1c1b3a;
+    --color-indigo-700: #a5b4fc;
+}
+
+/*
+ * Tailwind v3 defaults the pages were built with (they started on the v3
+ * CDN), kept so the move to the compiled v4 build changes nothing by itself.
+ * See https://tailwindcss.com/docs/upgrade-guide.
+ */
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--color-gray-500);
+    }
+
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    dialog {
+        margin: auto;
+    }
+
+    html {
+        font-feature-settings: 'cv11', 'ss01';
+    }
+
+    /* Checkboxes and radios take the accent. */
+    input[type='checkbox'],
+    input[type='radio'] {
+        accent-color: var(--accent);
+    }
+
+    /* Native date pickers and selects follow the theme. */
+    select option {
+        background-color: var(--color-white);
+        color: var(--color-gray-900);
+    }
+}
+
+/*
+    SPACING SCALE — three values for gaps, padding and margins:
+        16px (4)  inside blocks: card-header to body, between fields, between
+                  buttons, list rows, phone page gutter, table cell padding
+        24px (6)  card padding, gap between cards, page header to content
+        32px (8)  between page sections
+    TYPE SCALE — one size and weight each:
+        .page-title     24px bold (20px under 640px so long names fit)
+        .section-title  18px semibold      — a heading above a group of cards
+        .card-title     16px semibold      — the heading inside a card
+        body            14px regular (text-sm)
+        .caption        12px regular gray  — subtitles, meta lines, help text
+        .eyebrow        12px semibold caps — group labels, table headers
+        .stat-value     40px condensed     — the one big number in a KPI card
+    SURFACES — one card: 12px radius, hairline border, no shadow, 24px padding.
+    TOUCH — every control is at least 44px tall on phones (36–40px from 640px).
+    FOCUS — a 3px accent ring on every focusable control (keyboard focus).
+*/
+@layer components {
+    /* ---------- Type ---------- */
+    .page-title { @apply min-w-0 break-words text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl; }
+    .page-subtitle { @apply text-sm leading-6 text-gray-600; }
+    .section-title { @apply text-lg font-semibold text-gray-900; }
+    .card-title { @apply text-base font-semibold text-gray-900; }
+    .caption { @apply text-xs text-gray-600; }
+    .eyebrow { @apply text-xs font-semibold uppercase tracking-wide text-gray-600; }
+    .stat-value { @apply font-display text-[2.5rem] font-semibold leading-none tracking-tight text-gray-900 tabular-nums; }
+
+    /* ---------- Page structure ---------- */
+    .page-section { @apply mb-8; }
+    .section-header { @apply mb-4 flex flex-wrap items-center justify-between gap-4; }
+    .card-header { @apply mb-4 flex flex-wrap items-start justify-between gap-4; }
+    .toolbar { @apply flex flex-wrap items-center gap-4; }
+
+    /* ---------- Surfaces ---------- */
+    .card { @apply min-w-0 rounded-xl border border-gray-100 bg-white p-6; }
+    /* A card whose content runs edge to edge (tables). */
+    .card-flush { @apply min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white; }
+
+    /* Label / value rows on detail cards: one row per fact, thin dividers. */
+    .detail-list { @apply divide-y divide-gray-100 text-sm; }
+    .detail-list > div { @apply flex justify-between gap-4 py-4; }
+    .detail-list > div:first-child { @apply pt-0; }
+    .detail-list > div:last-child { @apply pb-0; }
+
+    /* ---------- Filter bar ---------- */
+    .filter-bar { @apply mb-6 rounded-xl border border-gray-100 bg-white p-4; }
+    .filter-fields { @apply flex flex-wrap items-end gap-4; }
+    .filter-field { @apply flex min-w-0 max-w-full flex-col; }
+    .filter-label { @apply text-xs font-semibold uppercase leading-6 tracking-wide text-gray-600; }
+    .filter-meta { @apply mt-4 border-t border-gray-100 pt-4 text-xs text-gray-600; }
+
+    /* ---------- Buttons ----------
+       Primary = the one main action (solid accent), secondary = neutral
+       outline, danger = destructive. In a row, secondary first and primary
+       last. 44px tall on phones, 36px from 640px. */
+    .btn { @apply inline-flex min-h-[2.75rem] items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-medium transition duration-150 ease-out focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line focus-visible:ring-offset-2 focus-visible:ring-offset-white active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100 sm:min-h-[2.25rem]; }
+    .btn-primary { @apply bg-accent text-on-accent hover:bg-accent-hover; }
+    .btn-secondary { @apply border border-gray-300 bg-white text-gray-800 hover:border-gray-400 hover:bg-gray-50; }
+    .btn-danger { @apply border border-red-200 bg-white text-red-700 hover:bg-red-50; }
+    .btn-danger-solid { @apply bg-red-600 text-snow hover:bg-red-700 disabled:bg-gray-300 disabled:opacity-100; }
+    .btn-sm { @apply px-3 text-xs sm:min-h-[2rem]; }
+    .btn-lg { @apply min-h-[3rem] px-6; }
+    .link { @apply font-medium text-accent-ink hover:underline hover:underline-offset-2; }
+    .link-muted { @apply font-medium text-gray-600 hover:text-gray-900; }
+    .link-danger { @apply font-medium text-red-700 hover:text-red-800; }
+
+    /* ---------- Forms ---------- */
+    .form-label { @apply block text-sm font-medium leading-6 text-gray-700; }
+    .form-label-inline { @apply text-sm font-medium text-gray-700; }
+    .form-input { @apply block min-h-[2.75rem] w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-500 transition duration-150 focus:border-accent-line focus:outline-hidden focus:ring-[3px] focus:ring-accent-line/30 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 motion-reduce:transition-none sm:min-h-[2.5rem]; }
+    textarea.form-input { @apply py-4; }
+    .form-select-inline { @apply min-h-[2.75rem] max-w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 transition duration-150 hover:border-gray-400 focus:border-accent-line focus:outline-hidden focus:ring-[3px] focus:ring-accent-line/30 motion-reduce:transition-none sm:min-h-[2.5rem]; }
+    .form-input-sm { @apply min-h-[2.75rem] px-4 text-xs sm:min-h-[2rem]; }
+    .form-help { @apply text-xs leading-5 text-gray-600; }
+    .form-error { @apply text-sm leading-6 text-red-700; }
+    /* Required fields: an asterisk added to their label (resources/js/app.js);
+       the input keeps its native `required` for screen readers. */
+    .form-label.is-required::after { content: ' *'; @apply font-semibold text-red-700; }
+
+    /* ---------- Tables ---------- */
+    .table-wrap { @apply overflow-x-auto; }
+    .data-table { @apply min-w-full divide-y divide-gray-100; }
+    .data-table tbody { @apply divide-y divide-gray-100; }
+    .table-th { @apply h-11 whitespace-nowrap bg-gray-50/60 px-4 py-0 text-left align-middle text-xs font-semibold uppercase tracking-wide text-gray-600; }
+    .table-td { @apply px-4 py-4 align-middle text-sm; }
+    .data-table .num, .table-th.num, .table-td.num { @apply text-right tabular-nums; }
+    .data-table tr > :first-child { @apply pl-6; }
+    .data-table tr > :last-child { @apply pr-6; }
+    .table-actions { @apply flex flex-wrap items-center justify-end gap-x-4; }
+    .table-th.actions { @apply text-right; }
+
+    /* ---------- Alerts / callouts ---------- */
+    .alert { @apply rounded-lg border p-4 text-sm; }
+    .alert-info { @apply border-blue-200 bg-blue-50 text-blue-800; }
+    .alert-success { @apply border-green-200 bg-green-50 text-green-800; }
+    .alert-warning { @apply border-amber-200 bg-amber-50 text-amber-800; }
+    .alert-danger { @apply border-red-200 bg-red-50 text-red-800; }
+
+    /* ---------- Guidance ---------- */
+    .info-tip-btn { @apply relative inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-600 hover:text-gray-900 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line; }
+    .info-tip-btn::before { content: ''; @apply absolute -inset-2.5; }
+    .info-tip-panel { @apply fixed z-[70] w-72 max-w-[calc(100vw-2rem)] whitespace-normal rounded-lg border border-gray-200 bg-white p-4 text-left text-xs font-normal normal-case leading-5 tracking-normal text-gray-800; }
+    .guide-note { @apply text-sm leading-6 text-gray-600; }
+
+    /* ---------- Skip link ---------- */
+    .skip-link { @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:inline-flex focus:min-h-[2.75rem] focus:items-center focus:rounded-lg focus:bg-white focus:px-4 focus:text-sm focus:font-semibold focus:text-accent-ink focus:outline-hidden focus:ring-[3px] focus:ring-accent-line; }
+
+    /* ---------- App shell ---------- */
+    .nav-section { @apply px-3 text-xs font-semibold uppercase leading-8 tracking-[0.08em] text-gray-500; }
+    .nav-item { @apply relative flex min-h-[2.5rem] items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900; }
+    .nav-item[aria-current='page'] { @apply bg-accent-soft font-semibold text-gray-900; }
+    .nav-item[aria-current='page']::before { content: ''; @apply absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-accent; }
+    .nav-item[aria-current='page'] svg { @apply text-accent-ink; }
+    .icon-btn { @apply inline-flex h-11 w-11 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line; }
+
+    /* Status chip: a pill with a coloured dot, for record states. */
+    .chip { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium; }
+}
+
+/* Theme toggle: show the icon for the theme you would switch TO. */
+:root[data-theme='dark'] [data-theme-icon='light'],
+:root:not([data-theme='dark']) [data-theme-icon='dark'] {
+    display: none;
+}
+[x-cloak] { display: none !important; }
+
+/*
+ * Tables on phones (< 640px): every .data-table row becomes a stacked card,
+ * each cell a "LABEL  value" line. The labels are copied from the table's
+ * own headers by resources/js/app.js (data-label), so no list page needs
+ * its own phone markup. Opt out with data-no-stack on the <table>.
+ */
+@media (max-width: 639px) {
+    .data-table:not([data-no-stack]) thead {
+        display: none;
+    }
+    .data-table:not([data-no-stack]),
+    .data-table:not([data-no-stack]) tbody,
+    .data-table:not([data-no-stack]) tr,
+    .data-table:not([data-no-stack]) td {
+        display: block;
+        width: 100%;
+    }
+    .data-table:not([data-no-stack]) tbody tr {
+        padding: 0.75rem 1rem;
+    }
+    .data-table:not([data-no-stack]) td[data-label] {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.375rem 0 !important;
+        min-height: 2.25rem;
+        text-align: right;
+    }
+    .data-table:not([data-no-stack]) td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-align: left;
+        text-transform: uppercase;
+        color: var(--color-gray-500);
+    }
+    .data-table:not([data-no-stack]) td[data-label='']::before {
+        display: none;
+    }
+    .data-table:not([data-no-stack]) td[data-label] .table-actions {
+        justify-content: flex-end;
+    }
+}

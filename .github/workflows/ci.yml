@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'polish/**', 'backend/**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Tests (${{ matrix.db }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # SQLite is what the tests use on a laptop; PostgreSQL 17 is what
+        # Supabase runs, so every query must pass on both.
+        db: [sqlite, pgsql]
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ascot_drrms_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, gd, zip, intl, sodium, fileinfo, exif, gmp, bcmath
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend (Vite + vendor assets + icons)
+        run: npm run build
+
+      - name: Offline report queue tests
+        run: npm run test:queue
+
+      - name: Icons in the repo match the views
+        run: git diff --exit-code -- resources/icons
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Tests on SQLite
+        if: matrix.db == 'sqlite'
+        run: php artisan test
+
+      - name: Tests on PostgreSQL 17
+        if: matrix.db == 'pgsql'
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '5432'
+          DB_DATABASE: ascot_drrms_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_SSLMODE: disable
+        run: php artisan test

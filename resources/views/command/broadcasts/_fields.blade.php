@@ -1,0 +1,7 @@
+<div><label for="title" class="form-label">Title</label><input id="title" name="title" value="{{ old('title', $broadcast->title ?? '') }}" maxlength="150" required class="form-input">@error('title')<p class="text-sm text-red-700">{{ $message }}</p>@enderror</div>
+<div><label for="body" class="form-label">Message</label><textarea id="body" name="body" rows="6" maxlength="5000" required class="form-input">{{ old('body', $broadcast->body ?? '') }}</textarea>@error('body')<p class="text-sm text-red-700">{{ $message }}</p>@enderror</div>
+<input type="hidden" name="send_email" value="0">
+<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="send_email" value="1" @checked(old('send_email', $broadcast->send_email ?? false))> Also email verified addresses</label>
+<input type="hidden" name="send_sms" value="0">
+<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="send_sms" value="1" @checked(old('send_sms', $broadcast->send_sms ?? false))> Also text verified mobile numbers</label>
+<div><label for="sms_text" class="form-label">SMS message</label><textarea id="sms_text" name="sms_text" rows="3" maxlength="480" class="form-input">{{ old('sms_text', $broadcast->sms_text ?? '') }}</textarea><p class="mt-1 text-xs text-gray-500">Include ASCOT DRRMS, the campus, and the action recipients should take.</p>@error('sms_text')<p class="text-sm text-red-700">{{ $message }}</p>@enderror</div>

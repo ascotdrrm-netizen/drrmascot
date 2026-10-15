@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------------------
+# SAFETY NET — DENY ONLY.
+#
+# This file is never read when the web server's document root is public/, as
+# it should be: the server then can't see this folder at all. It exists so that
+# a host which serves the PROJECT folder by mistake leaks nothing: .env (app
+# key, database password, privacy hash), storage/logs, the source and the
+# vendor code all answer 403.
+#
+# It deliberately does NOT rewrite requests into public/. A wrongly rooted
+# deploy must fail visibly (the site doesn't work) rather than appear to work
+# while the layout is wrong. Fix the document root instead.
+#
+# Covered by tests/Feature/RootHtaccessTest.php — don't drop an entry.
+# ---------------------------------------------------------------------------
+
+Options -Indexes
+
+# Files at any depth: dotfiles (.env, .env.example, .gitignore, ...) and the
+# project's own files.
+<FilesMatch "^(\..*|composer\.json|composer\.lock|artisan|phpunit\.xml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Directories: dot-directories (.git, .github, ...) and every folder that is not
+# public/. Paths here are relative to this folder.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$) - [F,L]
+</IfModule>
+
+# The same directories if mod_rewrite is unavailable (paths here include any
+# URL prefix, so the pattern matches a path segment, not just the start).
+<IfModule !mod_rewrite.c>
+    RedirectMatch 403 (^|/)\.
+    RedirectMatch 403 (^|/)(app|bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$)
+</IfModule>
