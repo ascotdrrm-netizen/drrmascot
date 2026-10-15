@@ -19,7 +19,7 @@ class FileController extends Controller
     /** Shown in the browser; every other type is forced to download. */
     protected const INLINE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 
-    public function show(Request $request, string $path): StreamedResponse
+    public function show(Request $request, string $path): StreamedResponse|\Illuminate\Http\RedirectResponse
     {
         abort_unless((string) $request->query('viewer') === (string) $request->user()->getAuthIdentifier(), 403);
         abort_unless(Files::isAllowedPath($path) && Files::exists($path), 404);
@@ -27,6 +27,10 @@ class FileController extends Controller
         $disk = Files::disk();
         $type = $disk->mimeType($path) ?: 'application/octet-stream';
         $name = $request->query('name') ?: basename($path);
+        if (config('hosting.serverless') && Files::diskName() === 's3') {
+            return \App\Support\CloudDownload::redirect('s3', $path, $name, $type,
+                in_array($type, self::INLINE_TYPES, true) && ! $request->boolean('download'));
+        }
         $headers = [
             'Content-Type' => $type,
             'Cache-Control' => 'private, no-store',

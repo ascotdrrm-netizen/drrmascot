@@ -2,6 +2,12 @@
 
 Database migrations and presentation seeding are pending at the user's request. Feature tests run against an isolated in-memory SQLite database.
 
+## Selected demo hosting
+
+The user selected Vercel + Supabase with a free demo plan. See [VERCEL_SUPABASE.md](VERCEL_SUPABASE.md) and `deploy/vercel.env.example`. Source preparation includes the PHP entry point, private direct upload tickets, cloud-backed stored ZIPs/large downloads, and one external broadcast delivery per staff dashboard poll. Real deployment/build and service smoke checks are pending; no live migration has been run. The worker/scheduler instructions below apply to a conventional host or a separate local worker.
+
+Hosting preparation verification: `composer test` passed 571 tests / 28,069 assertions on isolated SQLite (430.76 seconds); `npm run test:queue` passed 9 tests. PHP lint, new-file Pint checks, JavaScript syntax, Blade compilation and `git diff --check` passed. Composer's test script now disables its 300-second subprocess timeout so the complete PDF suite can finish. `npm run build` reached asset copying, then the managed Windows environment denied the esbuild subprocess (`spawn EPERM`); no production frontend build or browser/cloud smoke check is claimed.
+
 ## Connected workflows
 
 - Private uploads use signed links bound to their viewer; protected pages and file responses use `no-store`.

@@ -31,6 +31,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('hosting.serverless')) {
+            config(['dompdf.options.font_dir' => storage_path('fonts'),
+                'dompdf.options.font_cache' => storage_path('fonts'),
+                'dompdf.options.temp_dir' => sys_get_temp_dir(),
+                'dompdf.options.chroot' => [base_path(), sys_get_temp_dir()]]);
+        }
         // Every record id in a URL is a number. Without this, /incidents/abc
         // reaches PostgreSQL as a type error (500) instead of a plain 404.
         foreach (self::NUMERIC_ROUTE_PARAMETERS as $parameter) {

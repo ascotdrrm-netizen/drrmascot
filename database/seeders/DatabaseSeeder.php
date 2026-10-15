@@ -11,6 +11,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException('The development seeder is disabled in production. Run app:create-admin for a fresh database.');
+        }
         $zabali = Campus::create([
             'campus_name' => 'ASCOT Zabali Campus',
             'address' => 'Zabali, Baler, Aurora',

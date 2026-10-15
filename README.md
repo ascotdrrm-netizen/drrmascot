@@ -1,3 +1,13 @@
+# ASCOT DRRMS
+
+Laravel campus disaster reporting and response system.
+
+- **Selected demo hosting:** [Vercel + Supabase setup](docs/VERCEL_SUPABASE.md)
+- **Completed backend work and remaining live checks:** [Backend handoff](docs/BACKEND_PROGRESS.md)
+- **Environment template:** [Vercel variables](deploy/vercel.env.example)
+
+Live migrations are deferred. Deploy builds do not run migrations or seed accounts.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

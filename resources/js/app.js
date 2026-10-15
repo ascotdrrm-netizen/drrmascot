@@ -1,5 +1,6 @@
 import './bootstrap';
 import './modules/ajax';
+import './modules/serverless-work';
 import './modules/live';
 import './modules/report-queue';
 import './modules/report-wizard';

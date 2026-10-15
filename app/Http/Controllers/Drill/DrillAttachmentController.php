@@ -25,7 +25,7 @@ class DrillAttachmentController extends Controller
 {
     use HandlesCampusScoping, LogsReportDownloads;
 
-    public function show(Request $request, Drill $drill, DrillAttachment $attachment): StreamedResponse
+    public function show(Request $request, Drill $drill, DrillAttachment $attachment): StreamedResponse|RedirectResponse
     {
         $this->authorizeAttachment($drill, $attachment);
         $disk = \App\Support\Files::disk();
@@ -34,6 +34,12 @@ class DrillAttachmentController extends Controller
         $download = $request->boolean('download');
         if ($download) {
             $this->logReportDownload(sprintf('%s downloaded the drill attachment "%s" (%s, %s)', Auth::user()->full_name, $attachment->original_name, $drill->drill_type, $drill->scheduled_date->format('M j, Y')));
+        }
+
+        if (config('hosting.serverless') && \App\Support\Files::diskName() === 's3') {
+            $type = $disk->mimeType($attachment->path) ?: 'application/octet-stream';
+            $inline = ! $download && in_array($type, ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'], true);
+            return \App\Support\CloudDownload::redirect('s3', $attachment->path, $attachment->original_name, $type, $inline);
         }
 
         return $download

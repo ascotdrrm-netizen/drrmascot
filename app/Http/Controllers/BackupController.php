@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Backup;
 use App\Support\Backup\BackupArchive;
 use App\Support\Backup\DataSet;
+use App\Support\Backup\StoredBackups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
@@ -123,7 +123,7 @@ class BackupController extends Controller
             $this->verifyStoredBackup($backup, $expected, $files);
         } catch (Throwable $e) {
             if ($backup) {
-                Storage::disk('local')->delete($backup->storage_path);
+                StoredBackups::disk()->delete($backup->storage_path);
                 $backup->delete();
             }
             Log::warning('Clear All Records: pre-clear backup failed', ['error' => $e->getMessage()]);
@@ -255,7 +255,7 @@ class BackupController extends Controller
 
         // The zip IS the permanent stored copy (see Recent/Old Backups), so it
         // is not deleted after sending.
-        return response()->download(Storage::disk('local')->path($backup->storage_path), $backup->filename);
+        return StoredBackups::download($backup);
     }
 
     /**
@@ -269,33 +269,38 @@ class BackupController extends Controller
         $timestamp = now()->format('Y-m-d_His');
         $base = ($preClear ? self::PRE_CLEAR_PREFIX : 'ascot-drrms-backup-') . $timestamp;
 
-        // ZipArchive::open() does not create missing folders, so the backups
-        // folder is ensured every time (a fresh install has none yet).
-        Storage::disk('local')->makeDirectory('backups');
-        if (! Storage::disk('local')->exists('backups')) {
-            throw new RuntimeException(
-                'Unable to create the backups storage directory at '
-                . Storage::disk('local')->path('backups')
-                . '. Check write permissions on storage/app/private on this server.'
-            );
-        }
-
         // A backup file name is never reused: names are stamped to the second,
         // so a second backup in the same second gets -2, -3 …
-        for ($name = $base, $n = 2; Storage::disk('local')->exists("backups/{$name}.zip"); $n++) {
+        for ($name = $base, $n = 2; StoredBackups::disk()->exists("backups/{$name}.zip"); $n++) {
             $name = "{$base}-{$n}";
         }
         $zipFilename = "{$name}.zip";
         $storagePath = "backups/{$zipFilename}";
 
-        $this->writeArchive(Storage::disk('local')->path($storagePath), $files);
-
-        $backup = Backup::create([
-            'filename' => $zipFilename,
-            'storage_path' => $storagePath,
-            'created_by' => Auth::id(),
-            'file_size' => Storage::disk('local')->size($storagePath),
-        ]);
+        $temporary = tempnam(sys_get_temp_dir(), 'drrms-backup-');
+        if ($temporary === false) {
+            throw new RuntimeException('Unable to prepare a backup archive.');
+        }
+        $stream = null;
+        try {
+            $this->writeArchive($temporary, $files);
+            $stream = fopen($temporary, 'rb');
+            if (! is_resource($stream) || ! StoredBackups::disk()->put($storagePath, $stream, ['visibility' => 'private'])) {
+                throw new RuntimeException('Unable to save the backup archive.');
+            }
+            $backup = Backup::create([
+                'filename' => $zipFilename,
+                'storage_path' => $storagePath,
+                'created_by' => Auth::id(),
+                'file_size' => StoredBackups::disk()->size($storagePath),
+            ]);
+        } catch (Throwable $e) {
+            StoredBackups::disk()->delete($storagePath);
+            throw $e;
+        } finally {
+            if (is_resource($stream)) fclose($stream);
+            @unlink($temporary);
+        }
 
         $this->pruneOldBackups();
 
@@ -319,7 +324,7 @@ class BackupController extends Controller
             ->orderByDesc('backup_id')->get()->slice(self::MAX_STORED_BACKUPS);
 
         foreach ($stale as $backup) {
-            Storage::disk('local')->delete($backup->storage_path);
+            StoredBackups::disk()->delete($backup->storage_path);
             $backup->delete();
         }
     }
@@ -383,22 +388,19 @@ class BackupController extends Controller
         $this->assertConfirmedForRestore($request);
         $this->assertZipSupported('backup_file');
 
-        if (! Storage::disk('local')->exists($backup->storage_path)) {
+        if (! StoredBackups::disk()->exists($backup->storage_path)) {
             return back()->withErrors([
                 'backup_file' => 'This stored backup file could no longer be found on disk.',
             ]);
         }
 
-        $path = Storage::disk('local')->path($backup->storage_path);
-        $read = BackupArchive::read($path);
-
-        if ($read === null) {
-            return back()->withErrors([
-                'backup_file' => 'This stored backup file is invalid or unrecognized and could not be read.',
-            ]);
-        }
-
-        return $this->performRestore($read, $backup->filename, $this->restoreMode($request), $path);
+        return StoredBackups::withLocalFile($backup->storage_path, function ($path) use ($backup, $request) {
+            $read = BackupArchive::read($path);
+            if ($read === null) {
+                return back()->withErrors(['backup_file' => 'This stored backup file is invalid or unrecognized and could not be read.']);
+            }
+            return $this->performRestore($read, $backup->filename, $this->restoreMode($request), $path);
+        });
     }
 
     /**
@@ -407,7 +409,7 @@ class BackupController extends Controller
      */
     public function downloadStored(Request $request, Backup $backup): BinaryFileResponse|RedirectResponse
     {
-        if (! Storage::disk('local')->exists($backup->storage_path)) {
+        if (! StoredBackups::disk()->exists($backup->storage_path)) {
             return back()->withErrors([
                 'backup_file' => 'This stored backup file could no longer be found on disk.',
             ]);
@@ -415,7 +417,7 @@ class BackupController extends Controller
 
         $this->logBackupDownload($backup, $request);
 
-        return response()->download(Storage::disk('local')->path($backup->storage_path), $backup->filename);
+        return StoredBackups::download($backup);
     }
 
     protected function logBackupDownload(Backup $backup, Request $request): void
@@ -546,6 +548,6 @@ class BackupController extends Controller
      */
     protected function verifyStoredBackup(Backup $backup, array $expected, array $files = []): void
     {
-        BackupArchive::verify(Storage::disk('local')->path($backup->storage_path), $expected, $files);
+        StoredBackups::withLocalFile($backup->storage_path, fn ($path) => BackupArchive::verify($path, $expected, $files));
     }
 }

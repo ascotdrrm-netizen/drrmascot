@@ -3,6 +3,9 @@
 .env
 .env.backup
 .env.production
+.env.*
+!.env.example
+/.vercel
 .phpactor.json
 .phpunit.result.cache
 /.fleet

@@ -41,6 +41,12 @@ Route::view('/offline', 'reporter.offline')->name('offline');
 // for one once on a 419, then sends the request again).
 Route::get('/csrf-refresh', fn () => response()->json(['token' => csrf_token()])->header('Cache-Control', 'no-store'))->name('csrf.refresh');
 
+Route::post('/uploads/sign', [\App\Http\Controllers\DirectUploadController::class, 'store'])
+    ->middleware(['auth', 'throttle:60,1'])->name('uploads.sign');
+Route::post('/broadcasts/work', [\App\Http\Controllers\ServerlessWorkController::class, 'work'])
+    ->middleware(['auth', 'staff', 'throttle:10,1'])->name('broadcasts.work');
+Route::get('/internal/maintenance', [\App\Http\Controllers\ServerlessWorkController::class, 'maintenance']);
+
 // Guests can inspect the sample app outside production. In production the
 // response screens require an approved Reporter account.
     Route::prefix('app')->name('app.')->controller(AppPreviewController::class)

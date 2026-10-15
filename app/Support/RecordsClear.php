@@ -242,7 +242,7 @@ class RecordsClear
             'cleared_by' => ['personnel_id' => $by->getKey(), 'name' => $by->full_name],
             'pre_clear_backup' => [
                 'backup_id' => $backup->getKey(), 'filename' => $backup->filename,
-                'path' => 'storage/app/private/' . $backup->storage_path, 'bytes' => $backup->file_size,
+                'path' => (\App\Support\Backup\StoredBackups::diskName() === 'local' ? 'storage/app/private/' : \App\Support\Backup\StoredBackups::diskName().':') . $backup->storage_path, 'bytes' => $backup->file_size,
                 'verified_row_counts' => $verifiedCounts,
             ],
             'extra_copy' => null,
@@ -367,7 +367,7 @@ class RecordsClear
         $folder = $dir . (str_contains($dir, '/') ? '/' : DIRECTORY_SEPARATOR) . 'pre-clear-' . $now->format('Y-m-d-His');
         try {
             self::ensureDir($folder);
-            if (! copy(Storage::disk('local')->path($backup->storage_path), $folder . DIRECTORY_SEPARATOR . $backup->filename)) {
+            if (! \App\Support\Backup\StoredBackups::withLocalFile($backup->storage_path, fn ($path) => copy($path, $folder . DIRECTORY_SEPARATOR . $backup->filename))) {
                 throw new \RuntimeException('could not copy the backup zip');
             }
             $copied = 0;
@@ -396,7 +396,9 @@ class RecordsClear
     protected static function writeManifest(string $path, ?string $folder, array $manifest): void
     {
         $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        Storage::disk('local')->put($path, $json);
+        if (! \App\Support\Backup\StoredBackups::disk()->put($path, $json)) {
+            throw new \RuntimeException('Could not save the records-clear manifest.');
+        }
         if ($folder) {
             @file_put_contents($folder . DIRECTORY_SEPARATOR . basename($path), $json);
         }

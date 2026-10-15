@@ -144,6 +144,9 @@ class BroadcastController extends Controller
 
     private function dispatch(int $id): void
     {
+        // The Vercel demo advances one delivery per authenticated dashboard
+        // poll. Do not recursively execute the queue synchronously here.
+        if (config('hosting.serverless')) return;
         try {
             DeliverBroadcast::dispatch($id);
         } catch (\Throwable $exception) {

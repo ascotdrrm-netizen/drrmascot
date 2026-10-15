@@ -18,6 +18,10 @@
 
 return [
 
+    // Set s3 on hosts with an ephemeral/read-only filesystem. Keep this
+    // setting stable; existing backup rows do not carry their own disk name.
+    'disk' => env('BACKUP_DISK', 'local'),
+
     // Outside the project and outside the web root, e.g.
     // C:\Users\<you>\ASCOT-DRRMS-Backups\snapshots
     'dir' => env('BACKUP_SNAPSHOT_DIR'),
@@ -45,7 +49,7 @@ return [
 
     // Uploaded files copied after each verified copy: folder name => Storage
     // disk (config/filesystems.php). On Supabase the record files live on the
-    // "s3" disk (Supabase Storage); stored backup zips stay on "local".
+    // "s3" disk (Supabase Storage); stored zips use BACKUP_DISK.
     'mirror' => array_merge([
         'private' => 'local',
         'public' => 'public',

@@ -24,10 +24,27 @@
  * from the same Blade views.
  */
 import axios from 'axios';
+import { prepareDirectUploads, putPrivateUpload } from './direct-uploads';
 
 export const http = axios.create({
     headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
     withCredentials: true,
+});
+
+http.interceptors.request.use(async (config) => {
+    const endpoint = document.querySelector('meta[name="direct-upload-url"]')?.content;
+    if (!endpoint || !(config.data instanceof FormData) || ![...config.data.values()].some((value) => value instanceof Blob)) return config;
+    const target = new URL(config.url, window.location.href);
+    if (target.origin !== window.location.origin) throw new Error('Uploads must be submitted to this site.');
+    const method = String(config.data.get('_method') || config.method || 'POST').toUpperCase();
+    const csrf = config.data.get('_token') || document.querySelector('meta[name="csrf-token"]')?.content;
+    config.data = await prepareDirectUploads(config.data, {
+        target: target.pathname, method,
+        sign: async (data) => (await http.post(endpoint, data, { headers: { 'X-CSRF-TOKEN': csrf } })).data,
+        put: (url, headers, file) => putPrivateUpload(url, headers, file, config.signal),
+        onProgress: (percent) => config.onUploadProgress?.({ loaded: percent, total: 100 }),
+    });
+    return config;
 });
 
 // A page left open past the session (a phone app open all day) gets a 419:
@@ -273,7 +290,7 @@ async function submitForm(form, submitter) {
 
 document.addEventListener('submit', (e) => {
     const form = e.target;
-    if (! form.matches || ! form.matches('form[data-ajax]')) return;
+    if (! form.matches || !(form.matches('form[data-ajax]') || (document.querySelector('meta[name="direct-upload-url"]') && form.enctype === 'multipart/form-data' && hasFiles(form)))) return;
     // The confirm dialog stops the first submit and sends it again once
     // confirmed (confirm-dialog.blade.php); only that second one goes here.
     if (e.defaultPrevented) return;

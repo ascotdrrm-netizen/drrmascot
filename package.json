@@ -2,9 +2,12 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
+    "engines": {
+        "node": "22.x"
+    },
     "scripts": {
         "assets": "node scripts/copy-assets.mjs",
-    "test:queue": "node --test --test-isolation=none tests/js/report-queue.test.mjs",
+        "test:queue": "node --test --test-isolation=none tests/js/report-queue.test.mjs tests/js/direct-uploads.test.mjs",
         "predev": "node scripts/copy-assets.mjs",
         "dev": "vite",
         "prebuild": "node scripts/copy-assets.mjs",

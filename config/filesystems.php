@@ -70,6 +70,8 @@ return [
             'bucket' => env('SUPABASE_S3_BUCKET', env('AWS_BUCKET', 'drrms')),
             'endpoint' => env('SUPABASE_S3_ENDPOINT', env('AWS_ENDPOINT')),
             'use_path_style_endpoint' => true,
+            'request_checksum_calculation' => 'when_required',
+            'response_checksum_validation' => 'when_required',
             'visibility' => 'private',
             'throw' => true,
             'report' => true,
