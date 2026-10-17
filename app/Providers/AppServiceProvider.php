@@ -31,6 +31,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // A live HTTPS site never links its CSS/JS over http:// (browsers block
+        // it), whatever a proxy header says.
+        if ($this->app->isProduction() && str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
         if (config('hosting.serverless')) {
             config(['dompdf.options.font_dir' => storage_path('fonts'),
                 'dompdf.options.font_cache' => storage_path('fonts'),

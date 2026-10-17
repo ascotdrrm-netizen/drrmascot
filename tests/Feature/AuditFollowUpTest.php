@@ -112,6 +112,22 @@ class AuditFollowUpTest extends TestCase
         $this->assertDatabaseMissing('sessions', ['id' => 'laptop']);
     }
 
+    public function test_real_visitor_ip_does_not_turn_a_proxied_https_page_into_http(): void
+    {
+        // Render: the app hears plain HTTP from its proxy, which says "https".
+        \Illuminate\Http\Middleware\TrustProxies::at('*');
+        \Illuminate\Http\Middleware\TrustProxies::withHeaders(\Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO);
+        config(['hosting.client_ip_header' => 'CF-Connecting-IP']);
+        try {
+            $this->get('http://localhost/login', ['X-Forwarded-Proto' => 'https', 'CF-Connecting-IP' => '203.0.113.7'])
+                ->assertOk()->assertHeader('Strict-Transport-Security')
+                // Same URL generator as the CSS/JS links (Vite is off in tests).
+                ->assertSee('action="https://localhost/login"', false)->assertDontSee('action="http://localhost/login"', false);
+        } finally {
+            \Illuminate\Http\Middleware\TrustProxies::flushState();
+        }
+    }
+
     public function test_activity_log_records_the_visitor_ip_from_the_configured_header(): void
     {
         $this->post('/login', ['email' => 'admin@example.test', 'password' => 'Password1!'], ['CF-Connecting-IP' => '203.0.113.7']);
