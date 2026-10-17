@@ -35,7 +35,7 @@
         </span>
         <span class="min-w-0">
             <span class="block text-xl font-bold">Emergency? Press SOS</span>
-            <span class="block text-sm text-snow/85">Sends your location to the DRRM Office and campus security.</span>
+            <span class="block text-sm text-snow">Sends your location to the DRRM Office and campus security.</span>
         </span>
     </a>
 
@@ -44,7 +44,7 @@
     @if (($activeRollCall ?? null) || auth()->user()?->role !== 'Reporter')
     <a href="{{ $activeRollCall ? route('app.roll-calls.show', $activeRollCall) : route('app.check-in') }}" class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-accent-line/40 bg-accent-soft p-4" data-roll-call-banner>
         <span class="flex items-center gap-3"><x-icon name="checklist" class="h-6 w-6 shrink-0 text-gray-700" /><span><span class="block text-sm font-semibold">Roll call: are you safe?</span><span class="block text-xs text-gray-600">The DRRM Office is checking on everyone. Tap to answer.</span></span></span>
-        <x-icon name="chevron_right" class="shrink-0 text-gray-500" />
+        <x-icon name="chevron_right" class="shrink-0 text-gray-600" />
     </a>
     @endif
     </div>
@@ -53,7 +53,7 @@
     <section class="mt-8">
         <div class="mb-4 flex items-center justify-between">
             <h2 class="section-title">Report a hazard</h2>
-            <a href="{{ route('app.report') }}" class="link text-sm">All types</a>
+            <a href="{{ route('app.report') }}" class="link inline-flex min-h-[2.75rem] items-center text-sm">All types</a>
         </div>
         <div class="grid grid-cols-3 gap-2">
             @foreach ($categories as $category)
@@ -69,7 +69,7 @@
     <section class="mt-8">
         <div class="mb-4 flex items-center justify-between">
             <h2 class="section-title">Advisories</h2>
-            <a href="{{ route('app.alerts') }}" class="link text-sm">See all</a>
+            <a href="{{ route('app.alerts') }}" class="link inline-flex min-h-[2.75rem] items-center text-sm">See all</a>
         </div>
         <div class="space-y-2">
             @foreach ($advisories as $advisory)
@@ -88,7 +88,7 @@
     <section class="mt-8">
         <div class="mb-4 flex items-center justify-between">
             <h2 class="section-title">Your reports</h2>
-            <a href="{{ route('app.reports') }}" class="link text-sm">See all</a>
+            <a href="{{ route('app.reports') }}" class="link inline-flex min-h-[2.75rem] items-center text-sm">See all</a>
         </div>
         <div class="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white">
             @foreach ($reports as $report)
@@ -99,6 +99,6 @@
 
     <a href="{{ route('app.hotlines') }}" class="mt-8 flex min-h-[3.5rem] items-center justify-between rounded-xl border border-gray-100 bg-white px-4">
         <span class="flex items-center gap-3"><x-icon name="call" class="h-6 w-6 text-gray-700" /><span class="text-sm font-semibold">Emergency hotlines</span></span>
-        <x-icon name="chevron_right" class="text-gray-500" />
+        <x-icon name="chevron_right" class="text-gray-600" />
     </a>
 @endsection

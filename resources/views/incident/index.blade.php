@@ -61,8 +61,8 @@
                     <p class="text-xs text-gray-600">{{ $incident->campus->campus_name ?? '—' }} · {{ $incident->school->school_name ?? '—' }}</p>
                     @if ($incident->description)<p class="line-clamp-3 text-sm text-gray-700">{{ $incident->description }}</p>@endif
                     <div class="flex flex-wrap gap-4 border-t border-gray-100 pt-3 text-sm">
-                        <a href="{{ route($routePrefix . '.incidents.show', $incident) }}" class="link">View</a>
-                        <a href="{{ route($routePrefix . '.incidents.report', $incident) }}" data-confirm="Download a PDF report of this incident and its damage reports?" class="link-muted">Download PDF</a>
+                        <a href="{{ route($routePrefix . '.incidents.show', $incident) }}" class="link inline-flex min-h-[2.75rem] items-center sm:min-h-0">View</a>
+                        <a href="{{ route($routePrefix . '.incidents.report', $incident) }}" data-confirm="Download a PDF report of this incident and its damage reports?" class="link-muted inline-flex min-h-[2.75rem] items-center sm:min-h-0">Download PDF</a>
                     </div>
                 </div>
             </article>

@@ -21,12 +21,12 @@
     <x-phone-verification />
     @if(session('status'))<p role="status" class="mt-3 text-sm text-green-700">{{ session('status') }}</p>@endif
     <div class="mt-6 divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white">
-        <a href="{{ route('app.reports') }}" class="flex min-h-[3.25rem] items-center justify-between px-4 text-sm font-medium"><span class="flex items-center gap-3"><x-icon name="assignment" class="text-gray-500" /> Your reports</span><x-icon name="chevron_right" class="text-gray-400" /></a>
-        <a href="{{ route('app.hotlines') }}" class="flex min-h-[3.25rem] items-center justify-between px-4 text-sm font-medium"><span class="flex items-center gap-3"><x-icon name="call" class="text-gray-500" /> Emergency hotlines</span><x-icon name="chevron_right" class="text-gray-400" /></a>
+        <a href="{{ route('app.reports') }}" class="flex min-h-[3.25rem] items-center justify-between px-4 text-sm font-medium"><span class="flex items-center gap-3"><x-icon name="assignment" class="text-gray-600" /> Your reports</span><x-icon name="chevron_right" class="text-gray-400" /></a>
+        <a href="{{ route('app.hotlines') }}" class="flex min-h-[3.25rem] items-center justify-between px-4 text-sm font-medium"><span class="flex items-center gap-3"><x-icon name="call" class="text-gray-600" /> Emergency hotlines</span><x-icon name="chevron_right" class="text-gray-400" /></a>
         <div class="px-2 py-1"><x-theme-toggle label /></div>
     </div>
     @auth
         <form method="POST" action="{{ route('logout') }}" class="mt-6">@csrf<button type="submit" class="btn btn-secondary w-full"><x-icon name="logout" /> Log out</button></form>
     @endauth
-    <p class="mt-6 text-center text-xs text-gray-500">Your location is only sent when you press SOS, send a report, or share it in a safety check-in.</p>
+    <p class="mt-6 text-center text-xs text-gray-600">Your location is only sent when you press SOS, send a report, or share it in a safety check-in.</p>
 @endsection

@@ -124,7 +124,7 @@
                             @foreach ($dayDrills->take($limit) as $drill)
                                 <a href="{{ route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}"
                                    title="{{ $drill->drill_type }} — {{ $pillText($drill) }}{{ $isAdmin ? ' (' . ($drill->campus->campus_name ?? '') . ')' : '' }}"
-                                   class="block min-w-0 rounded-md border-l-4 px-2 py-1 text-xs leading-4 hover:brightness-95 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line {{ $drill->typeColours()['pill'] }}">
+                                   class="block min-w-0 rounded-md border px-2 py-1 text-xs leading-4 hover:brightness-95 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line {{ $drill->typeColours()['pill'] }}">
                                     <span class="block truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
                                     <span class="block truncate uppercase opacity-90">{{ $pillText($drill) }}</span>
                                 </a>
@@ -151,7 +151,7 @@
                         @foreach ($dayDrills as $drill)
                             <li>
                                 <a href="{{ route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}"
-                                   class="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border-l-4 px-4 py-2 text-sm {{ $drill->typeColours()['pill'] }}">
+                                   class="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border px-4 py-2 text-sm {{ $drill->typeColours()['pill'] }}">
                                     <span class="truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
                                     <span class="truncate text-xs uppercase">{{ $pillText($drill) }}{{ $isAdmin ? ' · ' . ($drill->campus->campus_name ?? '') : '' }}</span>
                                 </a>

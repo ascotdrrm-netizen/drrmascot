@@ -83,7 +83,7 @@
                 <li class="flex gap-3 p-4"><span class="font-display text-xl font-semibold text-accent-ink">2</span><span class="text-sm"><span class="font-semibold">Your campus coordinator</span> confirms you study or work there.</span></li>
                 <li class="flex gap-3 p-4"><span class="font-display text-xl font-semibold text-accent-ink">3</span><span class="text-sm"><span class="font-semibold">The DRRMO Admin approves</span> your account. We’ll text you.</span></li>
             </ol>
-            <p class="text-center text-xs text-gray-500">In an emergency before then, call the hotlines: they never need an account.</p>
+            <p class="text-center text-xs text-gray-600">In an emergency before then, call the hotlines: they never need an account.</p>
             <a href="{{ route('app.hotlines') }}" class="btn btn-secondary w-full"><x-icon name="call" /> Emergency hotlines</a>
         </section>
     </div>

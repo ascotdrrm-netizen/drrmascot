@@ -28,7 +28,7 @@
                 <li>Choose <span class="font-semibold">Add to Home Screen</span>.</li>
                 <li>Tap <span class="font-semibold">Add</span>.</li>
             </ol>
-            <p class="mt-3 text-xs text-gray-500" x-show="! prompt && ! ios && ! installed">Open this page in Chrome to install it.</p>
+            <p class="mt-3 text-xs text-gray-600" x-show="! prompt && ! ios && ! installed">Open this page in Chrome to install it.</p>
         </div>
 
         <div class="grid gap-3">

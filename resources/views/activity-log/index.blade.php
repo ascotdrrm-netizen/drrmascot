@@ -18,8 +18,8 @@
     @php
         $actionLabels = \App\Models\ActivityLog::ACTION_LABELS;
         $actionBadgeMap = [
-            'Login' => 'bg-green-100 text-green-700',
-            'Created' => 'bg-green-100 text-green-700',
+            'Login' => 'bg-green-100 text-green-800',
+            'Created' => 'bg-green-100 text-green-800',
             'Updated' => 'bg-blue-100 text-blue-700',
             'Deleted' => 'bg-red-100 text-red-700',
             'Failed Login' => 'bg-red-100 text-red-700',

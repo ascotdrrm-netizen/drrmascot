@@ -9,7 +9,7 @@
         <form method="POST" action="{{ route($routePrefix.'.broadcasts.store') }}" class="mt-4 space-y-4">
             @csrf
             <input type="hidden" name="client_key" value="{{ old('client_key', (string) \Illuminate\Support\Str::uuid()) }}">
-            <div><label for="campus_id" class="form-label">Campus</label><select name="campus_id" id="campus_id" required class="form-select">@foreach($campuses as $campus)<option value="{{ $campus->getKey() }}" @selected(old('campus_id') == $campus->getKey())>{{ $campus->campus_name }}</option>@endforeach</select>@error('campus_id')<p class="text-sm text-red-700">{{ $message }}</p>@enderror</div>
+            <div><label for="campus_id" class="form-label">Campus</label><select name="campus_id" id="campus_id" required class="form-input">@foreach($campuses as $campus)<option value="{{ $campus->getKey() }}" @selected(old('campus_id') == $campus->getKey())>{{ $campus->campus_name }}</option>@endforeach</select>@error('campus_id')<p class="text-sm text-red-700">{{ $message }}</p>@enderror</div>
             @include('command.broadcasts._fields')
             <button type="submit" class="btn btn-primary">Save and preview</button>
         </form>

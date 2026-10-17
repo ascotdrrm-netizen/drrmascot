@@ -24,7 +24,8 @@
 
             <div class="mb-6 flex items-center gap-4">
                 <div class="group relative h-20 w-20 shrink-0 cursor-pointer" onclick="document.getElementById('photo').click()">
-                    <img id="avatar-preview" src="{{ $personnel->photo_url }}" alt="{{ $personnel->full_name }}"
+                    {{-- No src without a photo: an empty src re-requests this page. The upload preview sets it. --}}
+                    <img id="avatar-preview" @if ($personnel->photo_url) src="{{ $personnel->photo_url }}" @endif alt="{{ $personnel->full_name }}"
                          class="h-20 w-20 rounded-full object-cover {{ $personnel->photo_url ? '' : 'hidden' }}">
                     <div id="avatar-placeholder"
                          class="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-2xl font-semibold text-green-700 {{ $personnel->photo_url ? 'hidden' : '' }}">

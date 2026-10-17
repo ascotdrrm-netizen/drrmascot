@@ -12,7 +12,7 @@
     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-700"><x-icon :name="$report['icon']" /></span>
     <span class="min-w-0 flex-1">
         <span class="block truncate text-sm font-semibold">{{ $report['category'] }}</span>
-        <span class="block truncate text-xs text-gray-500">{{ $report['place'] }} · {{ $report['when']->diffForHumans() }}</span>
+        <span class="block truncate text-xs text-gray-600">{{ $report['place'] }} · {{ $report['when']->diffForHumans() }}</span>
     </span>
     <span class="chip shrink-0 {{ $statusTone[$report['status']] ?? $statusTone['Submitted'] }}">{{ $report['status'] }}</span>
 </a>

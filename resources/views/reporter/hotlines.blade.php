@@ -12,7 +12,7 @@
             <section class="rounded-xl border border-gray-100 bg-white">
                 <div class="border-b border-gray-100 px-4 py-3">
                     <h2 class="text-base font-semibold">{{ $group['title'] }}</h2>
-                    @isset($group['subtitle'])<p class="text-xs text-gray-500">{{ $group['subtitle'] }}</p>@endisset
+                    @isset($group['subtitle'])<p class="text-xs text-gray-600">{{ $group['subtitle'] }}</p>@endisset
                 </div>
                 <ul class="divide-y divide-gray-100">
                     @foreach ($group['entries'] as $entry)
@@ -21,7 +21,7 @@
                             @if (isset($entry['radio']))
                                 <p class="text-sm text-gray-600">Radio {{ $entry['radio'] }}</p>
                             @elseif (empty($entry['numbers']))
-                                <p class="text-sm italic text-gray-500">To be provided</p>
+                                <p class="text-sm italic text-gray-600">To be provided</p>
                             @else
                                 <div class="mt-2 flex flex-wrap gap-2">
                                     @foreach ($entry['numbers'] as $number)

@@ -6,7 +6,7 @@
     $liveAdvisories: DashboardController::liveAdvisories()
 --}}
 @if ($liveAdvisories->isNotEmpty())
-    <div class="mb-6 rounded-lg border border-amber-300 border-l-4 border-l-amber-500 bg-amber-50 p-4 text-sm text-amber-950" role="alert" data-advisory-banner>
+    <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert" data-advisory-banner>
         <p class="font-semibold">
             {{ $liveAdvisories->count() === 1 ? 'Disaster advisory in effect' : $liveAdvisories->count() . ' disaster advisories in effect' }}
         </p>

@@ -9,7 +9,7 @@
         @foreach($notifications as $notification)
             <article class="rounded-xl border border-gray-100 bg-white p-4">
                 <p class="text-sm font-semibold">{{ $notification->message }}</p>
-                <p class="mt-1 text-xs text-gray-500">{{ $notification->created_at->format('M j, g:i A') }} · {{ $notification->read_at ? 'Read' : 'New' }}</p>
+                <p class="mt-1 text-xs text-gray-600">{{ $notification->created_at->format('M j, g:i A') }} · {{ $notification->read_at ? 'Read' : 'New' }}</p>
                 <form method="POST" action="{{ route('app.notifications.open', $notification) }}" class="mt-2">@csrf<button type="submit" class="text-sm font-semibold text-accent-ink">Open notice</button></form>
             </article>
         @endforeach
@@ -21,7 +21,7 @@
                     <x-icon name="warning" class="h-3.5 w-3.5" /> {{ $advisory['hazard'] }} · {{ $advisory['level'] }}
                 </span>
                 <h2 class="mt-2 text-base font-semibold">{{ $advisory['title'] }}</h2>
-                <p class="text-xs text-gray-500">{{ $advisory['campus'] }} · {{ $advisory['issued']->format('M j, g:i A') }}</p>
+                <p class="text-xs text-gray-600">{{ $advisory['campus'] }} · {{ $advisory['issued']->format('M j, g:i A') }}</p>
                 <p class="mt-2 text-sm leading-6 text-gray-700">{{ $advisory['body'] }}</p>
             </article>
         @endforeach

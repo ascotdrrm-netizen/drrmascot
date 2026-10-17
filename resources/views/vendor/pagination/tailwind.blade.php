@@ -5,21 +5,21 @@
         <div class="flex gap-4 items-center justify-between sm:hidden">
 
             @if ($paginator->onFirstPage())
-                <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed leading-5 rounded-md dark:text-gray-300 dark:bg-night-700 dark:border-gray-600">
+                <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed leading-5 rounded-md">
                     {!! __('pagination.previous') !!}
                 </span>
             @else
-                <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-800 bg-white border border-gray-300 leading-5 rounded-md hover:text-gray-700 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-800 transition ease-in-out duration-150 dark:bg-night-800 dark:border-gray-600 dark:text-gray-200 dark:focus:border-blue-700 dark:active:bg-night-700 dark:active:text-gray-300 hover:bg-gray-100 dark:hover:bg-night-900 dark:hover:text-gray-200">
+                <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-800 bg-white border border-gray-300 leading-5 rounded-md hover:text-gray-700 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-800 transition ease-in-out duration-150 hover:bg-gray-100">
                     {!! __('pagination.previous') !!}
                 </a>
             @endif
 
             @if ($paginator->hasMorePages())
-                <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-800 bg-white border border-gray-300 leading-5 rounded-md hover:text-gray-700 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-800 transition ease-in-out duration-150 dark:bg-night-800 dark:border-gray-600 dark:text-gray-200 dark:focus:border-blue-700 dark:active:bg-night-700 dark:active:text-gray-300 hover:bg-gray-100 dark:hover:bg-night-900 dark:hover:text-gray-200">
+                <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-800 bg-white border border-gray-300 leading-5 rounded-md hover:text-gray-700 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-800 transition ease-in-out duration-150 hover:bg-gray-100">
                     {!! __('pagination.next') !!}
                 </a>
             @else
-                <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed leading-5 rounded-md dark:text-gray-300 dark:bg-night-700 dark:border-gray-600">
+                <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed leading-5 rounded-md">
                     {!! __('pagination.next') !!}
                 </span>
             @endif
@@ -29,7 +29,7 @@
         <div class="hidden sm:flex-1 sm:flex sm:gap-4 sm:items-center sm:justify-between">
 
             <div>
-                <p class="text-sm text-gray-700 leading-5 dark:text-gray-600">
+                <p class="text-sm text-gray-700 leading-5">
                     {!! __('Showing') !!}
                     @if ($paginator->firstItem())
                         <span class="font-medium">{{ $paginator->firstItem() }}</span>
@@ -50,12 +50,12 @@
                     {{-- Previous Page Link --}}
                     @if ($paginator->onFirstPage())
                         <span aria-disabled="true" aria-label="{{ __('pagination.previous') }}">
-                            <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed rounded-l-md leading-5 dark:bg-night-700 dark:border-gray-600 dark:text-gray-400" aria-hidden="true">
+                            <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed rounded-l-md leading-5" aria-hidden="true">
                                 <x-icon name="chevron_left" class="w-5 h-5" />
                             </span>
                         </span>
                     @else
-                        <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-l-md leading-5 hover:text-gray-400 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-500 transition ease-in-out duration-150 dark:bg-night-800 dark:border-gray-600 dark:active:bg-night-700 dark:focus:border-blue-800 dark:text-gray-300 dark:hover:bg-night-900 dark:hover:text-gray-300" aria-label="{{ __('pagination.previous') }}">
+                        <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-l-md leading-5 hover:text-gray-400 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-500 transition ease-in-out duration-150" aria-label="{{ __('pagination.previous') }}">
                             <x-icon name="chevron_left" class="w-5 h-5" />
                         </a>
                     @endif
@@ -65,7 +65,7 @@
                         {{-- "Three Dots" Separator --}}
                         @if (is_string($element))
                             <span aria-disabled="true">
-                                <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-700 bg-white border border-gray-300 cursor-default leading-5 dark:bg-night-800 dark:border-gray-600 dark:text-gray-300">{{ $element }}</span>
+                                <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-700 bg-white border border-gray-300 cursor-default leading-5">{{ $element }}</span>
                             </span>
                         @endif
 
@@ -74,10 +74,10 @@
                             @foreach ($element as $page => $url)
                                 @if ($page == $paginator->currentPage())
                                     <span aria-current="page">
-                                        <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 cursor-default leading-5 dark:bg-night-700 dark:border-gray-600 dark:text-gray-300">{{ $page }}</span>
+                                        <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 cursor-default leading-5">{{ $page }}</span>
                                     </span>
                                 @else
-                                    <a href="{{ $url }}" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-700 bg-white border border-gray-300 leading-5 hover:text-gray-700 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-700 transition ease-in-out duration-150 dark:bg-night-800 dark:border-gray-600 dark:text-gray-300 dark:hover:text-gray-300 dark:active:bg-night-700 dark:focus:border-blue-800 hover:bg-gray-100 dark:hover:bg-night-900" aria-label="{{ __('Go to page :page', ['page' => $page]) }}">
+                                    <a href="{{ $url }}" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-700 bg-white border border-gray-300 leading-5 hover:text-gray-700 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-700 transition ease-in-out duration-150 hover:bg-gray-100" aria-label="{{ __('Go to page :page', ['page' => $page]) }}">
                                         {{ $page }}
                                     </a>
                                 @endif
@@ -87,12 +87,12 @@
 
                     {{-- Next Page Link --}}
                     @if ($paginator->hasMorePages())
-                        <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-r-md leading-5 hover:text-gray-400 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-500 transition ease-in-out duration-150 dark:bg-night-800 dark:border-gray-600 dark:active:bg-night-700 dark:focus:border-blue-800 dark:text-gray-300 dark:hover:bg-night-900 dark:hover:text-gray-300" aria-label="{{ __('pagination.next') }}">
+                        <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-r-md leading-5 hover:text-gray-400 focus:outline-hidden focus:ring-3 ring-gray-300 focus:border-blue-300 active:bg-gray-100 active:text-gray-500 transition ease-in-out duration-150" aria-label="{{ __('pagination.next') }}">
                             <x-icon name="chevron_right" class="w-5 h-5" />
                         </a>
                     @else
                         <span aria-disabled="true" aria-label="{{ __('pagination.next') }}">
-                            <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed rounded-r-md leading-5 dark:bg-night-700 dark:border-gray-600 dark:text-gray-400" aria-hidden="true">
+                            <span class="inline-flex items-center min-h-[2.75rem] px-4 sm:min-h-[2.5rem] -ml-px text-sm font-medium text-gray-600 bg-white border border-gray-300 cursor-not-allowed rounded-r-md leading-5" aria-hidden="true">
                                 <x-icon name="chevron_right" class="w-5 h-5" />
                             </span>
                         </span>

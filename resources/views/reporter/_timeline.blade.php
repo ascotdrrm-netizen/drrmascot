@@ -10,9 +10,9 @@
                 @if ($done)<x-icon name="check" class="h-4 w-4" />@endif
             </span>
             <div class="min-w-0">
-                <p class="text-sm font-semibold {{ $done ? '' : 'text-gray-500' }}">{{ $step['status'] }}</p>
+                <p class="text-sm font-semibold {{ $done ? '' : 'text-gray-600' }}">{{ $step['status'] }}</p>
                 <p class="text-sm text-gray-600">{{ $step['note'] }}</p>
-                @if ($step['at'])<p class="text-xs text-gray-500">{{ $step['at']->format('g:i A') }} · {{ $step['at']->diffForHumans() }}</p>@endif
+                @if ($step['at'])<p class="text-xs text-gray-600">{{ $step['at']->format('g:i A') }} · {{ $step['at']->diffForHumans() }}</p>@endif
             </div>
         </li>
     @endforeach

@@ -37,7 +37,7 @@
             <span x-show="state === 'counting'" x-cloak class="font-display text-8xl font-bold" x-text="seconds" aria-live="assertive"></span>
             <span x-show="state === 'sending'" x-cloak class="text-lg font-semibold">Sending…</span>
         </button>
-        <p id="sos-help" class="mt-4 text-xs text-gray-500" x-show="state === 'idle'">If available, your location is sent to the DRRM Office and your campus Coordinator.</p>
+        <p id="sos-help" class="mt-4 text-xs text-gray-600" x-show="state === 'idle'">If available, your location is sent to the DRRM Office and your campus Coordinator.</p>
 
         <button type="button" x-show="state === 'counting'" x-cloak x-on:click="cancel()"
                 class="mt-8 min-h-[3.5rem] w-full max-w-xs rounded-xl border-2 border-gray-300 bg-white text-lg font-semibold">

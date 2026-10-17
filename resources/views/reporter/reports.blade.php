@@ -25,7 +25,7 @@
                         </div>
                     </article>
                 </template>
-                <p x-show="items.length === 0" class="text-sm text-gray-500">No reports waiting on this device.</p>
+                <p x-show="items.length === 0" class="text-sm text-gray-600">No reports waiting on this device.</p>
             </div>
         </section>
     @endif

@@ -11,7 +11,7 @@
             <template x-for="(label, i) in steps" :key="i">
                 <li class="flex flex-1 flex-col gap-1">
                     <span class="h-1 rounded-full" :class="i <= step ? 'bg-accent' : 'bg-gray-200'"></span>
-                    <span class="text-xs font-medium" :class="i === step ? 'text-gray-900' : 'text-gray-500'" x-text="label"></span>
+                    <span class="text-xs font-medium" :class="i === step ? 'text-gray-900' : 'text-gray-600'" x-text="label"></span>
                 </li>
             </template>
         </ol>
