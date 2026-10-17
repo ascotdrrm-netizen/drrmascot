@@ -15,3 +15,5 @@ public/hot
 public/storage
 .phpunit.cache
 .phpunit.result.cache
+bootstrap/cache/*.php
+.vercel
