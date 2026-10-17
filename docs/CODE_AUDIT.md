@@ -427,3 +427,17 @@ Create the accounts first: `php artisan app:create-demo-accounts --env=render`.
 - M9 Inventory module decision · M11 Remove Vercel leftovers · M12 Remove fixtures from controller
 - L1–L11 polish
 - Playwright end-to-end tests
+
+---
+
+## 8. Fix log
+
+| Date | Fixed | Commit |
+|---|---|---|
+| 2026-10-17 | H1 Symfony CVE · H2 CI (Node 24, Postgres job now runs) · H3 security headers · H4 + M14 "Keep me signed in" (remember_token) · H8 deploy only when CI passes · C1/C2 Gmail SMTP config (password still to be entered in Render) | a292f36 |
+| 2026-10-17 | Empty campus/school lists on a fresh deploy · demo accounts from a dashboard password | 0a41dfc, 35a1b52 |
+| 2026-10-17 | Report categories: Bullying, Harassment, Violence, Threat (one list in `config/report_categories.php`, part of M12) | a2e7d55 |
+| 2026-10-17 | UI/UX: pagination readable in system dark mode, 44px phone tap targets, styled broadcast select, no empty avatar request, AA contrast in light theme, no side-stripe callouts | 5543212 |
+| 2026-10-18 | H7 reports/SOS/photos kept when a Reporter is deleted ("Former reporter") · H6 visitor IP from `CF-Connecting-IP` (verify on live) · M15 password change/reset ends other sign-ins · M1 Campus Status, Schools, signatory logged · M2 log retention (failed logins 30 days, all 730 days) · M3 masked email in failed-login entries | this commit |
+
+Still open: C3 + H9 (new Supabase in Singapore), C4 (retire `C:\DRRM\ascot-drrms`), H5 (paid instance for real use), M4–M6, M8–M13, M16–M21, L-items.

@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->trustProxies(at: '*', headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO);
         }
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(\App\Http\Middleware\UseClientIpHeader::class);
         $middleware->alias([
             'role' => EnsureUserRole::class,
             'staff' => \App\Http\Middleware\EnsureStaffRole::class,

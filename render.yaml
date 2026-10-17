@@ -24,6 +24,9 @@ services:
         sync: false
       - key: BEHIND_TLS_PROXY
         value: "true"
+      # Render sits behind Cloudflare, which sets the visitor's real IP here.
+      - key: CLIENT_IP_HEADER
+        value: CF-Connecting-IP
       - key: RUN_MIGRATIONS
         value: "true"
       - key: LOG_CHANNEL

@@ -10,8 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -81,16 +79,9 @@ class PasswordResetController extends Controller
             function (Personnel $personnel, string $password) use ($ip) {
                 $personnel->forceFill([
                     'password_hash' => Hash::make($password),
-                ]);
-
-                // personnel has no remember_token column today — checked
-                // rather than assumed, so this keeps working unprompted if
-                // one is ever added later.
-                if (Schema::hasColumn($personnel->getTable(), 'remember_token')) {
-                    $personnel->forceFill(['remember_token' => Str::random(60)]);
-                }
-
-                $personnel->save();
+                ])->save();
+                // Every existing sign-in ends, including "keep me signed in".
+                \App\Support\Sessions::endOthers($personnel, null);
 
                 ActivityLog::create([
                     'personnel_id' => $personnel->personnel_id,

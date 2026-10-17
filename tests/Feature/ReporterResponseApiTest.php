@@ -173,7 +173,7 @@ class ReporterResponseApiTest extends TestCase
         $this->get('/app/sos/status')->assertOk()->assertSee('SOS received');
     }
 
-    public function test_deleting_a_reporter_removes_cascaded_report_files(): void
+    public function test_deleting_a_reporter_keeps_the_report_and_its_files(): void
     {
         $id = $this->actingAs($this->reporter)->postJson('/api/reporter/reports', [
             'client_key' => (string) Str::uuid(), 'category' => 'flood', 'place' => 'Gym',
@@ -187,8 +187,9 @@ class ReporterResponseApiTest extends TestCase
         auth()->logout();
         $this->reporter->delete();
 
-        $this->assertDatabaseCount('citizen_reports', 0);
-        Storage::disk('records')->assertMissing($photo);
-        Storage::disk('records')->assertMissing($proof);
+        // DRRMO records outlive the account (docs/CODE_AUDIT.md H7).
+        $this->assertDatabaseHas('citizen_reports', ['report_id' => $id, 'reporter_id' => null]);
+        Storage::disk('records')->assertExists($photo);
+        Storage::disk('records')->assertExists($proof);
     }
 }

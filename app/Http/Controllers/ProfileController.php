@@ -86,6 +86,8 @@ class ProfileController extends Controller
         $personnel->update([
             'password_hash' => Hash::make($data['password']),
         ]);
+        // A stolen or forgotten sign-in elsewhere ends now; this one stays.
+        \App\Support\Sessions::endOthers($personnel, $request->session()->getId());
 
         ActivityLog::create([
             'personnel_id' => $personnel->personnel_id,

@@ -97,6 +97,9 @@ Artisan::command('broadcasts:resume', function () {
 })->purpose('Resume pending broadcast delivery without repeating unconfirmed requests');
 Schedule::command('broadcasts:resume')->everyMinute()->withoutOverlapping();
 
+// Activity Log retention: config/activity_log.php (App\Models\ActivityLog::prunable).
+Schedule::command('model:prune', ['--model' => [\App\Models\ActivityLog::class]])->daily();
+
 // Uploaded files kept from before the move to Supabase (the "public" folder
 // for photos, the "local" folder for drill attachments) copied into the
 // records disk (App\Support\Files: Supabase Storage when FILES_DISK=s3).

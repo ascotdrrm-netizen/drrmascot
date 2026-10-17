@@ -2,13 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ActivityLog extends Model
 {
+    use MassPrunable;
+
     protected $primaryKey = 'activity_log_id';
+
+    /**
+     * Removed daily by the scheduler (model:prune, routes/console.php): failed
+     * logins after a short window (anyone can create them, so they must not
+     * fill the database), everything else after config('activity_log.retention_days').
+     */
+    public function prunable()
+    {
+        return static::query()
+            ->where(fn ($q) => $q->where('action', 'login_failed')->where('created_at', '<', now()->subDays(config('activity_log.failed_login_days'))))
+            ->orWhere('created_at', '<', now()->subDays(config('activity_log.retention_days')));
+    }
 
     public $timestamps = true;
 

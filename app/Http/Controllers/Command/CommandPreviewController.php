@@ -37,7 +37,7 @@ class CommandPreviewController extends Controller
                 'campus' => $report->campus?->campus_name ?: 'Campus', 'place' => $report->place ?: 'GPS location',
                 'lat' => $report->latitude === null ? null : (float) $report->latitude,
                 'lng' => $report->longitude === null ? null : (float) $report->longitude,
-                'accuracy' => $report->accuracy_m, 'reporter' => $report->reporter?->full_name ?: 'Reporter',
+                'accuracy' => $report->accuracy_m, 'reporter' => $report->reporter?->full_name ?: 'Former reporter',
                 'role' => $report->reporter?->reporter_kind ?: 'Reporter',
                 'phone' => $report->reporter?->contact_number ?: '', 'when' => $report->created_at,
                 'injured' => $report->people_injured, 'description' => $report->description,
@@ -62,7 +62,7 @@ class CommandPreviewController extends Controller
             $query->where('campus_id', Auth::user()->campus_id);
         }
         $alerts = $query->limit(100)->get()->map(fn ($sos) => [
-            'id' => $sos->sos_id, 'type' => $sos->type, 'reporter' => $sos->reporter?->full_name ?: 'Reporter',
+            'id' => $sos->sos_id, 'type' => $sos->type, 'reporter' => $sos->reporter?->full_name ?: 'Former reporter',
             'role' => $sos->reporter?->reporter_kind ?: 'Reporter', 'phone' => $sos->reporter?->contact_number ?: '',
             'campus' => $sos->campus?->campus_name ?: 'Campus', 'place' => $sos->place ?: 'Location not shared',
             'lat' => $sos->latitude === null ? null : (float) $sos->latitude,

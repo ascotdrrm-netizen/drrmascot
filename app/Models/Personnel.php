@@ -22,16 +22,11 @@ class Personnel extends Authenticatable implements MustVerifyEmail
             if ($person->isDirty('contact_number')) $person->phone_verified_at = null;
             if ($person->isDirty('email')) $person->email_verified_at = null;
         });
+        // Only the account's own photo goes. Their reports, SOS records and the
+        // photos/proof attached to them are DRRMO records and stay (the
+        // reporter_id becomes null: "Former reporter").
         static::deleting(function (Personnel $person) {
-            $paths = $person->photo_path ? [$person->photo_path] : [];
-            if (\App\Models\Reporter\CitizenReport::where('reporter_id', $person->personnel_id)->exists()) {
-                $reports = \App\Models\Reporter\CitizenReport::where('reporter_id', $person->personnel_id);
-                $paths = array_merge($paths, $reports->whereNotNull('proof_path')->pluck('proof_path')->all());
-                $paths = array_merge($paths, \App\Models\Reporter\ReportPhoto::whereIn('report_id',
-                    \App\Models\Reporter\CitizenReport::where('reporter_id', $person->personnel_id)->select('report_id'))
-                    ->pluck('path')->all());
-            }
-            static::$filesToRemove[spl_object_id($person)] = $paths;
+            static::$filesToRemove[spl_object_id($person)] = $person->photo_path ? [$person->photo_path] : [];
         });
         static::deleted(function (Personnel $person) {
             $paths = static::$filesToRemove[spl_object_id($person)] ?? [];

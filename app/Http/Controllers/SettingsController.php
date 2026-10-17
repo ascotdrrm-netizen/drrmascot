@@ -36,6 +36,9 @@ class SettingsController extends Controller
 
         Settings::set('report.noted_by_name', $data['noted_by_name'] ?? null);
         Settings::set('report.noted_by_position', $data['noted_by_position']);
+        \App\Models\ActivityLog::create(['personnel_id' => $request->user()->getKey(), 'action' => 'updated',
+            'subject_type' => 'Settings', 'subject_id' => null, 'ip_address' => $request->ip(),
+            'description' => mb_substr('Report signatory set to '.trim(($data['noted_by_name'] ?? '').', '.$data['noted_by_position'], ', '), 0, 255)]);
 
         return redirect()->route('admin.settings.index')->with('status', 'Report signatory saved. New PDFs use it.');
     }

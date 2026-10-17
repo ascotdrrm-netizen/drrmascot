@@ -49,7 +49,8 @@ class AuthController extends Controller
                 'action' => 'login_failed',
                 'subject_type' => null,
                 'subject_id' => null,
-                'description' => "Failed login attempt for {$credentials['email']}",
+                // Masked: people sometimes type a password into the email box.
+                'description' => 'Failed login attempt for '.self::maskEmail($credentials['email']),
                 'ip_address' => $request->ip(),
             ]);
 
@@ -147,6 +148,14 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/')->with('logged_out', true);
+    }
+
+    /** "juan.cruz@gmail.com" → "ju***@gmail.com": enough to spot a pattern, not to read the address. */
+    protected static function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        return mb_substr($local, 0, 2).'***'.($domain !== '' ? '@'.$domain : '');
     }
 
     protected function redirectForRole(Personnel $personnel): RedirectResponse

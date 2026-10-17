@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -12,7 +13,14 @@ use Illuminate\Support\Collection;
  */
 class School extends Model
 {
+    use LogsActivity;
+
     protected $primaryKey = 'school_id';
+
+    public function getActivityLogDescriptor(): string
+    {
+        return (string) $this->school_name;
+    }
 
     protected $fillable = ['campus_id', 'school_name'];
 
