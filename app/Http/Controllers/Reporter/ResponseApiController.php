@@ -27,8 +27,6 @@ class ResponseApiController extends Controller
         return $this->storeReport($request);
     }
 
-    private const CATEGORIES = ['fire', 'flood', 'medical', 'structure', 'landslide',
-        'electrical', 'tree', 'vehicle', 'other'];
 
     public function reports(Request $request): JsonResponse
     {
@@ -47,7 +45,7 @@ class ResponseApiController extends Controller
     {
         $data = $request->validate([
             'client_key' => ['required', 'uuid'],
-            'category' => ['required', Rule::in(self::CATEGORIES)],
+            'category' => ['required', Rule::in(array_column(config('report_categories'), 'key'))],
             'place' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],

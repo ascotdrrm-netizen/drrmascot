@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Command;
 
 use App\Http\Controllers\Controller;
 use App\Support\Hotlines;
-use App\Support\Preview\Fixtures;
 use App\Models\Campus;
 use App\Models\CampusStatus;
 use App\Models\Reporter\CitizenReport;
@@ -28,7 +27,7 @@ class CommandPreviewController extends Controller
         if ($this->prefix() === 'coordinator') {
             $query->where('campus_id', Auth::user()->campus_id);
         }
-        $categories = collect(Fixtures::categories())->keyBy('key');
+        $categories = collect(config('report_categories'))->keyBy('key');
         $reports = $query->limit(100)->get()->map(function ($report) use ($categories) {
             $category = $categories->get($report->category, ['label' => 'Other', 'icon' => 'more_horiz']);
 

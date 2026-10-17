@@ -89,5 +89,9 @@
     "grid_view",
     "table_rows",
     "location_on",
-    "event_busy"
+    "event_busy",
+    "front_hand",
+    "do_not_touch",
+    "sports_kabaddi",
+    "local_police"
 ]

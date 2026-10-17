@@ -62,6 +62,22 @@ class ReporterResponseApiTest extends TestCase
             ->assertOk()->assertJsonPath('events.0.status', 'New');
     }
 
+    public function test_bullying_and_other_safety_reports_reach_the_campus_staff(): void
+    {
+        $this->actingAs($this->reporter)->get('/app/report')
+            ->assertSee('Bullying')->assertSee('Harassment (Safe Spaces Act)')->assertSee('Violence / fight')->assertSee('Threat / security concern');
+
+        $id = $this->postJson('/api/reporter/reports', ['client_key' => (string) Str::uuid(), 'category' => 'bullying',
+            'place' => 'Canteen', 'description' => 'A group keeps pushing and mocking a first-year student here.'])
+            ->assertCreated()->json('id');
+        $this->assertDatabaseHas('citizen_reports', ['report_id' => $id, 'category' => 'bullying']);
+        $this->assertDatabaseHas('staff_notifications', ['personnel_id' => $this->coordinator->personnel_id, 'kind' => 'report', 'subject_id' => $id]);
+        $this->get("/app/reports/{$id}")->assertOk()->assertSee('Bullying');
+
+        $this->coordinator->forceFill(['is_approved' => true, 'email_verified_at' => now()])->save();
+        $this->actingAs($this->coordinator)->get('/coordinator/reports-inbox')->assertOk()->assertSee('Bullying');
+    }
+
     public function test_offline_sync_refuses_a_different_account_or_campus_before_storing_files(): void
     {
         $payload = ['client_key' => (string) Str::uuid(), 'owner_id' => $this->reporter->getKey(),

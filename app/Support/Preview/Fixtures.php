@@ -46,20 +46,10 @@ class Fixtures
         ];
     }
 
-    /** What a reporter can report: the plan's categories, with Material Symbols icons. */
+    /** What a reporter can report: the real list (config/report_categories.php). */
     public static function categories(): array
     {
-        return [
-            ['key' => 'fire', 'label' => 'Fire', 'icon' => 'local_fire_department'],
-            ['key' => 'flood', 'label' => 'Flood', 'icon' => 'flood'],
-            ['key' => 'medical', 'label' => 'Injury / medical', 'icon' => 'medical_services'],
-            ['key' => 'structure', 'label' => 'Damaged structure', 'icon' => 'apartment'],
-            ['key' => 'landslide', 'label' => 'Landslide', 'icon' => 'landslide'],
-            ['key' => 'electrical', 'label' => 'Power / electrical', 'icon' => 'bolt'],
-            ['key' => 'tree', 'label' => 'Fallen tree / blocked road', 'icon' => 'park'],
-            ['key' => 'vehicle', 'label' => 'Vehicle / transport', 'icon' => 'directions_car'],
-            ['key' => 'other', 'label' => 'Something else', 'icon' => 'more_horiz'],
-        ];
+        return config('report_categories');
     }
 
     public static function reports(): array

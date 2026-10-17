@@ -83,7 +83,7 @@ class AppPreviewController extends Controller
 
     protected function presentReport(CitizenReport $report): array
     {
-        $category = collect(Fixtures::categories())->firstWhere('key', $report->category)
+        $category = collect(config('report_categories'))->firstWhere('key', $report->category)
             ?? ['label' => 'Other', 'icon' => 'more_horiz'];
 
         return [
@@ -110,7 +110,7 @@ class AppPreviewController extends Controller
     {
         return view('reporter.home', $this->shared() + [
             'advisories' => array_slice($this->live() ? $this->liveAdvisories() : Fixtures::advisories(), 0, 2),
-            'categories' => array_slice(Fixtures::categories(), 0, 6),
+            'categories' => array_slice(config('report_categories'), 0, 6),
             'reports' => $this->live() ? array_slice($this->liveReports(), 0, 3) : Fixtures::reports(),
             'activeRollCall' => $this->live() ? RollCall::where('campus_id', Auth::user()->campus_id)->whereNull('closed_at')
                 ->whereHas('responses', fn ($q) => $q->where('reporter_id', Auth::id()))->first() : null,
@@ -150,7 +150,7 @@ class AppPreviewController extends Controller
 
     public function report(): View
     {
-        return view('reporter.report', $this->shared() + ['categories' => Fixtures::categories()]);
+        return view('reporter.report', $this->shared() + ['categories' => config('report_categories')]);
     }
 
     public function reports(): View
