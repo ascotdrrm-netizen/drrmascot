@@ -246,4 +246,20 @@ class VercelHostingTest extends TestCase
             ->expectsOutputToContain('Nothing changed')->assertSuccessful();
         @unlink($file);
     }
+
+    public function test_host_start_up_creates_demo_accounts_with_the_dashboard_password(): void
+    {
+        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
+        config(['hosting.demo_accounts_password' => 'weak']);
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertFailed();
+        $this->assertDatabaseMissing('personnel', ['email' => 'demo.admin@drrms.test']);
+
+        config(['hosting.demo_accounts_password' => 'Chosen#Pass2026']);
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])
+            ->expectsOutputToContain('demo.admin@drrms.test')->doesntExpectOutputToContain('Chosen#Pass2026')->assertSuccessful();
+        auth()->logout();
+        $this->post('/login', ['email' => 'demo.admin@drrms.test', 'password' => 'Chosen#Pass2026'])->assertRedirect('/admin/dashboard');
+        $this->post('/logout');
+        $this->post('/app/login', ['email' => 'demo.reporter@drrms.test', 'password' => 'Chosen#Pass2026'])->assertRedirect('/app');
+    }
 }
