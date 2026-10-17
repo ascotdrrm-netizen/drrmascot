@@ -7,7 +7,7 @@ request (vercel-community/php#650).
 
 ## 1. Supabase
 
-1. Create a project in **Singapore**. Keep the database password in your password manager.
+1. Create a project (this one is in Seoul, `ap-northeast-2`; `render.yaml` sets the S3 region to match). Keep the database password in your password manager.
 2. **Connect > Session pooler**: copy the URI on **port 5432**. This is `DB_URL`.
    Percent-encode special characters in the password (`@` → `%40`, `#` → `%23`).
 3. **Storage**: create bucket **drrms**, **Public OFF**, max file size **10 MB**.
