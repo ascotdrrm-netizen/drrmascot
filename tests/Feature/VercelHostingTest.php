@@ -227,8 +227,11 @@ class VercelHostingTest extends TestCase
     {
         // Use the real campus name, as on a fresh live database.
         $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
+        // A throwaway storage folder: the real storage/app/private/demo-accounts.txt
+        // holds the owner's live demo password and must never be touched by tests.
+        $this->app->useStoragePath($storage = sys_get_temp_dir().'/drrms-demo-test-'.Str::random(8));
+        mkdir($storage.'/app/private', 0777, true);
         $file = storage_path('app/private/demo-accounts.txt');
-        @unlink($file);
         $this->artisan('app:create-demo-accounts')->expectsConfirmation('Create demo accounts on the testing database?', 'yes')
             ->expectsOutputToContain('demo.reporter@drrms.test')->assertSuccessful();
 
@@ -245,6 +248,7 @@ class VercelHostingTest extends TestCase
         $this->artisan('app:create-demo-accounts')->expectsConfirmation('Create demo accounts on the testing database?', 'yes')
             ->expectsOutputToContain('Nothing changed')->assertSuccessful();
         @unlink($file);
+        @rmdir($storage.'/app/private'); @rmdir($storage.'/app'); @rmdir($storage);
     }
 
     public function test_host_start_up_creates_demo_accounts_with_the_dashboard_password(): void
