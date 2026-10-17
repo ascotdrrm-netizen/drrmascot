@@ -52,7 +52,15 @@ class CreateDemoAccounts extends Command
             CreateAdmin::ensureCampuses();
             $created = [];
             foreach (self::ACCOUNTS as $email => [$name, $role, $campusName]) {
-                if (Personnel::where('email', $email)->exists()) {
+                if ($existing = Personnel::where('email', $email)->first()) {
+                    // --from-env keeps the demo accounts on the dashboard's
+                    // password, so changing it there is how a lost one is replaced.
+                    if ($shared !== null && ! Hash::check($shared, $existing->password_hash)) {
+                        $existing->forceFill(['password_hash' => Hash::make($shared)])->save();
+                        \App\Support\Sessions::endOthers($existing, null);
+                        $created[] = [$role, $campusName, $email, $shared];
+                    }
+
                     continue;
                 }
                 $campus = Campus::where('campus_name', 'ASCOT '.$campusName.' Campus')->firstOrFail();
@@ -75,7 +83,7 @@ class CreateDemoAccounts extends Command
         }
         if ($shared !== null) {
             // Host logs are not a place for passwords: emails only.
-            $this->info('Demo accounts created: '.implode(', ', array_column($created, 2)).'. Password: the DEMO_ACCOUNTS_PASSWORD you set.');
+            $this->info('Demo accounts ready: '.implode(', ', array_column($created, 2)).'. Password: the DEMO_ACCOUNTS_PASSWORD you set.');
 
             return self::SUCCESS;
         }

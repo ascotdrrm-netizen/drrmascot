@@ -265,5 +265,12 @@ class VercelHostingTest extends TestCase
         $this->post('/login', ['email' => 'demo.admin@drrms.test', 'password' => 'Chosen#Pass2026'])->assertRedirect('/admin/dashboard');
         $this->post('/logout');
         $this->post('/app/login', ['email' => 'demo.reporter@drrms.test', 'password' => 'Chosen#Pass2026'])->assertRedirect('/app');
+        $this->post('/logout');
+
+        // A lost password is replaced by changing it in the dashboard.
+        config(['hosting.demo_accounts_password' => 'Replaced#Pass2027']);
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->expectsOutputToContain('demo.admin@drrms.test')->assertSuccessful();
+        $this->post('/login', ['email' => 'demo.admin@drrms.test', 'password' => 'Replaced#Pass2027'])->assertRedirect('/admin/dashboard');
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->expectsOutputToContain('Nothing changed')->assertSuccessful();
     }
 }
