@@ -16,6 +16,7 @@ as_app php artisan event:cache
 
 if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     as_app php artisan migrate --force
+    as_app php artisan app:ensure-campuses
 fi
 
 # Restarted if they exit (memory limit, --max-time, a crash).

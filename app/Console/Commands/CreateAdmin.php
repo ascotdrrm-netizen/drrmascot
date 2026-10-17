@@ -44,10 +44,7 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
         DB::transaction(function () use ($data) {
-            foreach (['Zabali' => 'Zabali, Baler, Aurora', 'Bazal' => 'Bazal, Maria Aurora, Aurora', 'Casiguran' => 'Casiguran, Aurora'] as $name => $address) {
-                Campus::firstOrCreate(['campus_name' => 'ASCOT '.$name.' Campus'], ['address' => $address]);
-            }
-            (new SchoolSeeder)->run();
+            self::ensureCampuses();
             $campus = Campus::where('campus_name', 'ASCOT Zabali Campus')->firstOrFail();
             $person = new Personnel(['campus_id' => $campus->getKey(), 'full_name' => $data['full_name'],
                 'email' => $data['email'], 'role' => 'DRRMO Admin', 'password_hash' => Hash::make($data['password'])]);
@@ -56,5 +53,14 @@ class CreateAdmin extends Command
         $this->info('First administrator created. Campuses and schools are ready.');
 
         return self::SUCCESS;
+    }
+
+    /** The three ASCOT campuses and their schools. Safe to run more than once. */
+    public static function ensureCampuses(): void
+    {
+        foreach (['Zabali' => 'Zabali, Baler, Aurora', 'Bazal' => 'Bazal, Maria Aurora, Aurora', 'Casiguran' => 'Casiguran, Aurora'] as $name => $address) {
+            Campus::firstOrCreate(['campus_name' => 'ASCOT '.$name.' Campus'], ['address' => $address]);
+        }
+        (new SchoolSeeder)->run();
     }
 }

@@ -212,4 +212,38 @@ class VercelHostingTest extends TestCase
         $this->artisan('app:create-admin')->expectsOutputToContain('An administrator already exists')->assertFailed();
         $this->assertSame(1, Personnel::where('role', 'DRRMO Admin')->count());
     }
+
+    public function test_deploy_fills_campuses_and_schools_so_registration_has_options(): void
+    {
+        $this->artisan('app:ensure-campuses')->assertSuccessful();
+        $this->artisan('app:ensure-campuses')->assertSuccessful();
+        $this->assertSame(1, Campus::where('campus_name', 'ASCOT Casiguran Campus')->count());
+        $this->assertDatabaseHas('schools', ['school_name' => 'School of Information Technology']);
+        auth()->logout();
+        $this->get('/register')->assertOk()->assertSee('ASCOT Bazal Campus');
+    }
+
+    public function test_demo_accounts_get_random_passwords_and_can_sign_in_once_created(): void
+    {
+        // Use the real campus name, as on a fresh live database.
+        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
+        $file = storage_path('app/private/demo-accounts.txt');
+        @unlink($file);
+        $this->artisan('app:create-demo-accounts')->expectsConfirmation('Create demo accounts on the testing database?', 'yes')
+            ->expectsOutputToContain('demo.reporter@drrms.test')->assertSuccessful();
+
+        $reporter = Personnel::where('email', 'demo.reporter@drrms.test')->firstOrFail();
+        $this->assertTrue($reporter->is_approved);
+        $this->assertNotNull($reporter->email_verified_at);
+        $this->assertNotNull($reporter->validated_by_coordinator_at);
+        $this->assertNotNull($reporter->school_id);
+        $this->assertSame(3, Personnel::where('role', 'Coordinator')->where('email', 'like', 'demo.%')->count());
+        preg_match('/demo\.reporter@drrms\.test\t(\S+)/', file_get_contents($file), $match);
+        $this->assertFalse(Hash::check('changeme123', $reporter->password_hash));
+        $this->post('/login', ['email' => 'demo.reporter@drrms.test', 'password' => $match[1]])->assertRedirect('/app');
+
+        $this->artisan('app:create-demo-accounts')->expectsConfirmation('Create demo accounts on the testing database?', 'yes')
+            ->expectsOutputToContain('Nothing changed')->assertSuccessful();
+        @unlink($file);
+    }
 }
