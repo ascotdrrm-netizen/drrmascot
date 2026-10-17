@@ -40,7 +40,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          # test:queue uses --test-isolation=none, which Node 22 rejects.
+          node-version: '24'
           cache: npm
 
       - name: Install PHP dependencies

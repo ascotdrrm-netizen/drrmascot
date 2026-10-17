@@ -22,6 +22,11 @@
             </x-password-input>
         </div>
 
+        <label class="flex items-center gap-3 text-sm text-gray-700">
+            <input type="checkbox" name="remember" value="1" class="h-5 w-5 shrink-0" @checked(old('remember'))>
+            <span>Keep me signed in on this device</span>
+        </label>
+
         <button type="submit" class="btn btn-primary w-full">
             Log in
         </button>

@@ -8,7 +8,8 @@ services:
     plan: free
     region: singapore
     branch: main
-    autoDeploy: true
+    # Deploy a push only after GitHub CI passes on it.
+    autoDeployTrigger: checksPass
     healthCheckPath: /up
     envVars:
       - key: APP_NAME
@@ -71,10 +72,24 @@ services:
       - key: DB_QUEUE_RETRY_AFTER
         value: "120"
 
-      # log = nothing is sent. Switch to smtp with real credentials before
-      # inviting Reporters (email verification, password reset).
+      # Gmail SMTP: Reporter email verification and password reset depend on
+      # it. MAIL_PASSWORD is a Google App Password, entered in the dashboard.
       - key: MAIL_MAILER
-        value: log
+        value: smtp
+      - key: MAIL_SCHEME
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_TIMEOUT
+        value: "20"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
       - key: MAIL_FROM_NAME
         value: ASCOT DRRMS
       - key: SMS_GATEWAY

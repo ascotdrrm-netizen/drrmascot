@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         if (env('SERVERLESS_HOSTING', false) || env('BEHIND_TLS_PROXY', false)) {
             $middleware->trustProxies(at: '*', headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO);
         }
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->alias([
             'role' => EnsureUserRole::class,
             'staff' => \App\Http\Middleware\EnsureStaffRole::class,

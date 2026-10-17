@@ -14,6 +14,11 @@
         </div>
         <div><label for="email" class="form-label">Email</label><input id="email" name="email" type="email" autocomplete="email" class="form-input" required></div>
         <x-password-input name="password" label="Password" autocomplete="current-password" required />
+        {{-- On by default: during an emergency the app must open signed in. --}}
+        <label class="flex items-center gap-3 text-sm text-gray-700">
+            <input type="checkbox" name="remember" value="1" class="h-5 w-5 shrink-0" checked>
+            <span>Keep me signed in on this phone</span>
+        </label>
         <button type="submit" class="btn btn-primary btn-lg w-full">Log in</button>
 
         <div class="text-center text-sm">
