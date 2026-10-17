@@ -13,9 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Vercel terminates TLS before forwarding to the PHP runtime. Trust
+        // Vercel and Render terminate TLS before forwarding to PHP. Trust
         // only the protocol header; never let a forwarded Host set signed URLs.
-        if (env('SERVERLESS_HOSTING', false)) {
+        if (env('SERVERLESS_HOSTING', false) || env('BEHIND_TLS_PROXY', false)) {
             $middleware->trustProxies(at: '*', headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO);
         }
         $middleware->alias([

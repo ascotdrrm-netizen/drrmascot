@@ -1,0 +1,81 @@
+# Render Blueprint: one free web service built from the Dockerfile.
+# Values marked sync: false are entered in the Render dashboard, never here.
+# See docs/RENDER_SUPABASE.md.
+services:
+  - type: web
+    name: drrmascot
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: ASCOT DRRMS
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: BEHIND_TLS_PROXY
+        value: "true"
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+
+      # The container disk is wiped on every deploy and wake, so records,
+      # photos and backups live in the private Supabase bucket.
+      - key: FILES_DISK
+        value: s3
+      - key: BACKUP_DISK
+        value: s3
+      - key: SUPABASE_S3_ENDPOINT
+        sync: false
+      - key: SUPABASE_S3_REGION
+        value: ap-southeast-1
+      - key: SUPABASE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_S3_BUCKET
+        value: drrms
+
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_ENCRYPT
+        value: "true"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: SESSION_SAME_SITE
+        value: lax
+      - key: SESSION_LIFETIME
+        value: "120"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: DB_QUEUE_RETRY_AFTER
+        value: "120"
+
+      # log = nothing is sent. Switch to smtp with real credentials before
+      # inviting Reporters (email verification, password reset).
+      - key: MAIL_MAILER
+        value: log
+      - key: MAIL_FROM_NAME
+        value: ASCOT DRRMS
+      - key: SMS_GATEWAY
+        value: log
