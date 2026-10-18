@@ -133,7 +133,7 @@ class ReporterResponseApiTest extends TestCase
     {
         $this->coordinator->update(['contact_number' => '09171234567']);
         $sms = \Mockery::mock(\App\Services\Sms\SmsGatewayInterface::class);
-        $sms->shouldReceive('send')->once()->with('09171234567', \Mockery::type('string'))->andReturn(true);
+        $sms->shouldReceive('send')->once()->with('639171234567', \Mockery::type('string'))->andReturn(true);
         $this->app->instance(\App\Services\Sms\SmsGatewayInterface::class, $sms);
         $payload = ['client_key' => (string) Str::uuid(), 'type' => 'Medical',
             'latitude' => 15.7362, 'longitude' => 121.5489, 'accuracy_m' => 12];

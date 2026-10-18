@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Personnel;
+use App\Models\Reporter\SosEvent;
 use App\Models\StaffNotification;
 use App\Services\Sms\SmsGatewayInterface;
 use Illuminate\Support\Collection;
@@ -28,16 +29,21 @@ class EmergencyNotices
     }
 
     /** Text every staff recipient for SOS. A gateway failure never rolls back the SOS record. */
-    public static function textSos(Collection $recipients, int $id, string $campus, string $reporter): void
+    public static function textSos(Collection $recipients, SosEvent $sos, Personnel $reporter): void
     {
+        $id = (int) $sos->sos_id;
+        $message = self::sosText($sos, $reporter);
         $sms = app(SmsGatewayInterface::class);
         foreach ($recipients as $recipient) {
-            if (! filled($recipient->contact_number)) {
+            $number = PhoneNumber::normalize($recipient->contact_number);
+            if ($number === null) {
+                if (filled($recipient->contact_number)) {
+                    Log::warning('SOS SMS skipped: not a mobile number', ['sos_id' => $id, 'recipient_id' => $recipient->personnel_id]);
+                }
                 continue;
             }
             try {
-                if (! $sms->send($recipient->contact_number,
-                    "ASCOT DRRMS SOS #{$id}: {$reporter} at {$campus}. Open the SOS Console now.")) {
+                if (! $sms->send($number, $message)) {
                     Log::warning('SOS SMS was not accepted by the gateway', ['sos_id' => $id, 'recipient_id' => $recipient->personnel_id]);
                 }
             } catch (\Throwable $exception) {
@@ -45,5 +51,18 @@ class EmergencyNotices
                     'error' => $exception->getMessage()]);
             }
         }
+    }
+
+    /** What, who and where in one text, with a map link when the phone shared its location. */
+    public static function sosText(SosEvent $sos, Personnel $reporter): string
+    {
+        $hasGps = $sos->latitude !== null && $sos->longitude !== null;
+        $where = $sos->place ?: ($hasGps ? 'GPS location' : 'Location not shared');
+
+        return "ASCOT DRRMS SOS #{$sos->sos_id}".($sos->type ? " ({$sos->type})" : '')
+            .": {$reporter->full_name}".(filled($reporter->contact_number) ? " {$reporter->contact_number}" : '')
+            .', '.($reporter->campus?->campus_name ?: 'ASCOT campus').". At: {$where}."
+            .($hasGps ? ' Map: https://maps.google.com/?q='.round((float) $sos->latitude, 6).','.round((float) $sos->longitude, 6) : '')
+            .' Open the SOS Console now.';
     }
 }

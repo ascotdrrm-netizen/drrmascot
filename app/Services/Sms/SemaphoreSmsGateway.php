@@ -12,11 +12,14 @@ class SemaphoreSmsGateway implements SmsGatewayInterface
 {
     public function send(string $phoneNumber, string $message): bool
     {
-        $response = Http::asForm()->connectTimeout(5)->timeout(20)->post('https://api.semaphore.co/api/v4/messages', [
+        // The sender name is sent only once Semaphore has approved it;
+        // without one, texts go out under Semaphore's default name.
+        $response = Http::asForm()->connectTimeout(5)->timeout(20)->post('https://api.semaphore.co/api/v4/messages', array_filter([
             'apikey' => config('services.semaphore.api_key'),
             'number' => $phoneNumber,
             'message' => $message,
-        ]);
+            'sendername' => config('services.semaphore.sender_name'),
+        ], fn ($value) => filled($value)));
 
         // https://semaphore.co/docs: Sent means accepted by the network, not read/delivered to a handset.
         if ($response->serverError()) {
