@@ -150,7 +150,12 @@ class AppPreviewController extends Controller
 
     public function report(): View
     {
-        return view('reporter.report', $this->shared() + ['categories' => config('report_categories')]);
+        // "Pick on map" opens on the reporter's campus (config/campus_map.php), else Aurora province.
+        $campusName = (string) Auth::user()?->campus?->campus_name;
+        $centre = collect(config('campus_map.centres'))->first(fn ($c, $keyword) => $campusName !== '' && stripos($campusName, $keyword) !== false);
+
+        return view('reporter.report', $this->shared() + ['categories' => config('report_categories'),
+            'mapCentre' => $centre, 'mapTiles' => config('map.layers.street.tiles', []), 'mapBounds' => config('map.province_bounds')]);
     }
 
     public function reports(): View

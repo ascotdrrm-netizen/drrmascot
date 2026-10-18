@@ -58,6 +58,12 @@ document.addEventListener('alpine:init', () => {
                 this.gpsText = 'Location found, accurate to about ' + Math.round(p.coords.accuracy) + ' m.';
             }, () => { this.gpsText = 'Location was not shared. Describe the place below.'; }, { enableHighAccuracy: true, timeout: 10000 });
         },
+        // From the "Pick on map" dialog (reporter/report.blade.php): the pin is the location.
+        pickOnMap(detail) {
+            if (! detail || ! isFinite(detail.lat) || ! isFinite(detail.lng)) return;
+            this.coords = { lat: Number(detail.lat.toFixed(7)), lng: Number(detail.lng.toFixed(7)), accuracy: null };
+            this.gpsText = 'Pin placed on the map at ' + detail.lat.toFixed(5) + ', ' + detail.lng.toFixed(5) + '.';
+        },
         addPhoto(event) {
             const file = event.target.files[0];
             if (file && this.photos.length < 3) this.photos.push({ file, name: file.name, caption: '', url: URL.createObjectURL(file) });

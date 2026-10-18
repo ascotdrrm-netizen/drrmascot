@@ -3,7 +3,8 @@
 @section('title', 'Report a hazard - ASCOT DRRMS')
 
 @section('content')
-    <div x-data="reportWizard({ categories: @js($categories), preset: @js(request('type')), queuedKey: @js(request('queued')), live: @js(auth()->user()?->role === 'Reporter') })" data-report-wizard>
+    <div x-data="reportWizard({ categories: @js($categories), preset: @js(request('type')), queuedKey: @js(request('queued')), live: @js(auth()->user()?->role === 'Reporter') })" data-report-wizard
+         x-on:map-picked.window="pickOnMap($event.detail)">
         <p x-show="draftStatus" x-text="draftStatus" class="mb-4 text-xs text-gray-600" role="status"></p>
         <p x-show="error" x-text="error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert"></p>
         {{-- Stepper. --}}
@@ -35,6 +36,10 @@
         <section x-show="step === 1" x-cloak class="mt-6">
             <h1 class="page-title">Where is it?</h1>
             <button type="button" x-on:click="locate()" class="btn btn-secondary mt-4 w-full"><x-icon name="my_location" /> <span x-text="coords ? 'Update my location' : 'Use my location'">Use my location</span></button>
+            @if ($mapTiles)
+                {{-- Shown once Leaflet has loaded (script below); without it, GPS and the place box still work. --}}
+                <button type="button" data-report-map-open hidden x-on:click="$dispatch('open-map-picker', coords)" class="btn btn-secondary mt-3 w-full"><x-icon name="map" /> Pick on map</button>
+            @endif
             <p class="mt-2 text-sm" :class="coords ? 'text-green-700' : 'text-gray-600'" x-text="gpsText" aria-live="polite">Your phone’s GPS finds the exact spot.</p>
             <label for="place" class="form-label mt-4">Describe the place</label>
             <input id="place" x-model="place" class="form-input" placeholder="e.g. Engineering Building, 2nd floor stairs">
@@ -102,4 +107,87 @@
             <a href="{{ route('app.reports') }}" class="btn btn-primary mt-6 w-full">Your reports</a>
         </section>
     </div>
+
+    @if ($mapTiles)
+        {{-- Pick on map: tap to drop a pin, drag to adjust, Done hands it to the
+             form (map-picked event). Tiles come from config/map.php. --}}
+        <dialog data-report-map-picker aria-labelledby="report-map-title"
+                data-centre='@json($mapCentre)' data-bounds='@json($mapBounds)' data-tiles='@json($mapTiles)'
+                class="m-0 h-[100dvh] max-h-[100dvh] w-full max-w-full bg-white p-0 backdrop:bg-night-900/60">
+            <div class="flex h-full flex-col">
+                <h2 id="report-map-title" class="border-b border-gray-200 p-3 text-base font-semibold text-gray-900">Pick the location</h2>
+                <div class="relative min-h-0 flex-1">
+                    <div data-report-map class="absolute inset-0" role="application" aria-label="Map: tap to drop the pin, drag the pin to adjust."></div>
+                </div>
+                <div class="safe-bottom flex flex-col gap-3 border-t border-gray-200 p-3">
+                    <p data-report-map-readout class="text-sm text-gray-700" aria-live="polite">Tap the map where it is happening, then drag the pin to adjust.</p>
+                    <div class="flex gap-2">
+                        <button type="button" data-report-map-cancel autofocus class="btn btn-secondary flex-1">Cancel</button>
+                        <button type="button" data-report-map-done class="btn btn-primary flex-1" disabled>Done</button>
+                    </div>
+                </div>
+            </div>
+        </dialog>
+    @endif
 @endsection
+
+@if ($mapTiles)
+    @push('scripts')
+        <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
+        <script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
+        <script>
+            (function () {
+                var dialog = document.querySelector('[data-report-map-picker]');
+                var openButton = document.querySelector('[data-report-map-open]');
+                if (! window.L || ! dialog || ! openButton) return;
+                openButton.hidden = false;
+                var readout = dialog.querySelector('[data-report-map-readout]');
+                var done = dialog.querySelector('[data-report-map-done]');
+                var map = null, marker = null;
+
+                function describe(latlng) {
+                    return 'Pin at ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5) + '. Drag it to adjust, then Done.';
+                }
+                function setPin(latlng) {
+                    if (marker) marker.setLatLng(latlng);
+                    else {
+                        marker = L.marker(latlng, { draggable: true, autoPan: true, title: 'Location pin — drag to move', alt: 'Location pin' }).addTo(map);
+                        marker.on('drag dragend', function () { readout.textContent = describe(marker.getLatLng()); });
+                    }
+                    done.disabled = false;
+                    readout.textContent = describe(latlng);
+                }
+
+                window.addEventListener('open-map-picker', function (event) {
+                    dialog.showModal();
+                    document.body.classList.add('overflow-hidden');
+                    if (! map) {
+                        map = L.map(dialog.querySelector('[data-report-map]'));
+                        JSON.parse(dialog.dataset.tiles).forEach(function (t) {
+                            L.tileLayer(t.url, { attribution: t.attribution, maxNativeZoom: t.max_native_zoom, maxZoom: t.max_zoom || 19 }).addTo(map);
+                        });
+                        map.on('click', function (e) { setPin(e.latlng); });
+                    }
+                    map.invalidateSize();
+                    var start = event.detail && isFinite(event.detail.lat) ? L.latLng(event.detail.lat, event.detail.lng) : null;
+                    var centre = JSON.parse(dialog.dataset.centre);
+                    if (start) { setPin(start); map.setView(start, 18); }
+                    else if (centre) map.setView(centre, 16);
+                    else map.fitBounds(JSON.parse(dialog.dataset.bounds));
+                });
+
+                function close() {
+                    dialog.close();
+                    document.body.classList.remove('overflow-hidden');
+                    openButton.focus();
+                }
+                done.addEventListener('click', function () {
+                    if (marker) window.dispatchEvent(new CustomEvent('map-picked', { detail: { lat: marker.getLatLng().lat, lng: marker.getLatLng().lng } }));
+                    close();
+                });
+                dialog.querySelector('[data-report-map-cancel]').addEventListener('click', close);
+                dialog.addEventListener('close', function () { document.body.classList.remove('overflow-hidden'); });
+            })();
+        </script>
+    @endpush
+@endif
