@@ -34,6 +34,8 @@
                 <div>Estimated SMS cost: <strong>{{ $audience['estimated_cost'] === null ? 'Rate not configured' : 'PHP '.number_format($audience['estimated_cost'], 2) }}</strong></div>@endif
             </dl>
             <p class="mt-3 text-xs text-gray-500">Email and SMS totals use verified contacts and exclude duplicate destinations. SMS pricing depends on the configured provider rate.</p>
+            @if($broadcast->send_email && ! $audience['counts']['email'])<p class="mt-3 text-sm text-amber-700">No one on this campus has a verified email address yet, so no email will be sent. People verify it from the link emailed at sign-up or from My Profile.</p>@endif
+            @if($broadcast->send_sms && ! $audience['counts']['sms'])<p class="mt-3 text-sm text-amber-700">No one on this campus has a verified mobile number yet, so no SMS will be sent. People verify it from My Profile.</p>@endif
             @if($broadcast->send_sms && config('services.sms.driver') !== 'semaphore')<p class="mt-3 text-sm text-amber-700">SMS uses the local log driver. Texts will be simulated.</p>@endif
             @if($broadcast->send_email && in_array(config('mail.mailers.'.config('mail.default').'.transport'), ['log', 'array'], true))<p class="mt-3 text-sm text-amber-700">Email uses a local driver. Emails will be simulated.</p>@endif
             <form method="POST" action="{{ route($routePrefix.'.broadcasts.publish', $broadcast) }}" class="mt-5">@csrf
@@ -46,6 +48,9 @@
                 <h2 class="card-title">Delivery history</h2>
                 <p class="mt-2 text-sm text-gray-600">{{ $broadcast->status }}. Accepted means the provider accepted the request; handset delivery is not confirmed. Simulated uses a local mail/SMS driver.</p>
                 <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr><th class="py-2">Channel</th><th>Status</th><th>Count</th></tr></thead><tbody>@foreach($history as $row)<tr class="border-t border-gray-100"><td class="py-2">{{ $row->channel === 'in_app' ? 'In-app' : strtoupper($row->channel) }}</td><td>{{ $row->status }}</td><td>{{ $row->total }}</td></tr>@endforeach</tbody></table></div>
+                {{-- A chosen channel with no row reached no one: say why instead of leaving it out. --}}
+                @if($broadcast->send_email && ! $history->contains('channel', 'email'))<p class="mt-3 text-sm text-gray-600">Email: not sent. No one on this campus has a verified email address yet.</p>@endif
+                @if($broadcast->send_sms && ! $history->contains('channel', 'sms'))<p class="mt-3 text-sm text-gray-600">SMS: not sent. No one on this campus has a verified mobile number yet.</p>@endif
                 @if($history->where('status', 'Failed')->sum('total'))<form method="POST" action="{{ route($routePrefix.'.broadcasts.retry', $broadcast) }}" class="mt-4">@csrf<button type="submit" class="btn btn-secondary">Retry rejected deliveries</button></form>@endif
                 @foreach($problems as $problem)<p class="mt-3 text-sm text-gray-600">{{ strtoupper($problem->channel) }} · {{ $problem->destination }} · {{ $problem->status }}: {{ $problem->error }}</p>@endforeach
                 <p class="mt-4 text-xs text-gray-500">Pending requests require the queue worker. Unconfirmed requests are not retried automatically; check the provider history before creating another message.</p>
