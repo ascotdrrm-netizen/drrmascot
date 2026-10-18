@@ -126,7 +126,8 @@
                                    title="{{ $drill->drill_type }} — {{ $pillText($drill) }}{{ $isAdmin ? ' (' . ($drill->campus->campus_name ?? '') . ')' : '' }}"
                                    class="block min-w-0 rounded-md border px-2 py-1 text-xs leading-4 hover:brightness-95 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line {{ $drill->typeColours()['pill'] }}">
                                     <span class="block truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
-                                    <span class="block truncate uppercase opacity-90">{{ $pillText($drill) }}</span>
+                                    {{-- All campuses: name the campus, so two campuses' drills on one day don't look like a duplicate. --}}
+                                    <span class="block truncate uppercase opacity-90">{{ $pillText($drill) }}{{ $isAdmin && ! $selectedCampusId ? ' · ' . str_replace(['ASCOT ', ' Campus'], '', $drill->campus->campus_name ?? '') : '' }}</span>
                                 </a>
                             @endforeach
                             @if ($dayDrills->count() > $limit)
