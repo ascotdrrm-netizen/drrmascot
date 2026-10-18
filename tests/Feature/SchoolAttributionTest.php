@@ -77,13 +77,15 @@ class SchoolAttributionTest extends TestCase
 
     // ============================== seeded schools ==============================
 
-    public function test_the_eight_schools_are_seeded_on_their_campuses(): void
+    public function test_the_nine_schools_are_seeded_on_their_campuses(): void
     {
         $map = School::with('campus')->get()->mapWithKeys(fn ($s) => [$s->school_name => $s->campus->campus_name])->all();
 
-        $this->assertCount(8, $map);
+        // UAT 2026-10-18: Accountancy was missing from the sign-up list.
+        $this->assertCount(9, $map);
         foreach (['School of Engineering', 'School of Arts and Sciences', 'School of Information Technology',
-            'School of Forestry and Environmental Sciences', 'School of Education', 'School of Industrial Technology'] as $name) {
+            'School of Forestry and Environmental Sciences', 'School of Education', 'School of Industrial Technology',
+            'School of Accountancy and Business Management'] as $name) {
             $this->assertSame('ASCOT Zabali Campus', $map[$name], $name);
         }
         $this->assertSame('ASCOT Bazal Campus', $map['School of Agricultural and Science']);

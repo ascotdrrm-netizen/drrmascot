@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Report #' . $report['id'] . ' - ASCOT DRRM')
+@section('title', 'Report #' . $report['id'] . ' - ASCOT DRRMS')
 
 @section('content')
     <a href="{{ route('app.reports') }}" class="inline-flex min-h-[2.75rem] items-center gap-1 text-sm font-medium text-gray-600"><x-icon name="arrow_back" class="h-4 w-4" /> Your reports</a>

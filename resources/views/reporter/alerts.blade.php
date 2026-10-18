@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Alerts - ASCOT DRRM')
+@section('title', 'Alerts - ASCOT DRRMS')
 
 @section('content')
     <h1 class="page-title">Alerts</h1>

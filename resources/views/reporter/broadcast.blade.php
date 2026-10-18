@@ -1,5 +1,5 @@
 @extends('layouts.mobile')
-@section('title', 'Campus notice - ASCOT DRRM')
+@section('title', 'Campus notice - ASCOT DRRMS')
 @section('content')
 <a href="{{ route('app.alerts') }}" class="text-sm text-accent-ink">Back to alerts</a>
 <article class="mt-4 rounded-xl border border-gray-100 bg-white p-4">

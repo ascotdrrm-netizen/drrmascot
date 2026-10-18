@@ -1,13 +1,13 @@
 @extends('layouts.mobile')
 
-@section('title', 'Welcome - ASCOT DRRM')
+@section('title', 'Welcome - ASCOT DRRMS')
 @section('no-tabs', true)
 
 @section('content')
     <div x-data="installApp()" class="space-y-6 pt-4" data-welcome>
         <div class="text-center">
             <img src="{{ asset('images/drrm-logo-256.png') }}" alt="" class="mx-auto h-20 w-20">
-            <h1 class="mt-4 page-title">ASCOT DRRM on your phone</h1>
+            <h1 class="mt-4 page-title">ASCOT DRRMS on your phone</h1>
             <p class="mt-1 text-sm text-gray-600">From the ASCOT Disaster Risk Reduction and Management Office.</p>
         </div>
 

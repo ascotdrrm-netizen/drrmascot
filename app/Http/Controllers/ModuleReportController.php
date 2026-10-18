@@ -55,12 +55,12 @@ class ModuleReportController extends Controller
     public const THUMBNAILS_PER_DRILL = 4;
 
     protected const TITLES = [
-        'hazard' => 'ASCOT-DRRM Hazard Audit Report',
-        'incidents' => 'ASCOT-DRRM Incident Report',
-        'drills' => 'ASCOT-DRRM Drill Schedule Report',
-        'drill-documentation' => 'ASCOT-DRRM Consolidated Drill Documentation',
-        'after-activity' => 'ASCOT-DRRM Consolidated After Activity Reports',
-        'alerts' => 'ASCOT-DRRM Alert Report',
+        'hazard' => 'ASCOT-DRRMS Hazard Audit Report',
+        'incidents' => 'ASCOT-DRRMS Incident Report',
+        'drills' => 'ASCOT-DRRMS Drill Schedule Report',
+        'drill-documentation' => 'ASCOT-DRRMS Consolidated Drill Documentation',
+        'after-activity' => 'ASCOT-DRRMS Consolidated After Activity Reports',
+        'alerts' => 'ASCOT-DRRMS Alert Report',
     ];
 
     protected const FILENAME_SEGMENTS = [

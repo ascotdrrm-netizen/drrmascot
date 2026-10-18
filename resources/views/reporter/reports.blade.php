@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Your reports - ASCOT DRRM')
+@section('title', 'Your reports - ASCOT DRRMS')
 
 @section('content')
     <div class="flex items-center justify-between">

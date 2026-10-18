@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Log in - ASCOT DRRM')
+@section('title', 'Log in - ASCOT DRRMS')
 @section('no-tabs', true)
 
 @section('content')
@@ -10,7 +10,7 @@
         <div class="pt-6 text-center">
             <img src="{{ asset('images/drrm-logo-256.png') }}" alt="" class="mx-auto h-16 w-16">
             <h1 class="mt-4 page-title">Log in</h1>
-            <p class="mt-1 text-sm text-gray-600">ASCOT DRRM, for students and staff.</p>
+            <p class="mt-1 text-sm text-gray-600">ASCOT DRRMS, for students and staff.</p>
         </div>
         <div><label for="email" class="form-label">Email</label><input id="email" name="email" type="email" autocomplete="email" class="form-input" required></div>
         <x-password-input name="password" label="Password" autocomplete="current-password" required />

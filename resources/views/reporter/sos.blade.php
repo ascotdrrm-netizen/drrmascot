@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'SOS - ASCOT DRRM')
+@section('title', 'SOS - ASCOT DRRMS')
 
 @php
     // The DRRMO office line from config/hotlines.php (the ASCOT group).
@@ -72,7 +72,7 @@
                     get subtitle() { return this.state === 'counting' ? 'Press Cancel if this was a mistake.' : 'Press the button once. You have 5 seconds to cancel.'; },
                     get smsHref() {
                         var where = this.coords ? ' Location: https://maps.google.com/?q=' + this.coords.latitude.toFixed(6) + ',' + this.coords.longitude.toFixed(6) : '';
-                        return 'sms:' + opts.smsTo + '?body=' + encodeURIComponent('SOS' + (this.type ? ' (' + this.type + ')' : '') + ' from the ASCOT DRRM app.' + where);
+                        return 'sms:' + opts.smsTo + '?body=' + encodeURIComponent('SOS' + (this.type ? ' (' + this.type + ')' : '') + ' from the ASCOT DRRMS app.' + where);
                     },
                     press: function () {
                         var self = this;

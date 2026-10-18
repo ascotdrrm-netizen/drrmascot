@@ -1,5 +1,5 @@
 @extends('layouts.mobile')
-@section('title', 'Safety check-in - ASCOT DRRM')
+@section('title', 'Safety check-in - ASCOT DRRMS')
 @section('content')
     @if (! $rollCall)
         <h1 class="page-title">No open roll call</h1>

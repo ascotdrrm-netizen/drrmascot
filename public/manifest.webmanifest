@@ -1,6 +1,6 @@
 {
-    "name": "ASCOT DRRM",
-    "short_name": "ASCOT DRRM",
+    "name": "ASCOT DRRMS",
+    "short_name": "ASCOT DRRMS",
     "description": "Report hazards, call for help and get disaster advisories from the ASCOT DRRM Office.",
     "id": "/app",
     "start_url": "/app",

@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Report a hazard - ASCOT DRRM')
+@section('title', 'Report a hazard - ASCOT DRRMS')
 
 @section('content')
     <div x-data="reportWizard({ categories: @js($categories), preset: @js(request('type')), queuedKey: @js(request('queued')), live: @js(auth()->user()?->role === 'Reporter') })" data-report-wizard>

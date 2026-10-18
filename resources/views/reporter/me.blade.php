@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Me - ASCOT DRRM')
+@section('title', 'Me - ASCOT DRRMS')
 
 @section('content')
     <div class="flex items-center gap-4">

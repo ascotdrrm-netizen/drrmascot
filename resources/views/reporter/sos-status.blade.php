@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'SOS status - ASCOT DRRM')
+@section('title', 'SOS status - ASCOT DRRMS')
 
 @section('content')
     <div class="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800" role="status">

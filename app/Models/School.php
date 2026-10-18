@@ -36,6 +36,7 @@ class School extends Model
             'School of Forestry and Environmental Sciences',
             'School of Education',
             'School of Industrial Technology',
+            'School of Accountancy and Business Management',
         ],
         'Bazal' => ['School of Agricultural and Science'],
         'Casiguran' => ['School of Fisheries and Ocean Sciences'],

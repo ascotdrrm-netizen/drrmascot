@@ -105,7 +105,7 @@ class ConsolidatedReportController extends Controller
         ]);
 
         $filename = sprintf(
-            'ASCOT-DRRM-Report_%s_%s.pdf',
+            'ASCOT-DRRMS-Report_%s_%s.pdf',
             $this->periodSlug($request->validated('period_type'), $period),
             $this->scopeSlug($report)
         );

@@ -152,6 +152,16 @@ class DisasterAdvisoryController extends Controller
             'status' => 'Active',
         ] + $this->fields($data));
 
+        // Reporters on the campus (every campus for an all-campus advisory)
+        // get a notice, so it raises the Alerts badge and opens the advisory.
+        if ($advisory->isLive()) {
+            \App\Models\Personnel::where('role', 'Reporter')->where('is_approved', true)
+                ->when($advisory->campus_id !== null, fn ($q) => $q->where('campus_id', $advisory->campus_id))
+                ->get()->groupBy('campus_id')
+                ->each(fn ($reporters, $campusId) => \App\Support\EmergencyNotices::record($reporters, 'advisory',
+                    $advisory->advisory_id, (int) $campusId, 'Advisory: '.$advisory->headline));
+        }
+
         return redirect()
             ->route("{$this->routePrefix()}.advisories.show", $advisory)
             ->with('status', 'Advisory issued. It shows as a warning on the dashboards of ' . ($advisory->campus_id === null ? 'every campus' : $advisory->campus_label)

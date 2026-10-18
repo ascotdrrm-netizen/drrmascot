@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Hotlines - ASCOT DRRM')
+@section('title', 'Hotlines - ASCOT DRRMS')
 
 @php $tel = fn (string $n) => 'tel:' . preg_replace('/[^0-9+]/', '', $n); @endphp
 

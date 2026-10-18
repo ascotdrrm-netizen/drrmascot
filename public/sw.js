@@ -1,5 +1,5 @@
 /*
- * ASCOT DRRM service worker (docs/PLAN.md §1.2): makes the phone app open with
+ * ASCOT DRRMS service worker (docs/PLAN.md §1.2): makes the phone app open with
  * no signal. What it caches, on purpose:
  *   - the offline page and public hotlines, so emergency numbers are available;
  *   - built CSS/JS, fonts, icons and seals (they never change under one URL).

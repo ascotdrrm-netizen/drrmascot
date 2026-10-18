@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Sign up - ASCOT DRRM')
+@section('title', 'Sign up - ASCOT DRRMS')
 @section('no-tabs', true)
 
 @section('content')

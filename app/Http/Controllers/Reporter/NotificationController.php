@@ -25,6 +25,7 @@ class NotificationController extends Controller
             'report_update' => redirect()->route('app.reports.show', $notification->subject_id),
             'sos_update' => redirect()->route('app.sos.status', ['sos' => $notification->subject_id]),
             'campus_status' => redirect()->to(route('app.alerts').'#campus-status'),
+            'advisory' => redirect()->to(route('app.alerts').'#advisory-'.$notification->subject_id),
             default => redirect()->route('app.alerts'),
         };
     }

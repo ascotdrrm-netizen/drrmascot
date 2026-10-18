@@ -219,7 +219,7 @@
                 <div class="flex items-start gap-4">
                     <x-icon name="mobile_arrow_down" class="mt-1 h-7 w-7 shrink-0 text-gray-700" />
                     <div>
-                        <h2 class="section-title">ASCOT DRRM on your phone</h2>
+                        <h2 class="section-title">ASCOT DRRMS on your phone</h2>
                         <p class="mt-1 max-w-xl text-sm leading-6 text-gray-600">Press SOS, report a hazard with a photo and location, and get advisories. It installs from this website, no app store needed.</p>
                     </div>
                 </div>

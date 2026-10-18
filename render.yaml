@@ -90,5 +90,16 @@ services:
         sync: false
       - key: MAIL_FROM_NAME
         value: ASCOT DRRMS
+      # SOS text alerts. Set SMS_GATEWAY to "semaphore" in the dashboard once
+      # SEMAPHORE_API_KEY (a funded account) is in; "log" only writes the log.
+      # SEMAPHORE_SENDER_NAME is optional until Semaphore approves the name.
       - key: SMS_GATEWAY
-        value: log
+        sync: false
+      - key: SEMAPHORE_API_KEY
+        sync: false
+      - key: SEMAPHORE_SENDER_NAME
+        sync: false
+      # Backup / Restore / Clear records stay disabled until this is set:
+      # a bcrypt hash of the data-privacy password (docs/RENDER_SUPABASE.md).
+      - key: DATA_PRIVACY_PASSWORD_HASH
+        sync: false

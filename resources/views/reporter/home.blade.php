@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Home - ASCOT DRRM')
+@section('title', 'Home - ASCOT DRRMS')
 
 @section('content')
     @php

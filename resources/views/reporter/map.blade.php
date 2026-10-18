@@ -1,6 +1,6 @@
 @extends('layouts.mobile')
 
-@section('title', 'Map - ASCOT DRRM')
+@section('title', 'Map - ASCOT DRRMS')
 
 @section('content')
     <h1 class="page-title">Campus map</h1>

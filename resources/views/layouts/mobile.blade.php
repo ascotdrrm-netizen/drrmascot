@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>@yield('title', 'ASCOT DRRM')</title>
+    <title>@yield('title', 'ASCOT DRRMS')</title>
     @include('layouts.partials.theme')
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <link rel="apple-touch-icon" href="{{ asset('icons/apple-touch-icon.png') }}">
@@ -45,7 +45,7 @@
         <div class="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4">
             <a href="{{ route('app.home') }}" class="flex min-h-[2.75rem] items-center gap-2">
                 <img src="{{ asset('images/drrm-logo-256.png') }}" alt="" class="h-7 w-7">
-                <span class="text-base font-bold tracking-tight">ASCOT<span class="text-accent-ink">-DRRM</span></span>
+                <span class="text-base font-bold tracking-tight">ASCOT<span class="text-accent-ink">-DRRMS</span></span>
             </a>
             {{-- Alerts live in the tab bar and the theme under Me, so the top bar
                  stays empty on app screens. The sign-in screens have no tabs, so
