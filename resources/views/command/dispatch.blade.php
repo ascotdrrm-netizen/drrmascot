@@ -6,15 +6,23 @@
     <div class="mb-6 grid gap-6 lg:grid-cols-2">
         <x-card>
             <h2 class="card-title mb-4">Assign a responder</h2>
-            <p class="form-help mb-4">Verify the report or acknowledge the SOS first. Call the responder to confirm the dispatch.</p>
+            <p class="form-help mb-4">Dispatching a new case also verifies the report or acknowledges the SOS. Call the responder to confirm the dispatch.</p>
             <form method="POST" action="{{ route('api.command.assignments.store') }}" data-ajax data-ajax-stay data-ajax-reset data-ajax-refresh="#dispatch-board,#dispatch-options" class="space-y-4">
                 @csrf
                 <div id="dispatch-options">
                 <div><label for="target" class="form-label">Report or SOS</label><select id="target" name="target" required class="form-input">
-                    <option value="">Select a case</option>
-                    <optgroup label="SOS">@foreach ($sosEvents as $sos)<option value="sos:{{ $sos->getKey() }}">SOS #{{ $sos->getKey() }} · {{ $sos->type ?: 'Emergency' }} · {{ $sos->place ?: 'Location not shared' }}</option>@endforeach</optgroup>
-                    <optgroup label="Verified reports">@foreach ($reports as $report)<option value="report:{{ $report->getKey() }}">Report #{{ $report->getKey() }} · {{ $report->category }} · {{ $report->place ?: 'GPS location' }}</option>@endforeach</optgroup>
-                </select></div>
+                    <option value="">{{ $sosEvents->isEmpty() && $reports->isEmpty() ? 'No open reports or SOS right now' : 'Select a case' }}</option>
+                    @if ($sosEvents->isNotEmpty())
+                        <optgroup label="SOS">@foreach ($sosEvents as $sos)<option value="sos:{{ $sos->getKey() }}">SOS #{{ $sos->getKey() }} · {{ $sos->type ?: 'Emergency' }} · {{ $sos->place ?: 'Location not shared' }} · {{ $sos->status }}</option>@endforeach</optgroup>
+                    @endif
+                    @if ($reports->isNotEmpty())
+                        <optgroup label="Reports">@foreach ($reports as $report)<option value="report:{{ $report->getKey() }}">Report #{{ $report->getKey() }} · {{ $report->category }} · {{ $report->place ?: 'GPS location' }} · {{ $report->status }}</option>@endforeach</optgroup>
+                    @endif
+                </select>
+                @if ($sosEvents->isEmpty() && $reports->isEmpty())
+                    <p class="form-help mt-1">No open reports or SOS right now. New ones from the Reporter app appear here.</p>
+                @endif
+                </div>
                 <div><label for="responder_id" class="form-label">Responder</label><select id="responder_id" name="responder_id" required class="form-input">
                     <option value="">Select a responder</option>
                     @foreach ($responders->where('is_active', true) as $responder)<option value="{{ $responder->getKey() }}" @disabled(! $responder->is_on_duty || $responder->activeAssignment)>{{ $responder->full_name }} · {{ $responder->team }} · {{ $responder->campus->campus_name }}</option>@endforeach

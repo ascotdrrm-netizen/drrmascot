@@ -16,6 +16,11 @@ use Illuminate\Validation\ValidationException;
 
 class DispatchController extends Controller
 {
+    /** Cases a responder can still be sent to; Resolved and Rejected are closed. */
+    private const OPEN_REPORT = ['New', 'Verified', 'Responding'];
+
+    private const OPEN_SOS = ['New', 'Acknowledged', 'Responding'];
+
     private function scoped($query, Request $request)
     {
         return $request->user()->isAdmin() ? $query : $query->where('campus_id', $request->user()->campus_id);
@@ -37,8 +42,10 @@ class DispatchController extends Controller
 
         return view('command.dispatch', compact('responders', 'assignments') + [
             'campuses' => $request->user()->isAdmin() ? Campus::orderBy('campus_name')->get() : Campus::whereKey($request->user()->campus_id)->get(),
-            'reports' => $this->scoped(CitizenReport::query(), $request)->whereIn('status', ['Verified', 'Responding'])->latest()->limit(100)->get(),
-            'sosEvents' => $this->scoped(SosEvent::query(), $request)->whereIn('status', ['Acknowledged', 'Responding'])->oldest()->limit(100)->get(),
+            // New cases too: everything from the Reporter app starts as New,
+            // and dispatching one verifies (or acknowledges) it (see assign()).
+            'reports' => $this->scoped(CitizenReport::query(), $request)->whereIn('status', self::OPEN_REPORT)->latest()->limit(100)->get(),
+            'sosEvents' => $this->scoped(SosEvent::query(), $request)->whereIn('status', self::OPEN_SOS)->oldest()->limit(100)->get(),
             'arrivalMinutes' => $minutes->isEmpty() ? null : round($minutes->avg(), 1),
             'arrivalSample' => $minutes->count(),
             'routePrefix' => $request->user()->isAdmin() ? 'admin' : 'coordinator',
@@ -87,9 +94,9 @@ class DispatchController extends Controller
             $this->campus($request, (int) $subject->campus_id);
             $responder = Responder::whereKey($data['responder_id'])->lockForUpdate()->firstOrFail();
             abort_unless((int) $responder->campus_id === (int) $subject->campus_id, 422, 'The responder must belong to the same campus as this emergency.');
-            $allowed = $data['kind'] === 'report' ? ['Verified', 'Responding'] : ['Acknowledged', 'Responding'];
+            $allowed = $data['kind'] === 'report' ? self::OPEN_REPORT : self::OPEN_SOS;
             if (! in_array($subject->status, $allowed, true)) {
-                throw ValidationException::withMessages(['subject_id' => 'Verify the report or acknowledge the SOS before dispatching. Closed cases cannot receive assignments.']);
+                throw ValidationException::withMessages(['subject_id' => 'This case is closed and cannot receive assignments.']);
             }
             if (! $responder->is_active || ! $responder->is_on_duty) {
                 throw ValidationException::withMessages(['responder_id' => 'This responder is off duty or inactive.']);
@@ -106,7 +113,14 @@ class DispatchController extends Controller
                 $data['kind'] === 'report' ? 'report_id' : 'sos_id' => $subject->getKey(),
                 'assigned_by' => $request->user()->personnel_id, 'status' => 'Assigned', 'notes' => $data['notes'] ?? null, 'assigned_at' => now()]);
             if ($subject->status !== 'Responding') {
-                $subject->update(['status' => 'Responding']);
+                // Dispatching a New case is the staff member verifying (or
+                // acknowledging) it, so that step stays on the record.
+                if ($subject->status === 'New' && $data['kind'] === 'report') {
+                    $subject->events()->create(['actor_id' => $request->user()->personnel_id,
+                        'status' => 'Verified', 'note' => 'Verified by the DRRM Office when a responder was dispatched.', 'created_at' => now()]);
+                }
+                $subject->update(['status' => 'Responding'] + ($subject->status === 'New' && $data['kind'] === 'sos'
+                    ? ['acknowledged_by' => $request->user()->personnel_id, 'acknowledged_at' => now()] : []));
                 if ($data['kind'] === 'report') {
                     $subject->events()->create(['actor_id' => $request->user()->personnel_id,
                         'status' => 'Responding', 'note' => 'A campus responder was assigned.', 'created_at' => now()]);

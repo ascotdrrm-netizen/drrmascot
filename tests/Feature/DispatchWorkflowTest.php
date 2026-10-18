@@ -64,7 +64,8 @@ class DispatchWorkflowTest extends TestCase
 
     public function test_campus_role_duty_and_verification_gates_apply_to_dispatch(): void
     {
-        $report = $this->report('New');
+        // Closed cases are refused (New ones may be dispatched: UatDispatchFixesTest).
+        $report = $this->report('Rejected');
         $data = ['target' => 'report:'.$report->getKey(), 'responder_id' => $this->responder->getKey()];
         $this->actingAs($this->reporter)->postJson('/api/command/assignments', $data)->assertForbidden();
         $this->actingAs($this->coordinator)->postJson('/api/command/assignments', $data)->assertUnprocessable();
