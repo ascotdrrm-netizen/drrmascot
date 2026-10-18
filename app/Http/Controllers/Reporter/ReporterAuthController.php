@@ -24,7 +24,7 @@ class ReporterAuthController extends Controller
             'id_number' => ['required', 'string', 'max:40'],
             'campus_id' => ['required', 'exists:campuses,campus_id'],
             'school_id' => ['required', new SchoolOnCampus((int) $request->input('campus_id'))],
-            'contact_number' => ['required', 'string', 'max:20'],
+            'contact_number' => ['required', 'string', 'max:20', new \App\Rules\ValidPhone()],
             'email' => ['required', 'email', 'max:100', 'unique:personnel,email'],
             'recovery_email' => ['nullable', 'email', 'max:100', 'different:email'],
             'password' => ['required', 'confirmed', new ValidPassword()],

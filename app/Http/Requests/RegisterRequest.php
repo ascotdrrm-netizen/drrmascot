@@ -33,7 +33,7 @@ class RegisterRequest extends FormRequest
             // anything longer used to reach the database and crash the page.
             'email' => ['required', 'email', 'max:100', 'unique:personnel,email'],
             // Required (thesis panel, Engineering): SMS alerts reach people by this number.
-            'contact_number' => ['required', 'string', 'max:20'],
+            'contact_number' => ['required', 'string', 'max:20', new \App\Rules\ValidPhone()],
             'password' => ['required', 'string', 'confirmed', new ValidPassword()],
             // Required at self-registration (the placeholder posts "" and is
             // rejected here, not only by the browser), and it must be a school

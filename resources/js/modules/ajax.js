@@ -235,6 +235,12 @@ function handleFailure(error, form) {
         toast(response.data.message && ! form ? response.data.message : 'Please check the highlighted fields.', 'danger');
         return;
     }
+    // Signed out elsewhere (a password change ends other sign-ins): reloading
+    // lets the server send this page to its own login screen.
+    if (response && response.status === 401) {
+        window.location.reload();
+        return;
+    }
     if (response && response.status === 429) {
         toast('Too many tries. Please wait a minute and try again.', 'danger');
         return;

@@ -94,7 +94,7 @@ class RegistrationTest extends TestCase
     {
         $this->get(route('register'))->assertOk()
             ->assertSee('<input type="tel" id="contact_number" name="contact_number"', false)
-            ->assertSee('maxlength="20" required', false);
+            ->assertSee('maxlength="13" required', false);
 
         $this->from('/register')->post('/register', [
             'first_name' => 'No', 'last_name' => 'Number', 'email' => 'no.number@example.com',

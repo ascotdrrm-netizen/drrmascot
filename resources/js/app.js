@@ -86,6 +86,14 @@ if (document.readyState === 'loading') {
     labelTableCells();
 }
 
+// Phone fields ([data-digits]) keep only digits and a leading +, as typed or pasted.
+document.addEventListener('input', function (event) {
+    const field = event.target;
+    if (! field.matches || ! field.matches('[data-digits]')) return;
+    const clean = field.value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
+    if (clean !== field.value) field.value = clean;
+});
+
 // After an AJAX swap (ajax.js refreshParts / lists): the new rows and
 // fields get the same treatment as on page load.
 document.addEventListener('drrms:content-replaced', function () {

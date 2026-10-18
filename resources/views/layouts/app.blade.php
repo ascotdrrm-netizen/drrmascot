@@ -135,7 +135,9 @@
 </head>
 <body class="bg-canvas text-gray-900 antialiased overflow-x-hidden">
     <a href="#main-content" class="skip-link">Skip to content</a>
-    <div class="flex h-screen overflow-hidden">
+    {{-- dvh, not vh: on phones 100vh runs under the browser's bottom bar and
+         hid the drawer's Log out button. --}}
+    <div class="flex h-dvh overflow-hidden">
         {{-- Backdrop for the mobile off-canvas drawer — hidden/inert until JS opens it. --}}
         <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/40 lg:hidden"></div>
 
@@ -143,7 +145,7 @@
              edge, grouped sections, Material Symbols, the active item on an accent
              tint with an accent bar. Static from lg; an off-canvas drawer below. --}}
         <aside id="sidebar"
-               class="sidebar-scroll fixed inset-y-0 left-0 z-50 flex h-screen w-64 -translate-x-full flex-col overflow-y-auto border-r border-gray-100 bg-white text-gray-900 transition-transform duration-150 ease-out lg:static lg:z-auto lg:w-64 lg:shrink-0 lg:translate-x-0">
+               class="sidebar-scroll fixed inset-y-0 left-0 z-50 flex h-dvh w-64 -translate-x-full flex-col overflow-y-auto border-r border-gray-100 bg-white text-gray-900 transition-transform duration-150 ease-out lg:static lg:z-auto lg:w-64 lg:shrink-0 lg:translate-x-0">
             <div class="px-5 pb-4 pt-5">
                 {{-- Wordmark and the drawer's close button share one row as flex items,
                      so they can't overlap whatever the font. --}}
@@ -255,14 +257,14 @@
                     @endforeach
 
                     {{-- Phones only: on desktop the theme switch and Log out are in the top bar. --}}
-                    <div class="mt-auto space-y-0.5 border-t border-gray-100 pt-4 lg:hidden">
+                    <div class="mt-auto space-y-0.5 border-t border-gray-100 pt-4 pb-[env(safe-area-inset-bottom)] lg:hidden">
                         <x-theme-toggle label />
                         {{-- The page's one logout form; the desktop avatar menu submits it too (form="logout-form"). --}}
                         <form id="logout-form" method="POST" action="{{ url('/logout') }}" data-no-loading data-confirm-form="You'll need to sign in again to continue." data-confirm-title="Log out?" data-confirm-button="Log out" data-confirm-focus="cancel">
                             @csrf
                             <button type="submit" class="nav-item w-full text-left">
                                 <x-icon name="logout" />
-                                Logout
+                                Log out
                             </button>
                         </form>
                     </div>

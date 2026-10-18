@@ -166,7 +166,7 @@ class PersonnelController extends Controller
             'full_name' => ['required', 'string', 'max:150', new ValidName()],
             'role' => ['required', 'in:Coordinator,DRRMO Admin,Reporter'],
             'campus_id' => ['required', 'exists:campuses,campus_id'],
-            'contact_number' => ['nullable', 'string', 'max:20'],
+            'contact_number' => ['nullable', 'string', 'max:20', new \App\Rules\ValidPhone()],
             // Must be a school on the (possibly new) campus. When the campus
             // changes, the dropdown clears the school; a stale school from the
             // old campus posted anyway is rejected here, never saved.

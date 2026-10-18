@@ -68,6 +68,9 @@ services:
         value: lax
       - key: SESSION_LIFETIME
         value: "120"
+      # Closing the browser signs you out unless "Keep me signed in" was ticked.
+      - key: SESSION_EXPIRE_ON_CLOSE
+        value: "true"
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
@@ -75,21 +78,13 @@ services:
       - key: DB_QUEUE_RETRY_AFTER
         value: "120"
 
-      # Gmail SMTP: Reporter email verification and password reset depend on
-      # it. MAIL_PASSWORD is a Google App Password, entered in the dashboard.
+      # Brevo over HTTPS: Reporter email verification, password reset and
+      # broadcast emails depend on it. Render's free plan blocks outbound SMTP
+      # (ports 25/465/587), so Gmail SMTP can't be used here. BREVO_API_KEY and
+      # MAIL_FROM_ADDRESS (a sender verified in Brevo) are entered in the dashboard.
       - key: MAIL_MAILER
-        value: smtp
-      - key: MAIL_SCHEME
-        value: smtp
-      - key: MAIL_HOST
-        value: smtp.gmail.com
-      - key: MAIL_PORT
-        value: "587"
-      - key: MAIL_TIMEOUT
-        value: "20"
-      - key: MAIL_USERNAME
-        sync: false
-      - key: MAIL_PASSWORD
+        value: brevo
+      - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM_ADDRESS
         sync: false

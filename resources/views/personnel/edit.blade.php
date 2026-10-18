@@ -34,7 +34,7 @@
 
                 <div>
                     <label for="contact_number" class="form-label">Contact number</label>
-                    <input type="text" id="contact_number" name="contact_number" maxlength="20"
+                    <input type="tel" id="contact_number" name="contact_number" maxlength="13" inputmode="numeric" pattern="(09\d{9}|\+?639\d{9})" data-digits placeholder="09171234567" title="Digits only, like 09171234567"
                            value="{{ old('contact_number', $personnel->contact_number) }}"
                            class="form-input">
                     @error('contact_number')

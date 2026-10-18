@@ -44,7 +44,7 @@
 
             <div>
                 <label for="phone" class="form-label">Mobile number</label>
-                <input id="phone" name="contact_number" type="tel" inputmode="tel" autocomplete="tel" value="{{ old('contact_number') }}" class="form-input" required placeholder="09XX XXX XXXX">
+                <input id="phone" name="contact_number" type="tel" inputmode="numeric" maxlength="13" pattern="(09\d{9}|\+?639\d{9})" data-digits autocomplete="tel" value="{{ old('contact_number') }}" class="form-input" required placeholder="09171234567" title="Digits only, like 09171234567">
                 <p class="form-help">The DRRM Office may use this number to contact you during an emergency.</p>
             </div>
             <div>

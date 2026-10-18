@@ -30,7 +30,11 @@ class PasswordResetController extends Controller
         // no-ops a too-soon repeat request rather than erroring — combined
         // with the route-level throttle:5,1 middleware below, which caps
         // attempts per IP regardless of which email(s) they target.
-        Password::sendResetLink($data);
+        // A mail outage is logged, never shown: the response stays identical.
+        try { Password::sendResetLink($data); }
+        catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::warning('Password reset email could not be sent.', ['error' => $exception->getMessage()]);
+        }
 
         $personnel = Personnel::where('email', $data['email'])->first();
 

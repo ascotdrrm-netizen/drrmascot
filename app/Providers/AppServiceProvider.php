@@ -8,8 +8,11 @@ use App\Services\Sms\SmsGatewayInterface;
 use App\Support\Supabase\LockDown;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -51,6 +54,11 @@ class AppServiceProvider extends ServiceProvider
         // Supabase: after every migrate, no table is readable through the
         // public Data API (see App\Support\Supabase\LockDown).
         Event::listen(MigrationsEnded::class, fn () => LockDown::run());
+
+        // Brevo sends over HTTPS; Render's free plan blocks outbound SMTP.
+        Mail::extend('brevo', fn () => (new BrevoTransportFactory())->create(
+            new Dsn('brevo+api', 'default', (string) config('services.brevo.key'))
+        ));
     }
 
     /** Route parameters that are always a record's numeric id. */

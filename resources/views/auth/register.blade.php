@@ -68,7 +68,7 @@
 
         <div>
             <label for="contact_number" class="form-label">Contact number</label>
-            <input type="tel" id="contact_number" name="contact_number" value="{{ old('contact_number') }}" maxlength="20" required autocomplete="tel" inputmode="tel" placeholder="09XX XXX XXXX"
+            <input type="tel" id="contact_number" name="contact_number" value="{{ old('contact_number') }}" maxlength="13" required autocomplete="tel" inputmode="numeric" pattern="(09\d{9}|\+?639\d{9})" data-digits placeholder="09171234567" title="Digits only, like 09171234567"
                    class="form-input">
         </div>
 

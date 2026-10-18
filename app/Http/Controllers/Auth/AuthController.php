@@ -127,6 +127,14 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        // Verifying the email isn't needed to sign in, but campus broadcast
+        // emails only go to verified addresses. A failed send never blocks
+        // registration; My Profile can request another link.
+        try { $personnel->sendEmailVerificationNotification(); }
+        catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::warning('Staff verification email could not be sent.', ['personnel_id' => $personnel->getKey()]);
+        }
+
         return redirect()->route('login')
             ->with('status', 'Registration received. Your account is waiting for DRRMO approval; you can sign in once it is approved.');
     }

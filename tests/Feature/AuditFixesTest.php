@@ -133,7 +133,7 @@ class AuditFixesTest extends TestCase
 
         $html = $this->get('/register')->assertOk()->getContent();
         $this->assertMatchesRegularExpression('/<input[^>]*id="email"[^>]*maxlength="100"/s', $html);
-        $this->assertMatchesRegularExpression('/<input[^>]*id="contact_number"[^>]*maxlength="20"/s', $html);
+        $this->assertMatchesRegularExpression('/<input[^>]*id="contact_number"[^>]*maxlength="13"/s', $html);
     }
 
     // =========================== 5. Damage reports ============================
