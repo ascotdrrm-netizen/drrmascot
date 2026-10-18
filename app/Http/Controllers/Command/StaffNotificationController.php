@@ -37,6 +37,10 @@ class StaffNotificationController extends Controller
             return redirect()->route($prefix . '.broadcasts.show', $notification->subject_id);
         }
 
+        if ($notification->kind === 'campus_status') {
+            return redirect()->route($prefix . '.command.campus-status');
+        }
+
         if ($notification->kind === 'roll_call') {
             return redirect()->route($prefix . '.roll-calls.show', $notification->subject_id);
         }

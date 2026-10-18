@@ -11,6 +11,10 @@ class CampusStatus extends Model
     // staff make, so every change is in the Activity Log.
     use LogsActivity;
 
+    /** What each status is called on screens and in notices. */
+    public const LABELS = ['normal' => 'Normal', 'advisory' => 'Advisory in effect',
+        'suspended' => 'Classes suspended', 'evacuate' => 'Evacuate'];
+
     protected $primaryKey = 'campus_id';
     public $incrementing = false;
     protected $fillable = ['campus_id', 'status', 'detail', 'updated_by'];

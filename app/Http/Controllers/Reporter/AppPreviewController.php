@@ -22,8 +22,7 @@ class AppPreviewController extends Controller
             $advisories = $this->liveAdvisories();
             $campusStatus = CampusStatus::find($person->campus_id);
             $status = $campusStatus?->status ?: 'normal';
-            $labels = ['normal' => 'Normal', 'advisory' => 'Advisory in effect',
-                'suspended' => 'Classes suspended', 'evacuate' => 'Evacuate'];
+            $labels = CampusStatus::LABELS;
 
             return [
                 'reporter' => [
@@ -42,6 +41,7 @@ class AppPreviewController extends Controller
                     'status' => $status,
                     'label' => $labels[$status] ?? 'Normal',
                     'detail' => $campusStatus?->detail ?: 'No emergency status in effect.',
+                    'updated' => $campusStatus?->updated_at,
                 ]],
                 'unread' => \App\Models\StaffNotification::where('personnel_id', $person->getKey())->where('campus_id', $person->campus_id)->whereNull('read_at')->count(),
             ];

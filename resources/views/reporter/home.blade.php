@@ -18,7 +18,7 @@
 
     {{-- Your campus right now, in one line: status in words + icon, never
          colour alone. Tap for the advisory behind it. --}}
-    <a href="{{ route('app.alerts') }}" class="mt-4 flex items-center gap-3 rounded-xl border px-4 py-3 {{ $tone[$mine['status']][0] }}" data-campus-status="{{ $mine['status'] }}">
+    <a href="{{ route('app.alerts') }}#campus-status" class="mt-4 flex items-center gap-3 rounded-xl border px-4 py-3 {{ $tone[$mine['status']][0] }}" data-campus-status="{{ $mine['status'] }}">
         <x-icon :name="$tone[$mine['status']][1]" fill class="h-6 w-6 shrink-0" />
         <span class="min-w-0 flex-1">
             <span class="block text-xs font-semibold uppercase tracking-wide">{{ $reporter['campus'] }}</span>
