@@ -134,7 +134,8 @@ git clone https://github.com/ascotdrrm-netizen/drrmascot.git
 cd drrmascot
 composer install
 npm install
-copy .env.example .env
+copy .env.example .env      # then set DB_CONNECTION=sqlite in .env for a local copy
+New-Item database\database.sqlite
 php artisan key:generate
 php artisan migrate --seed   # local SQLite only, never the live database
 npm run build
