@@ -5,7 +5,7 @@
         <p class="mt-2 text-sm text-green-700">{{ auth()->user()->contact_number }} is verified for campus broadcast texts.</p>
     @else
         <p class="mt-2 text-sm text-gray-600">Verify your saved mobile number to receive campus broadcast texts. {{ auth()->user()->contact_number ?: 'Ask the DRRM Office to update your mobile number first.' }}</p>
-        @if(config('services.sms.driver') === 'semaphore' && filled(config('services.semaphore.api_key')))
+        @if(\App\Services\Sms\SmsDriver::isReady())
             <form method="POST" action="{{ route('phone.send') }}" class="mt-3">@csrf<button class="btn btn-secondary" type="submit">Request verification code</button></form>
             <form method="POST" action="{{ route('phone.verify') }}" class="mt-3 flex flex-wrap gap-2">@csrf
                 <label class="form-label w-full" for="phone_code">Six-digit code</label>

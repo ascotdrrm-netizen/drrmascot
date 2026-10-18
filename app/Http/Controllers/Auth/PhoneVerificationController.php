@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Personnel;
+use App\Services\Sms\SmsDriver;
 use App\Services\Sms\SmsGatewayInterface;
 use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class PhoneVerificationController extends Controller
     public function send(Request $request, SmsGatewayInterface $sms)
     {
         abort_unless($request->user()->is_approved, 403);
-        if (config('services.sms.driver') !== 'semaphore' || blank(config('services.semaphore.api_key'))) {
+        if (! SmsDriver::isReady()) {
             throw ValidationException::withMessages(['phone' => 'SMS verification is unavailable until the SMS service is configured.']);
         }
         $key = 'phone-code:'.$request->user()->getKey();

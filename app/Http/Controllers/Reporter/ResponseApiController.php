@@ -158,6 +158,7 @@ class ResponseApiController extends Controller
             throw $exception;
         }
         EmergencyNotices::textSos($recipients, $sos, $user);
+        EmergencyNotices::emailSos($recipients, $sos, $user);
 
         return response()->json(['id' => $sos->sos_id, 'status' => $sos->status], 201);
     }

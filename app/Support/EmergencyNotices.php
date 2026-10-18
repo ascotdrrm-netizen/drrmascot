@@ -2,12 +2,14 @@
 
 namespace App\Support;
 
+use App\Mail\SosAlert;
 use App\Models\Personnel;
 use App\Models\Reporter\SosEvent;
 use App\Models\StaffNotification;
 use App\Services\Sms\SmsGatewayInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class EmergencyNotices
 {
@@ -48,6 +50,23 @@ class EmergencyNotices
                 }
             } catch (\Throwable $exception) {
                 Log::error('SOS SMS failed', ['sos_id' => $id, 'recipient_id' => $recipient->personnel_id,
+                    'error' => $exception->getMessage()]);
+            }
+        }
+    }
+
+    /** Free alert: one queued email per staff recipient (no shared To list). A mail failure never rolls back the SOS. */
+    public static function emailSos(Collection $recipients, SosEvent $sos, Personnel $reporter): void
+    {
+        foreach ($recipients as $recipient) {
+            if (! filter_var($recipient->email, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            $console = route(($recipient->role === 'DRRMO Admin' ? 'admin' : 'coordinator').'.command.sos');
+            try {
+                Mail::to($recipient->email)->queue(new SosAlert($sos, $reporter, $console));
+            } catch (\Throwable $exception) {
+                Log::error('SOS email failed', ['sos_id' => (int) $sos->sos_id, 'recipient_id' => $recipient->personnel_id,
                     'error' => $exception->getMessage()]);
             }
         }

@@ -36,7 +36,7 @@
             <p class="mt-3 text-xs text-gray-500">Email and SMS totals use verified contacts and exclude duplicate destinations. SMS pricing depends on the configured provider rate.</p>
             @if($broadcast->send_email && ! $audience['counts']['email'])<p class="mt-3 text-sm text-amber-700">No one on this campus has a verified email address yet, so no email will be sent. People verify it from the link emailed at sign-up or from My Profile.</p>@endif
             @if($broadcast->send_sms && ! $audience['counts']['sms'])<p class="mt-3 text-sm text-amber-700">No one on this campus has a verified mobile number yet, so no SMS will be sent. People verify it from My Profile.</p>@endif
-            @if($broadcast->send_sms && config('services.sms.driver') !== 'semaphore')<p class="mt-3 text-sm text-amber-700">SMS uses the local log driver. Texts will be simulated.</p>@endif
+            @if($broadcast->send_sms && ! \App\Services\Sms\SmsDriver::isReal())<p class="mt-3 text-sm text-amber-700">SMS uses the local log driver. Texts will be simulated.</p>@endif
             @if($broadcast->send_email && in_array(config('mail.mailers.'.config('mail.default').'.transport'), ['log', 'array'], true))<p class="mt-3 text-sm text-amber-700">Email uses a local driver. Emails will be simulated.</p>@endif
             <form method="POST" action="{{ route($routePrefix.'.broadcasts.publish', $broadcast) }}" class="mt-5">@csrf
                 <input type="hidden" name="audience_fingerprint" value="{{ $audience['fingerprint'] }}">

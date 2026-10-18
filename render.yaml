@@ -90,10 +90,15 @@ services:
         sync: false
       - key: MAIL_FROM_NAME
         value: ASCOT DRRMS
-      # SOS text alerts. Set SMS_GATEWAY to "semaphore" in the dashboard once
-      # SEMAPHORE_API_KEY (a funded account) is in; "log" only writes the log.
+      # SOS text alerts. SMS_GATEWAY: "textbee" (free: an Android phone with the
+      # TextBee app sends from its SIM; needs TEXTBEE_API_KEY), "semaphore"
+      # (paid; needs SEMAPHORE_API_KEY), or "log" (only writes the log).
       # SEMAPHORE_SENDER_NAME is optional until Semaphore approves the name.
       - key: SMS_GATEWAY
+        sync: false
+      - key: TEXTBEE_API_KEY
+        sync: false
+      - key: TEXTBEE_DEVICE_ID
         sync: false
       - key: SEMAPHORE_API_KEY
         sync: false

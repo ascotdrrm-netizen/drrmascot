@@ -48,4 +48,10 @@ return [
         'sender_name' => env('SEMAPHORE_SENDER_NAME'),
     ],
 
+    // Free alternative: an Android phone running the TextBee app sends the texts.
+    'textbee' => [
+        'api_key' => env('TEXTBEE_API_KEY'),
+        'device_id' => env('TEXTBEE_DEVICE_ID'),
+    ],
+
 ];

@@ -6,6 +6,7 @@ use App\Mail\CampusBroadcast;
 use App\Models\Broadcast;
 use App\Models\BroadcastDelivery;
 use App\Models\Personnel;
+use App\Services\Sms\SmsDriver;
 use App\Services\Sms\SmsGatewayInterface;
 use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,7 @@ class BroadcastSender
                     $accepted = $sent !== null || $simulated;
                 } else {
                     $accepted = app(SmsGatewayInterface::class)->send($delivery->destination, $broadcast->sms_text);
-                    $simulated = config('services.sms.driver', 'log') !== 'semaphore';
+                    $simulated = ! SmsDriver::isReal();
                 }
                 $status = $accepted ? ($simulated ? 'Simulated' : 'Accepted') : 'Failed';
                 $error = $accepted ? null : 'Provider rejected the request.';

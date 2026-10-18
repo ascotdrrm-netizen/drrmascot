@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\Sms\LogSmsGateway;
 use App\Services\Sms\SemaphoreSmsGateway;
 use App\Services\Sms\SmsGatewayInterface;
+use App\Services\Sms\TextBeeSmsGateway;
 use App\Support\Supabase\LockDown;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Support\Facades\Event;
@@ -24,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SmsGatewayInterface::class, function () {
             return match (config('services.sms.driver', 'log')) {
                 'semaphore' => new SemaphoreSmsGateway(),
+                'textbee' => new TextBeeSmsGateway(),
                 default => new LogSmsGateway(),
             };
         });
