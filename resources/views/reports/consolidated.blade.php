@@ -146,6 +146,58 @@
         </x-card>
     </div>
 
+    @php $cases = $report['reporter_cases']; @endphp
+    <div class="page-section">
+        <h2 class="section-title mb-4">Reporter Reports &amp; SOS</h2>
+        <x-card>
+            @if (! $cases['has_data'])
+                <x-empty-state icon="chart" message="No reports or SOS were sent from the Reporter app in this period." />
+            @else
+                <div class="mb-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
+                    <div><span class="text-gray-600">Reports received:</span> <span class="font-semibold text-gray-900">{{ $cases['reports_total'] }}</span></div>
+                    <div><span class="text-gray-600">Reports resolved:</span> <span class="font-semibold text-gray-900">{{ $cases['reports_by_status']['Resolved'] }}</span></div>
+                    <div><span class="text-gray-600">SOS received:</span> <span class="font-semibold text-gray-900">{{ $cases['sos_total'] }}</span></div>
+                    <div><span class="text-gray-600">SOS resolved:</span> <span class="font-semibold text-gray-900">{{ $cases['sos_by_status']['Resolved'] }}</span></div>
+                </div>
+                <div class="table-wrap -mx-6 border-t border-gray-100">
+                    <table class="data-table text-sm">
+                        <thead>
+                            <tr>
+                                <th class="table-th">Reports by status</th>
+                                <th class="table-th num">Count</th>
+                                <th class="table-th">SOS by status</th>
+                                <th class="table-th num">Count</th>
+                                <th class="table-th">Reports by type</th>
+                                <th class="table-th num">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @php
+                                $reportRows = array_map(null, array_keys($cases['reports_by_status']), array_values($cases['reports_by_status']));
+                                $sosRows = array_map(null, array_keys($cases['sos_by_status']), array_values($cases['sos_by_status']));
+                                $typeRows = array_map(null, array_keys($cases['reports_by_category']), array_values($cases['reports_by_category']));
+                                $maxRows = max(count($reportRows), count($sosRows), count($typeRows));
+                            @endphp
+                            @for ($i = 0; $i < $maxRows; $i++)
+                                <tr>
+                                    <td class="table-td">{{ $reportRows[$i][0] ?? '' }}</td>
+                                    <td class="table-td num">{{ $reportRows[$i][1] ?? '' }}</td>
+                                    <td class="table-td">{{ $sosRows[$i][0] ?? '' }}</td>
+                                    <td class="table-td num">{{ $sosRows[$i][1] ?? '' }}</td>
+                                    <td class="table-td">{{ $typeRows[$i][0] ?? '' }}</td>
+                                    <td class="table-td num">{{ $typeRows[$i][1] ?? '' }}</td>
+                                </tr>
+                            @endfor
+                        </tbody>
+                    </table>
+                </div>
+                @if ($cases['school_filtered'])
+                    <p class="form-help mt-3">Filtered by the reporter's school.</p>
+                @endif
+            @endif
+        </x-card>
+    </div>
+
     <div class="page-section grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div class="flex flex-col">
             <h2 class="section-title mb-4">Drill Tracker</h2>

@@ -12,6 +12,8 @@ use App\Models\Drill\DrillDocumentation;
 use App\Models\Incident\DamageReport;
 use App\Models\Incident\Incident;
 use App\Models\Personnel;
+use App\Models\Reporter\CitizenReport;
+use App\Models\Reporter\SosEvent;
 use App\Models\School;
 use App\Support\RecordAccess;
 use Carbon\CarbonImmutable;
@@ -96,6 +98,7 @@ class ConsolidatedReportService
             'drills' => $this->drillsSection($start, $end, $campusId),
             'alerts' => $this->alertsSection($start, $end, $campusId),
             'advisories' => $this->advisoriesSection($start, $end, $campusId),
+            'reporter_cases' => $this->reporterCasesSection($start, $end, $campusId),
             'campus_breakdown' => $campusId === null ? $this->campusBreakdown($start, $end) : null,
             'school_breakdown' => $this->schoolBreakdown($start, $end, $campusId),
         ];
@@ -125,6 +128,12 @@ class ConsolidatedReportService
             'drills' => $this->drillDocumentationsQuery($start, $end, $campusId)->count(),
             'alerts' => $this->alertsQuery($start, $end, $campusId)->count(),
             'advisories' => $this->advisoriesQuery($start, $end, $campusId)->count(),
+            'reporter_reports' => $this->citizenReportsQuery($start, $end, $campusId)->count(),
+            'sos' => $this->sosQuery($start, $end, $campusId)->count(),
+            // Every case closed as Resolved, whichever module it came in through.
+            'resolved' => $this->incidentsQuery($start, $end, $campusId)->where('status', 'Resolved')->count()
+                + $this->citizenReportsQuery($start, $end, $campusId)->where('citizen_reports.status', 'Resolved')->count()
+                + $this->sosQuery($start, $end, $campusId)->where('status', 'Resolved')->count(),
         ];
     }
 
@@ -136,6 +145,9 @@ class ConsolidatedReportService
             ['key' => 'drills', 'label' => 'Drills Conducted'],
             ['key' => 'alerts', 'label' => 'Alerts Sent'],
             ['key' => 'advisories', 'label' => 'Disaster Advisories Issued'],
+            ['key' => 'reporter_reports', 'label' => 'Reporter Reports Received'],
+            ['key' => 'sos', 'label' => 'SOS Alerts Received'],
+            ['key' => 'resolved', 'label' => 'Cases Resolved'],
         ];
 
         return array_map(function ($row) use ($current, $previous) {
@@ -503,6 +515,73 @@ class ConsolidatedReportService
 
         if ($this->restrictedToViewer()) {
             RecordAccess::applyToAdvisories($query, $this->viewer);
+        }
+
+        return $query;
+    }
+
+    // ========================= REPORTER REPORTS & SOS ==========================
+
+    /**
+     * What came in through the Reporter app, dated by when it was sent
+     * (created_at), by status. Campus-scoped only: Coordinators handle every
+     * report and SOS on their campus, not just ones they created.
+     */
+    public function reporterCasesSection(CarbonImmutable $start, CarbonImmutable $end, ?int $campusId): array
+    {
+        $reportCounts = $this->citizenReportsQuery($start, $end, $campusId)
+            ->select('citizen_reports.status')->selectRaw('COUNT(*) as total')
+            ->groupBy('citizen_reports.status')->pluck('total', 'status')->all();
+        $sosCounts = $this->sosQuery($start, $end, $campusId)
+            ->select('status')->selectRaw('COUNT(*) as total')
+            ->groupBy('status')->pluck('total', 'status')->all();
+        $byCategory = $this->citizenReportsQuery($start, $end, $campusId)
+            ->select('citizen_reports.category')->selectRaw('COUNT(*) as total')
+            ->groupBy('citizen_reports.category')->orderByDesc('total')->pluck('total', 'category')->all();
+
+        $reportsByStatus = array_map(fn ($s) => (int) ($reportCounts[$s] ?? 0), array_combine(self::REPORT_STATUSES, self::REPORT_STATUSES));
+        $sosByStatus = array_map(fn ($s) => (int) ($sosCounts[$s] ?? 0), array_combine(self::SOS_STATUSES, self::SOS_STATUSES));
+        $labels = collect(config('report_categories', []))->keyBy('key')->all();
+
+        return [
+            'reports_total' => array_sum($reportsByStatus),
+            'reports_by_status' => $reportsByStatus,
+            'reports_by_category' => collect($byCategory)->mapWithKeys(fn ($n, $key) => [($labels[$key]['label'] ?? ucfirst((string) $key)) => (int) $n])->all(),
+            'sos_total' => array_sum($sosByStatus),
+            'sos_by_status' => $sosByStatus,
+            'school_filtered' => $this->schoolFilter !== null,
+            'has_data' => array_sum($reportsByStatus) + array_sum($sosByStatus) > 0,
+        ];
+    }
+
+    public const REPORT_STATUSES = ['New', 'Verified', 'Responding', 'Resolved', 'Rejected'];
+
+    public const SOS_STATUSES = ['New', 'Acknowledged', 'Responding', 'Resolved'];
+
+    /** Reporter-app reports; the school is the reporter's (a deleted reporter's reports count as "not assigned"). */
+    public function citizenReportsQuery(CarbonImmutable $start, CarbonImmutable $end, ?int $campusId): Builder
+    {
+        $query = CitizenReport::query()
+            ->leftJoin('personnel as report_reporters', 'report_reporters.personnel_id', '=', 'citizen_reports.reporter_id')
+            ->whereBetween('citizen_reports.created_at', [$start, $end]);
+
+        if ($campusId !== null) {
+            $query->where('citizen_reports.campus_id', $campusId);
+        }
+
+        return School::applyFilter($query, $this->schoolFilter, 'report_reporters.school_id');
+    }
+
+    /** SOS alerts. They carry no school; the school filter narrows by the sender's school. */
+    public function sosQuery(CarbonImmutable $start, CarbonImmutable $end, ?int $campusId): Builder
+    {
+        $query = SosEvent::query()->whereBetween('sos_events.created_at', [$start, $end]);
+
+        if ($campusId !== null) {
+            $query->where('sos_events.campus_id', $campusId);
+        }
+        if ($this->schoolFilter !== null) {
+            $query->whereIn('sos_events.reporter_id', School::applyFilter(Personnel::query()->select('personnel_id'), $this->schoolFilter, 'personnel.school_id'));
         }
 
         return $query;

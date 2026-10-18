@@ -149,6 +149,49 @@
         </div>
     @endif
 
+    @php $cases = $report['reporter_cases']; @endphp
+    <h2 class="section">Reporter Reports &amp; SOS</h2>
+    @if (! $cases['has_data'])
+        <p class="empty">No reports or SOS were sent from the Reporter app in this period.</p>
+    @else
+        <table class="fields">
+            <tr>
+                <td><div class="field-label">Reports received</div><div class="field-value">{{ $cases['reports_total'] }}</div></td>
+                <td><div class="field-label">Reports resolved</div><div class="field-value">{{ $cases['reports_by_status']['Resolved'] }}</div></td>
+            </tr>
+            <tr>
+                <td><div class="field-label">SOS received</div><div class="field-value">{{ $cases['sos_total'] }}</div></td>
+                <td><div class="field-label">SOS resolved</div><div class="field-value">{{ $cases['sos_by_status']['Resolved'] }}</div></td>
+            </tr>
+        </table>
+        @php
+            $reportRows = array_map(null, array_keys($cases['reports_by_status']), array_values($cases['reports_by_status']));
+            $sosRows = array_map(null, array_keys($cases['sos_by_status']), array_values($cases['sos_by_status']));
+        @endphp
+        <div class="keep-together">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Reports by status</th>
+                        <th class="num" style="width: 12%;">Count</th>
+                        <th>SOS by status</th>
+                        <th class="num" style="width: 12%;">Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for ($i = 0; $i < max(count($reportRows), count($sosRows)); $i++)
+                        <tr>
+                            <td>{{ $reportRows[$i][0] ?? '' }}</td>
+                            <td class="num">{{ $reportRows[$i][1] ?? '' }}</td>
+                            <td>{{ $sosRows[$i][0] ?? '' }}</td>
+                            <td class="num">{{ $sosRows[$i][1] ?? '' }}</td>
+                        </tr>
+                    @endfor
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     <h2 class="section">Drill Tracker</h2>
     @if (! $report['drills']['has_data'])
         <p class="empty">No records for this period.</p>
