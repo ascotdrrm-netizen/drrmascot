@@ -36,6 +36,8 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 // The installed app's "no signal" page (public/sw.js falls back to it).
 Route::view('/offline', 'reporter.offline')->name('offline');
+// Start page of the installed staff app (public/manifest-staff.webmanifest).
+Route::get('/staff', \App\Http\Controllers\StaffAppController::class)->name('staff.start');
 
 // A fresh CSRF cookie for a page left open past its session (ajax.js asks
 // for one once on a 419, then sends the request again).

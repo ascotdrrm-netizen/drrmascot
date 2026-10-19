@@ -51,7 +51,7 @@ final class RiskMatrix
     /** Fill colour per level, for charts and map markers (light, dark). */
     public const COLOURS = [
         'Low' => ['#16a34a', '#4ade80'],
-        'Moderate' => ['#d97706', '#fbbf24'],
+        'Moderate' => ['#eab308', '#facc15'],
         'High' => ['#ea580c', '#fb923c'],
         'Very High' => ['#dc2626', '#f87171'],
     ];

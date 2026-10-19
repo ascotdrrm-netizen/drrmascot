@@ -5,7 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'ASCOT DRRMS')</title>
     @include('layouts.partials.theme')
+    {{-- Installable staff app (Admin and coordinators); the students' app is layouts/mobile. --}}
+    <link rel="manifest" href="{{ asset('manifest-staff.webmanifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('icons/apple-touch-icon.png') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="DRRMS Staff">
+    <script>
+        // Install as an app: Chrome and Edge offer a prompt (kept for the
+        // sidebar's Install app button); iPhone and iPad use Share → Add to
+        // Home Screen. The service worker (public/sw.js) never caches
+        // signed-in pages; it only shows the offline page and hotlines.
+        window.drrmsInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.drrmsInstallPrompt = e;
+            document.dispatchEvent(new Event('drrms:installable'));
+        });
+        document.addEventListener('alpine:init', function () {
+            Alpine.data('staffInstall', function () {
+                return {
+                    prompt: !! window.drrmsInstallPrompt,
+                    installed: window.matchMedia('(display-mode: standalone)').matches,
+                    ios: /iphone|ipad|ipod/i.test(navigator.userAgent),
+                    init: function () {
+                        var self = this;
+                        document.addEventListener('drrms:installable', function () { self.prompt = true; });
+                        window.addEventListener('appinstalled', function () { self.installed = true; self.prompt = false; });
+                    },
+                    install: function () {
+                        var self = this, e = window.drrmsInstallPrompt;
+                        if (! e) return;
+                        e.prompt();
+                        e.userChoice.then(function (choice) { if (choice.outcome === 'accepted') self.installed = true; self.prompt = false; window.drrmsInstallPrompt = null; });
+                    },
+                };
+            });
+        });
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () { navigator.serviceWorker.register('{{ asset('sw.js') }}').catch(function () {}); });
+        }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Chart.js (~200 KB) only on pages that draw charts: they declare @section('charts'). --}}
+    @hasSection('charts')
     <script src="{{ asset('vendor/chart.js/chart.umd.js') }}"></script>
     <script>
         // Short Chart.js entrance animation everywhere; none for reduced motion.
@@ -29,6 +71,7 @@
             });
         }
     </script>
+    @endif
     <style>
         /* iOS Safari auto-zooms on focusing any input/select/textarea rendered
            smaller than 16px — this app's inputs use Tailwind's text-sm (14px)
@@ -255,6 +298,15 @@
                             </ul>
                         </div>
                     @endforeach
+
+                    {{-- Install as an app: only when the browser offers it, or Safari on iPhone/iPad (see <head>). --}}
+                    <div x-data="staffInstall" x-show="(prompt || ios) && ! installed" x-cloak class="border-t border-gray-100 pt-4" data-staff-install>
+                        <button type="button" class="nav-item w-full text-left" x-show="prompt" x-on:click="install()">
+                            <x-icon name="mobile_arrow_down" class="h-5 w-5 shrink-0" />
+                            Install app
+                        </button>
+                        <p class="px-3 text-xs leading-5 text-gray-600" x-show="ios && ! prompt">Install: tap Share, then Add to Home Screen.</p>
+                    </div>
 
                     {{-- Phones only: on desktop the theme switch and Log out are in the top bar. --}}
                     <div class="mt-auto space-y-0.5 border-t border-gray-100 pt-4 pb-[env(safe-area-inset-bottom)] lg:hidden">

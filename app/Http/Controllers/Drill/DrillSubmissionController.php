@@ -122,9 +122,13 @@ abstract class DrillSubmissionController extends Controller
 
         DrillLog::record($user, $drill, $this->logAction(), strtolower($this->label()) . ($created ? ' submitted' : ' updated') . ($files ? ' (' . count($files) . ' file' . (count($files) === 1 ? '' : 's') . ' attached)' : ''));
 
+        // Point to the drill's other submission while it is still missing.
+        $other = $this->relation() === 'documentation' ? ['afterActivityReport', 'Next: write the After Activity Report.'] : ['documentation', 'Next: add the documentation.'];
+        $next = $drill->{$other[0]}()->exists() ? 'You can print both from the drill page.' : $other[1];
+
         return redirect()
             ->route("{$this->routePrefix()}.drills.show", $drill)
-            ->with('status', $this->label() . ($created ? ' submitted.' : ' updated.') . ' You can print it from the drill page.');
+            ->with('status', $this->label() . ($created ? ' submitted. ' : ' updated. ') . $next);
     }
 
     public function pdf(Drill $drill): Response

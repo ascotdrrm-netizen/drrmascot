@@ -34,6 +34,43 @@
 @endsection
 
 @section('content')
+    {{-- Where this drill is in its flow, and the one thing to do next (a jump to that step's card,
+         which keeps the only link to its form). --}}
+    @php
+        $notHeldYet = $drill->scheduled_date->gt(now('Asia/Manila')->startOfDay());
+        $flow = [
+            ['label' => 'Scheduled', 'done' => true, 'action' => null, 'href' => null],
+            ['label' => 'Documentation', 'done' => (bool) $doc, 'action' => 'Next: documentation', 'href' => '#documentation'],
+            ['label' => 'After Activity Report', 'done' => (bool) $aar, 'action' => 'Next: After Activity Report', 'href' => '#after-activity'],
+        ];
+        $nextStep = collect($flow)->first(fn ($step) => ! $step['done']);
+    @endphp
+    <nav class="page-section" aria-label="Drill progress" data-drill-progress>
+        <ol class="grid grid-cols-3 gap-2">
+            @foreach ($flow as $i => $step)
+                @php $isNext = $nextStep && $step['label'] === $nextStep['label']; @endphp
+                <li @class(['rounded-lg border p-3 text-sm', 'border-green-200 bg-green-50 text-green-800' => $step['done'],
+                    'border-accent-line bg-accent-soft text-accent-ink' => $isNext, 'border-gray-200 text-gray-600' => ! $step['done'] && ! $isNext])
+                    @if ($isNext) aria-current="step" @endif>
+                    <span class="flex items-center gap-2 font-semibold">
+                        @if ($step['done'])<x-icon name="check_circle" class="h-4 w-4 shrink-0" />@else<span class="text-xs">{{ $i + 1 }}</span>@endif
+                        <span class="min-w-0 break-words">{{ $step['label'] }}</span>
+                    </span>
+                    <span class="mt-1 block text-xs">{{ $step['done'] ? 'Done' : ($isNext ? 'Next' : 'Waiting') }}</span>
+                </li>
+            @endforeach
+        </ol>
+        <p class="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-700">
+            @if (! $nextStep)
+                Complete: both reports are in and can be printed below.
+            @elseif ($nextStep['label'] === 'Documentation' && $notHeldYet)
+                After the drill is held on {{ $drill->scheduled_date->format('M j') }}, add its documentation here.
+            @else
+                <a href="{{ $nextStep['href'] }}" class="btn btn-secondary btn-sm">{{ $nextStep['action'] }} <x-icon name="keyboard_arrow_down" class="h-4 w-4" /></a>
+            @endif
+        </p>
+    </nav>
+
     <x-card class="page-section">
         <div class="card-header">
             <h2 class="card-title inline-flex items-center gap-2">
@@ -61,7 +98,7 @@
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {{-- Documentation --}}
-        <x-card data-section="documentation">
+        <x-card id="documentation" class="scroll-mt-24" data-section="documentation">
             <div class="card-header">
                 <div>
                     <h2 class="card-title">Documentation <x-info-tip term="Documentation" :text="config('glossary.drill_documentation')" /></h2>
@@ -98,7 +135,7 @@
         </x-card>
 
         {{-- After Activity Report --}}
-        <x-card data-section="after-activity">
+        <x-card id="after-activity" class="scroll-mt-24" data-section="after-activity">
             <div class="card-header">
                 <div>
                     <h2 class="card-title">After Activity Report <x-info-tip term="After Activity Report" :text="config('glossary.after_activity_report')" /></h2>

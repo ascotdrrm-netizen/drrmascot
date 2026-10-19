@@ -97,4 +97,25 @@ class DrillDuplicateTest extends TestCase
         $this->assertSame(1, Drill::count());
         $this->assertSame('Again', DrillDocumentation::first()->notes);
     }
+
+    public function test_the_drill_page_shows_its_progress_and_the_next_step(): void
+    {
+        $drill = Drill::forceCreate([
+            'campus_id' => $this->zabali->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-10-15',
+            'scheduled_time' => '09:00:00', 'venue' => 'Gym', 'created_by' => $this->coord->personnel_id,
+        ]);
+        $this->actingAs($this->coord)->get(route('coordinator.drills.show', $drill))
+            ->assertSee('data-drill-progress', false)->assertSee('Next: documentation');
+
+        $this->actingAs($this->coord)->put(route('coordinator.drills.documentation.update', $drill), [
+            'date_conducted' => '2026-10-15', 'narrative' => 'Held.',
+        ])->assertSessionHas('status', 'Documentation submitted. Next: write the After Activity Report.');
+        $this->actingAs($this->coord)->get(route('coordinator.drills.show', $drill))->assertSee('Next: After Activity Report');
+
+        $upcoming = Drill::forceCreate([
+            'campus_id' => $this->zabali->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-10-30',
+            'scheduled_time' => '09:00:00', 'venue' => 'Gym', 'created_by' => $this->coord->personnel_id,
+        ]);
+        $this->actingAs($this->coord)->get(route('coordinator.drills.show', $upcoming))->assertSee('After the drill is held on Oct 30');
+    }
 }
