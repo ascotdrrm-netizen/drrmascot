@@ -1,15 +1,16 @@
 /*
  * ASCOT DRRMS service worker (docs/PLAN.md §1.2): makes the phone app open with
  * no signal. What it caches, on purpose:
- *   - the offline page and public hotlines, so emergency numbers are available;
+ *   - the offline page, public hotlines and the app's Help, so emergency
+ *     numbers and how-to guides are available;
  *   - built CSS/JS, fonts, icons and seals (they never change under one URL).
  * It never caches authenticated pages or any POST. A private report must not
  * remain readable in a shared browser's cache after logout.
  */
-const VERSION = 'drrms-v2';
+const VERSION = 'drrms-v3';
 const PAGES = `${VERSION}-pages`;
 const ASSETS = `${VERSION}-assets`;
-const PRECACHE = ['/offline', '/app/hotlines', '/manifest.webmanifest', '/icons/icon-192.png', '/images/drrm-logo-256.png', '/images/ascot-logo-256.png'];
+const PRECACHE = ['/offline', '/app/hotlines', '/app/help', '/manifest.webmanifest', '/icons/icon-192.png', '/images/drrm-logo-256.png', '/images/ascot-logo-256.png'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(PAGES).then((cache) => cache.addAll(PRECACHE)).catch(() => {}));
@@ -29,7 +30,7 @@ self.addEventListener('message', (event) => {
 });
 
 const isAsset = (url) => /^\/(build|vendor|icons|images)\//.test(url.pathname);
-const isCacheablePage = (url) => url.pathname === '/offline' || url.pathname === '/app/hotlines';
+const isCacheablePage = (url) => ['/offline', '/app/hotlines', '/app/help'].includes(url.pathname);
 
 self.addEventListener('fetch', (event) => {
     const { request } = event;

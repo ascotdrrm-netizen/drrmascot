@@ -299,6 +299,12 @@ class AppPreviewController extends Controller
         ]]);
     }
 
+    /** How to use the app. Public and stored for offline use, like the hotlines: no personal data. */
+    public function help(): View
+    {
+        return view('reporter.help', ['unread' => 0]);
+    }
+
     public function hotlines(): View
     {
         // This public page is stored for offline use, so its HTML must never

@@ -65,6 +65,7 @@ Route::get('/internal/maintenance', [\App\Http\Controllers\ServerlessWorkControl
     });
 Route::prefix('app')->name('app.')->controller(AppPreviewController::class)->group(function () {
     Route::get('/hotlines', 'hotlines')->name('hotlines');
+    Route::get('/help', 'help')->name('help');
     Route::get('/welcome', 'welcome')->name('welcome');
 });
 Route::middleware('guest')->get('/app/register', [AppPreviewController::class, 'register'])->name('app.register');

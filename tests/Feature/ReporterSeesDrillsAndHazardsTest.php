@@ -108,4 +108,13 @@ class ReporterSeesDrillsAndHazardsTest extends TestCase
         ])->assertRedirect();
         $this->assertSame(1, StaffNotification::where('kind', 'drill')->count());
     }
+
+    public function test_the_app_help_is_public_stored_offline_and_carries_no_personal_data(): void
+    {
+        $this->get(route('app.help'))->assertOk()->assertSee('data-reporter-help', false)
+            ->assertSee('Roll call: tell the office you are safe')->assertSee('Map and hazardous areas');
+        $this->actingAs($this->reporter)->get(route('app.help'))->assertOk()->assertDontSee('Reporter Person');
+        $this->actingAs($this->reporter)->get(route('app.me'))->assertSee(route('app.help'), false);
+        $this->assertStringContainsString("'/app/help'", file_get_contents(public_path('sw.js')));
+    }
 }
