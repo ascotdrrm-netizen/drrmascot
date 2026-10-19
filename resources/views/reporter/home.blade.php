@@ -65,6 +65,25 @@
         </div>
     </section>
 
+    {{-- The next drill on your campus, and the hazardous areas to keep away from. --}}
+    <section class="mt-8 grid grid-cols-1 gap-2" data-home-drills-hazards>
+        @if ($nextDrill)
+            <a href="{{ route('app.alerts') }}#drill-{{ $nextDrill['id'] }}" class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4">
+                <x-icon name="event" class="h-6 w-6 shrink-0 text-gray-700" />
+                <span class="min-w-0">
+                    <span class="block text-xs font-semibold uppercase tracking-wide text-gray-600">Next drill</span>
+                    <span class="block text-sm font-semibold">{{ $nextDrill['type'] }} drill · {{ $nextDrill['date']->format('D, M j') }}{{ $nextDrill['time'] ? ', ' . $nextDrill['time'] : '' }}</span>
+                    <span class="block truncate text-xs text-gray-600">{{ $nextDrill['venue'] }}</span>
+                </span>
+            </a>
+        @endif
+        <a href="{{ route('app.map') }}#hazard-areas" class="flex min-h-[3.5rem] items-center justify-between rounded-xl border border-gray-100 bg-white px-4">
+            <span class="flex items-center gap-3"><x-icon name="warning" class="h-6 w-6 text-gray-700" />
+                <span class="text-sm font-semibold">{{ $hazardCount ? $hazardCount . ' hazardous ' . ($hazardCount === 1 ? 'area' : 'areas') . ' on your campus' : 'No hazardous areas reported on your campus' }}</span></span>
+            <x-icon name="chevron_right" class="text-gray-600" />
+        </a>
+    </section>
+
     {{-- Advisories. --}}
     <section class="mt-8">
         <div class="mb-4 flex items-center justify-between">

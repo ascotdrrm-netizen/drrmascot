@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Reporter;
 use App\Http\Controllers\Controller;
 use App\Support\Preview\Fixtures;
 use App\Models\Advisory\DisasterAdvisory;
+use App\Models\Building\Building;
+use App\Models\Drill\Drill;
+use App\Support\RiskMatrix;
 use App\Models\CampusStatus;
 use App\Models\RollCall;
 use App\Models\Reporter\CitizenReport;
@@ -75,6 +78,54 @@ class AppPreviewController extends Controller
             ])->all();
     }
 
+    /**
+     * Drills on the reporter's campus from today, next 90 days: the schedule
+     * only (no documentation, report or names).
+     */
+    protected function liveDrills(): array
+    {
+        $today = now('Asia/Manila')->startOfDay();
+
+        return Drill::with('campus:campus_id,campus_name')->where('campus_id', Auth::user()->campus_id)
+            ->whereDate('scheduled_date', '>=', $today->toDateString())
+            ->whereDate('scheduled_date', '<=', $today->copy()->addDays(90)->toDateString())
+            ->orderBy('scheduled_date')->orderBy('scheduled_time')->limit(20)->get()
+            ->map(fn (Drill $drill) => [
+                'id' => $drill->drill_id,
+                'type' => $drill->drill_type,
+                'date' => $drill->scheduled_date,
+                'time' => $drill->scheduled_time?->format('g:i A'),
+                'venue' => $drill->venue,
+                'description' => $drill->description,
+                'campus' => $drill->campus?->campus_name,
+            ])->all();
+    }
+
+    /**
+     * Buildings and areas of the reporter's campus whose latest inspection
+     * rated them Moderate or above (5×5 risk matrix), worst first: name,
+     * hazard, level, pin and when last inspected — never findings or photos.
+     */
+    protected function liveHazardAreas(): array
+    {
+        $levels = array_merge(array_slice(RiskMatrix::LEVELS, 1), ['Medium']);
+
+        return Building::where('campus_id', Auth::user()->campus_id)->whereIn('risk_level', $levels)
+            ->withMax('hazardInspections as inspected', 'inspection_date')
+            ->orderBy('building_name')->get()
+            ->map(fn (Building $building) => [
+                'id' => $building->building_id,
+                'name' => $building->building_name,
+                'hazard' => $building->hazard_type ?: 'Hazard',
+                'level' => RiskMatrix::normalise($building->risk_level),
+                'lat' => $building->latitude !== null ? (float) $building->latitude : null,
+                'lng' => $building->longitude !== null ? (float) $building->longitude : null,
+                'inspected' => $building->inspected ? \Illuminate\Support\Carbon::parse($building->inspected) : null,
+            ])
+            ->sortByDesc(fn ($area) => array_search($area['level'], RiskMatrix::LEVELS, true))
+            ->values()->all();
+    }
+
     protected function liveReports(): array
     {
         return CitizenReport::with(['events', 'photos'])->where('reporter_id', Auth::id())->latest()->limit(100)->get()
@@ -111,6 +162,8 @@ class AppPreviewController extends Controller
         return view('reporter.home', $this->shared() + [
             'advisories' => array_slice($this->live() ? $this->liveAdvisories() : Fixtures::advisories(), 0, 2),
             'categories' => array_slice(config('report_categories'), 0, 6),
+            'nextDrill' => ($this->live() ? $this->liveDrills() : Fixtures::drills())[0] ?? null,
+            'hazardCount' => count($this->live() ? $this->liveHazardAreas() : Fixtures::hazardAreas()),
             'reports' => $this->live() ? array_slice($this->liveReports(), 0, 3) : Fixtures::reports(),
             'activeRollCall' => $this->live() ? RollCall::where('campus_id', Auth::user()->campus_id)->whereNull('closed_at')
                 ->whereHas('responses', fn ($q) => $q->where('reporter_id', Auth::id()))->first() : null,
@@ -177,6 +230,7 @@ class AppPreviewController extends Controller
     public function alerts(): View
     {
         return view('reporter.alerts', $this->shared() + ['advisories' => $this->live() ? $this->liveAdvisories() : Fixtures::advisories(),
+            'drills' => $this->live() ? $this->liveDrills() : Fixtures::drills(),
             'notifications' => $this->live() ? \App\Models\StaffNotification::where('personnel_id', Auth::id())
                 ->where('campus_id', Auth::user()->campus_id)->latest()->limit(100)->get() : collect()]);
     }
@@ -192,6 +246,8 @@ class AppPreviewController extends Controller
     {
         return view('reporter.map', $this->shared() + [
             'centres' => config('campus_map.centres'),
+            'hazards' => $this->live() ? $this->liveHazardAreas() : Fixtures::hazardAreas(),
+            'riskColours' => array_map(fn ($c) => $c[0], RiskMatrix::COLOURS),
         ]);
     }
 

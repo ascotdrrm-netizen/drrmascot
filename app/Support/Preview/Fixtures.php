@@ -46,6 +46,25 @@ class Fixtures
         ];
     }
 
+    /** Upcoming drills on the reporter's campus (schedule only). */
+    public static function drills(): array
+    {
+        return [
+            ['id' => 1, 'type' => 'Earthquake', 'date' => Carbon::today()->addDays(1), 'time' => '9:00 AM', 'venue' => 'Gymnasium', 'description' => 'Duck, cover and hold, then walk to the assembly area at the oval.', 'campus' => 'ASCOT Zabali Campus'],
+            ['id' => 2, 'type' => 'Fire', 'date' => Carbon::today()->addDays(16), 'time' => '2:00 PM', 'venue' => 'Engineering Building', 'description' => 'With BFP Baler. Leave by the nearest exit; do not use the stairs near the laboratory.', 'campus' => 'ASCOT Zabali Campus'],
+        ];
+    }
+
+    /** Hazardous areas on the reporter's campus: rated Moderate or above (5×5 risk matrix). */
+    public static function hazardAreas(): array
+    {
+        return [
+            ['id' => 3, 'name' => 'Ermita Hill Access Road', 'hazard' => 'Landslide', 'level' => 'Very High', 'lat' => 15.7381, 'lng' => 121.5512, 'inspected' => Carbon::today()->subDays(11)],
+            ['id' => 1, 'name' => 'Engineering Building', 'hazard' => 'Earthquake', 'level' => 'Moderate', 'lat' => 15.7362, 'lng' => 121.5489, 'inspected' => Carbon::today()->subDays(3)],
+            ['id' => 4, 'name' => "Men's Dormitory", 'hazard' => 'Typhoon', 'level' => 'Moderate', 'lat' => 15.7355, 'lng' => 121.5478, 'inspected' => Carbon::today()->subDays(15)],
+        ];
+    }
+
     /** What a reporter can report: the real list (config/report_categories.php). */
     public static function categories(): array
     {

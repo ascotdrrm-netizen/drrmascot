@@ -25,7 +25,7 @@ class ReporterAppPreviewTest extends TestCase
             'report' => ['/app/report', 'What is happening?'],
             'reports' => ['/app/reports', 'Your reports'],
             'report detail' => ['/app/reports/1042', 'Report #1042'],
-            'alerts' => ['/app/alerts', 'Advisories and notices'],
+            'alerts' => ['/app/alerts', 'Upcoming drills'],
             'map' => ['/app/map', 'Campus map'],
             'me' => ['/app/me', 'Your location is only sent when you press SOS'],
             'hotlines' => ['/app/hotlines', 'Emergency hotlines'],

@@ -58,10 +58,10 @@ class NewcomerGuidanceTest extends TestCase
         foreach ($this->roles() as $prefix => [$user]) {
             $html = $this->actingAs($user)->get(route('help'))->assertOk()->getContent();
 
-            foreach (['start', 'roles', 'modules', 'drills', 'terms', 'reports', 'trash'] as $section) {
+            foreach (['start', 'roles', 'modules', 'drills', 'sos', 'inbox', 'dispatch', 'rollcall', 'status', 'broadcasts', 'hotlines', 'archive', 'reporters', 'activity', 'install', 'terms', 'reports', 'trash'] as $section) {
                 $this->assertStringContainsString('data-help-section="' . $section . '"', $html, "$prefix: $section");
             }
-            $this->assertStringContainsString('data-risk-placeholder', $html);
+            $this->assertStringContainsString('data-help-risk-matrix', $html);
             // Every status is explained.
             foreach (['Under Response', 'Resolved', 'Minor', 'Major', 'Total', 'Partial', 'Not assigned', 'After Activity Report'] as $term) {
                 $this->assertStringContainsString($term, $html, "$prefix: $term");
@@ -71,7 +71,9 @@ class NewcomerGuidanceTest extends TestCase
                 $this->assertStringContainsString('User Management</dt>', $html);
                 $this->assertStringContainsString('Backup &amp; Restore</dt>', $html);
                 $this->assertStringContainsString('You can pick several campuses at once', $html);
+                $this->assertStringContainsString('data-help-section="settings"', $html);
             } else {
+                $this->assertStringNotContainsString('data-help-section="settings"', $html);
                 $this->assertStringNotContainsString('User Management</dt>', $html);
                 $this->assertStringNotContainsString('Backup &amp; Restore</dt>', $html);
                 $this->assertStringContainsString('It is for your campus.', $html);
@@ -220,11 +222,14 @@ class NewcomerGuidanceTest extends TestCase
         $this->actingAs($this->coordinator)->get(route('coordinator.incidents.damage-reports.create', $incident))
             ->assertSee(config('glossary.damage_level.Total'))
             ->assertSee(config('glossary.casualty_count'));
-        foreach ([route('coordinator.buildings.create'), route('coordinator.buildings.inspections.create', $building)] as $form) {
-            $this->actingAs($this->coordinator)->get($form)
-                ->assertSee('aria-describedby="risk_level-help"', false)
-                ->assertSee(config('glossary.risk_level'));
-        }
+        // The building takes its level from inspections; the inspection form rates it on the 5×5 matrix.
+        $this->actingAs($this->coordinator)->get(route('coordinator.buildings.create'))
+            ->assertSee('data-risk-from-inspection', false)
+            ->assertSee(config('glossary.risk_level_from_inspection'));
+        $this->actingAs($this->coordinator)->get(route('coordinator.buildings.inspections.create', $building))
+            ->assertSee('aria-describedby="likelihood-help"', false)
+            ->assertSee('aria-describedby="impact-help"', false)
+            ->assertSee(config('glossary.risk_level'));
         // Info tips next to the risk-level column and status badges.
         $this->actingAs($this->coordinator)->get(route('coordinator.buildings.index'))->assertSee('What does “Risk level” mean?', false);
         $this->actingAs($this->coordinator)->get(route('coordinator.incidents.show', $incident))

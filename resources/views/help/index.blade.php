@@ -22,10 +22,26 @@
         'modules' => 'The modules',
         'disasters' => 'Disaster advisories',
         'drills' => 'Drills',
+        // Emergency response and admin pages: help/_response-guides.blade.php.
+        'sos' => 'SOS Console',
+        'inbox' => 'Reports Inbox',
+        'dispatch' => 'Dispatch',
+        'rollcall' => 'Roll Call',
+        'status' => 'Campus Status',
+        'broadcasts' => 'Broadcasts and notifications',
+        'hotlines' => 'Hotlines',
+        'archive' => 'Archive',
+        'reporters' => 'Reporter accounts',
+        'settings' => 'Settings',
+        'activity' => 'Activity Log',
+        'install' => 'Install the app',
         'terms' => 'Risk levels and statuses',
         'reports' => 'Reports and downloads',
         'trash' => 'Deleting and Trash',
     ];
+    if (! $isAdmin) {
+        unset($sections['settings']);
+    }
     $termTable = function (string $title, array $terms) {
         return ['title' => $title, 'terms' => $terms];
     };
@@ -89,6 +105,10 @@
                     <div>
                         <dt class="{{ $strong }}">Campus coordinator{{ $isAdmin ? '' : ' (you)' }}</dt>
                         <dd class="text-gray-700">Works on one campus. Adds buildings/areas, records hazard inspections, reports incidents and damage, and schedules, documents and reports on the campus’s drills.</dd>
+                    </div>
+                    <div>
+                        <dt class="{{ $strong }}">Reporter (student or staff)</dt>
+                        <dd class="text-gray-700">Uses the phone app: reports hazards, presses SOS, answers roll calls, and sees advisories, the campus status, upcoming drills and hazardous areas of their campus. See <a class="link" href="#reporters">Reporter accounts</a>.</dd>
                     </div>
                 </dl>
                 <h3 class="card-title mt-6">Who can see what</h3>
@@ -237,12 +257,13 @@
                 </dl>
             </x-card>
 
+            @include('help._response-guides')
+
             <x-card class="scroll-mt-24" id="terms" data-help-section="terms">
                 <h2 class="{{ $h2 }}">Risk levels and statuses</h2>
                 <div class="mt-4">
-                    <h3 class="card-title">Risk level (Low, Medium, High)</h3>
-                    {{-- PLACEHOLDER: replace with the risk checklist's definitions when it lands. --}}
-                    <p class="{{ $p }}" data-risk-placeholder>{{ config('glossary.risk_level') }}</p>
+                    <h3 class="card-title">Risk level (5×5 risk matrix)</h3>
+                    <div class="mt-2">@include('help._risk-matrix')</div>
                 </div>
                 @foreach ($termGroups as $group)
                     <div class="mt-6">

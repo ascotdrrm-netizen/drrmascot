@@ -4,7 +4,7 @@
 
 @section('content')
     <h1 class="page-title">Alerts</h1>
-    <p class="text-sm text-gray-600">Advisories and notices from the ASCOT DRRM Office.</p>
+    <p class="text-sm text-gray-600">Advisories, notices and drill schedules from the ASCOT DRRM Office.</p>
     {{-- Your campus's status and its instruction: where the home banner and
          every campus-status notice lead. --}}
     @php
@@ -43,4 +43,23 @@
             </article>
         @endforeach
     </div>
+
+    {{-- Drill schedule for your campus (the next 90 days). --}}
+    <section id="drills" class="mt-8 scroll-mt-20" data-reporter-drills>
+        <h2 class="section-title">Upcoming drills</h2>
+        <div class="mt-3 space-y-3">
+            @forelse ($drills as $drill)
+                <article id="drill-{{ $drill['id'] }}" class="scroll-mt-20 rounded-xl border border-gray-100 bg-white p-4">
+                    <span class="chip border-gray-200 bg-gray-50 text-gray-700"><x-icon name="event" class="h-3.5 w-3.5" /> {{ $drill['type'] }} drill</span>
+                    <h3 class="mt-2 text-base font-semibold">{{ $drill['date']->format('l, F j') }}{{ $drill['time'] ? ' · ' . $drill['time'] : '' }}</h3>
+                    <p class="text-xs text-gray-600">{{ $drill['venue'] }}{{ $drill['campus'] ? ' · ' . $drill['campus'] : '' }}</p>
+                    @if ($drill['description'])
+                        <p class="mt-2 text-sm leading-6 text-gray-700">{{ $drill['description'] }}</p>
+                    @endif
+                </article>
+            @empty
+                <p class="rounded-xl border border-gray-100 bg-white p-4 text-sm text-gray-600">No drills scheduled for your campus yet.</p>
+            @endforelse
+        </div>
+    </section>
 @endsection
