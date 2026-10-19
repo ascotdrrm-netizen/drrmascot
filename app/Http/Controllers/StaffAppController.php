@@ -32,7 +32,8 @@ class StaffAppController extends Controller
             return redirect('/app');
         }
 
-        $shortcut = self::SHORTCUTS[(string) $request->query('to')] ?? 'dashboard';
+        $to = $request->query('to');
+        $shortcut = is_string($to) ? (self::SHORTCUTS[$to] ?? 'dashboard') : 'dashboard';
 
         return redirect()->route("{$prefix}.{$shortcut}");
     }

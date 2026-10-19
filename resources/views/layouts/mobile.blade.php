@@ -34,7 +34,7 @@
     ];
 @endphp
 <body class="min-h-screen bg-canvas text-gray-900 antialiased"
-      @if (auth()->user()?->role === 'Reporter' && ! request()->routeIs('app.hotlines', 'app.welcome', 'app.login', 'app.register'))
+      @if (auth()->user()?->role === 'Reporter' && ! request()->routeIs('app.hotlines', 'app.help', 'app.welcome', 'app.login', 'app.register'))
           data-reporter-id="{{ auth()->id() }}" data-reporter-campus="{{ auth()->user()->campus_id }}"
           data-report-sync-url="{{ route('api.reporter.reports.sync') }}"
       @endif>

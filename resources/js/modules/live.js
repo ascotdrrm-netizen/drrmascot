@@ -1,16 +1,20 @@
 import { http, refreshParts } from './ajax';
 
-// Each refresh re-renders part of the page on the server, so it runs only
-// while someone is looking: the tab is visible, online, and used in the last
-// IDLE_MS. A page left open overnight stops asking; the next touch, key or
-// scroll catches up at once. (The SOS Console keeps its own faster check.)
+// Each refresh re-renders part of the page on the server: every EVERY_MS
+// while the tab is visible and online, and only every IDLE_EVERY_MS once
+// nobody has touched it for IDLE_MS (a Reports Inbox left on an office
+// monitor still shows new reports, just less often). The next touch, key or
+// scroll catches up at once. The SOS Console keeps its own faster check.
 const EVERY_MS = 30000;
 const IDLE_MS = 5 * 60 * 1000;
+const IDLE_EVERY_MS = 2 * 60 * 1000;
 let lastInput = Date.now();
+let lastRefresh = 0;
 let refreshing = false;
-async function refreshVisibleData() {
+async function refreshVisibleData(force = false) {
     if (refreshing || document.visibilityState !== 'visible' || ! navigator.onLine) return;
-    if (Date.now() - lastInput > IDLE_MS) return;
+    if (! force && Date.now() - lastInput > IDLE_MS && Date.now() - lastRefresh < IDLE_EVERY_MS) return;
+    lastRefresh = Date.now();
     refreshing = true;
     try {
         const bell = document.querySelector('[data-notification-bell]');
@@ -32,10 +36,10 @@ async function refreshVisibleData() {
         if (error.response?.status === 401) window.location.replace('/login');
     } finally { refreshing = false; }
 }
-setInterval(refreshVisibleData, EVERY_MS);
-document.addEventListener('visibilitychange', refreshVisibleData);
+setInterval(() => refreshVisibleData(), EVERY_MS);
+document.addEventListener('visibilitychange', () => refreshVisibleData(true));
 ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((type) => window.addEventListener(type, () => {
     const wasIdle = Date.now() - lastInput > IDLE_MS;
     lastInput = Date.now();
-    if (wasIdle) refreshVisibleData();
+    if (wasIdle) refreshVisibleData(true);
 }, { passive: true }));

@@ -34,7 +34,8 @@ class CampusStatusController extends Controller
 
         // A real change reaches the campus's Reporters and staff as a notice
         // that opens the status itself; saving it again unchanged does not.
-        if ($previous?->status !== $status->status || $previous?->detail !== $status->detail) {
+        // No saved row yet means Normal with no instruction.
+        if (($previous?->status ?? 'normal') !== $status->status || ($previous?->detail ?? null) !== $status->detail) {
             $reporters = Personnel::where('role', 'Reporter')->where('campus_id', $campus->campus_id)->where('is_approved', true)->get();
             $recipients = $reporters->concat(EmergencyNotices::recipients($campus->campus_id))
                 ->reject(fn (Personnel $person) => $person->is($request->user()))->unique('personnel_id');

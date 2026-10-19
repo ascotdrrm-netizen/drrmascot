@@ -115,4 +115,16 @@ class RiskMatrixTest extends TestCase
         $this->assertSame(RiskMatrix::LEVELS, $data['charts']['findings_by_risk']['labels']);
         $this->assertSame(1, $data['lists']['open_high_risk']['total']);
     }
+
+    public function test_a_building_with_no_inspection_left_is_not_yet_assessed(): void
+    {
+        $this->actingAs($this->coord)->post(route('coordinator.buildings.inspections.store', $this->building), [
+            'inspection_date' => '2026-10-10', 'likelihood' => 5, 'impact' => 5,
+        ])->assertRedirect();
+        $this->assertSame('Very High', $this->building->fresh()->risk_level);
+
+        $only = HazardInspection::firstOrFail();
+        $this->actingAs($this->coord)->delete(route('coordinator.buildings.inspections.destroy', [$this->building, $only]))->assertRedirect();
+        $this->assertNull($this->building->fresh()->risk_level, 'a mistaken rating deleted leaves the building unassessed, not stuck at Very High');
+    }
 }

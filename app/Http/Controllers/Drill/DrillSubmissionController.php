@@ -90,7 +90,7 @@ abstract class DrillSubmissionController extends Controller
         $files = $request->file('attachments', []);
         $fields = collect($data)->except(['attachments'])->all();
 
-        $save = function () use ($drill, $fields, $files, $user) {
+        $save = function (array $files) use ($drill, $fields, $user) {
             $record = $drill->{$this->relation()}()->first();
             $created = $record === null;
 
@@ -114,9 +114,11 @@ abstract class DrillSubmissionController extends Controller
         // Two sends at once (a double tap) both find no record; the unique
         // drill_id lets one insert, and the other then saves as an update.
         try {
-            $created = DB::transaction($save);
+            $created = DB::transaction(fn () => $save($files));
         } catch (UniqueConstraintViolationException) {
-            DB::transaction($save);
+            // The other send created the record and stored this same upload:
+            // save the fields only, so the files are not attached twice.
+            DB::transaction(fn () => $save([]));
             $created = false;
         }
 

@@ -23,11 +23,14 @@ class EmergencyNotices
 
     public static function record(Collection $recipients, string $kind, int $subjectId, int $campusId, string $message): void
     {
-        foreach ($recipients as $recipient) {
-            StaffNotification::create(['personnel_id' => $recipient->personnel_id,
-                'campus_id' => $campusId, 'kind' => $kind, 'subject_id' => $subjectId,
-                'message' => mb_substr($message, 0, 255)]);
-        }
+        // One INSERT per 500 recipients: an all-campus advisory reaches every
+        // student, and each row would otherwise be a round trip to the database.
+        $now = now();
+        $message = mb_substr($message, 0, 255);
+        $recipients->pluck('personnel_id')->unique()->chunk(500)->each(fn ($ids) => StaffNotification::insert(
+            $ids->map(fn ($id) => ['personnel_id' => $id, 'campus_id' => $campusId, 'kind' => $kind, 'subject_id' => $subjectId,
+                'message' => $message, 'created_at' => $now, 'updated_at' => $now])->values()->all()
+        ));
     }
 
     /** Text every staff recipient for SOS. A gateway failure never rolls back the SOS record. */

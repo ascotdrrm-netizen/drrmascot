@@ -85,6 +85,13 @@ class UatCampusStatusNoticeTest extends TestCase
         $this->assertSame(1, StaffNotification::where('personnel_id', $this->reporter->getKey())->count());
     }
 
+    public function test_saving_normal_on_a_campus_with_no_status_yet_notifies_no_one(): void
+    {
+        $this->publish('normal', null);
+
+        $this->assertSame(0, StaffNotification::where('kind', 'campus_status')->count());
+    }
+
     private function person(string $role, Campus $campus, string $email): Personnel
     {
         return Personnel::create(['campus_id' => $campus->campus_id, 'full_name' => $role.' Test',

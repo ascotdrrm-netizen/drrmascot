@@ -117,4 +117,23 @@ class ReporterSeesDrillsAndHazardsTest extends TestCase
         $this->actingAs($this->reporter)->get(route('app.me'))->assertSee(route('app.help'), false);
         $this->assertStringContainsString("'/app/help'", file_get_contents(public_path('sw.js')));
     }
+
+    public function test_the_offline_help_page_never_carries_the_signed_in_student(): void
+    {
+        $html = $this->actingAs($this->reporter)->get(route('app.help'))->assertOk()->getContent();
+        $this->assertStringNotContainsString('data-reporter-id', $html);
+        $this->assertStringNotContainsString('data-report-sync-url', $html);
+    }
+
+    public function test_notices_reach_every_recipient_in_bulk(): void
+    {
+        $students = collect(range(1, 3))->map(fn ($i) => Personnel::forceCreate([
+            'campus_id' => $this->zabali->campus_id, 'full_name' => "Student $i", 'role' => 'Reporter',
+            'email' => "bulk$i@example.test", 'password_hash' => Hash::make('password'), 'is_approved' => true,
+        ]));
+        \App\Support\EmergencyNotices::record($students->push($students->first()), 'drill', 9, $this->zabali->campus_id, 'Drill scheduled');
+
+        $this->assertSame(3, StaffNotification::where('kind', 'drill')->where('subject_id', 9)->count(), 'one each, no duplicate');
+        $this->assertNotNull(StaffNotification::where('subject_id', 9)->first()->created_at);
+    }
 }

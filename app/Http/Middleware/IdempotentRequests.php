@@ -18,8 +18,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class IdempotentRequests
 {
-    /** How long a key is remembered, in seconds. */
+    /** How long a finished request's answer is replayed, in seconds. */
     public const TTL = 600;
+
+    /** How long a key stays "pending" if its request never finishes (a worker that died). */
+    public const PENDING_TTL = 120;
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -31,7 +34,7 @@ class IdempotentRequests
         $owner = $request->user()?->getAuthIdentifier() ?? ($request->hasSession() ? $request->session()->getId() : $request->ip());
         $cacheKey = 'idempotency:' . sha1($owner . '|' . $request->method() . '|' . $request->path() . '|' . $key);
 
-        if (! Cache::add($cacheKey, ['state' => 'pending'], self::TTL)) {
+        if (! Cache::add($cacheKey, ['state' => 'pending'], self::PENDING_TTL)) {
             $saved = Cache::get($cacheKey);
             if (is_array($saved) && ($saved['state'] ?? null) === 'done') {
                 return new JsonResponse($saved['body'], $saved['status']);

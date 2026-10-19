@@ -64,4 +64,14 @@ class StaffAppTest extends TestCase
         $this->actingAs($coordinator)->get(route('coordinator.dashboard'))->assertSee('vendor/chart.js/chart.umd.js', false);
         $this->actingAs($coordinator)->get(route('help'))->assertDontSee('vendor/chart.js/chart.umd.js', false);
     }
+
+    public function test_a_malformed_shortcut_goes_to_the_dashboard(): void
+    {
+        $this->actingAs($this->person('Coordinator', 'c4@example.test'))->get('/staff?to[]=sos')->assertRedirect(route('coordinator.dashboard'));
+    }
+
+    public function test_the_queued_sos_email_carries_record_ids_not_whole_records(): void
+    {
+        $this->assertContains(\Illuminate\Queue\SerializesModels::class, class_uses(\App\Mail\SosAlert::class));
+    }
 }

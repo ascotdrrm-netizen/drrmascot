@@ -9,11 +9,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
 
 /** Free SOS alert to one staff member's inbox; queued so the SOS answers at once. */
 class SosAlert extends Mailable implements ShouldQueue
 {
-    use Queueable;
+    // SerializesModels: the queued job holds the two records' IDs only (never a
+    // password hash) and reloads them when the email is sent.
+    use Queueable, SerializesModels;
 
     public function __construct(public SosEvent $sos, public Personnel $reporter, public string $consoleUrl) {}
 

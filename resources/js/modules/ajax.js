@@ -93,7 +93,7 @@ export async function send(config, { retries = 3, onRetry } = {}) {
         try {
             return await http(config);
         } catch (error) {
-            if (error.response && error.response.status === 409 && error.response.data && error.response.data.pending && waits < 10) {
+            if (error.response && error.response.status === 409 && error.response.data && error.response.data.pending && waits < 40) {
                 waits++;
                 attempt--;
                 await sleep(1500);
@@ -268,6 +268,11 @@ function handleFailure(error, form) {
     }
     if (response && response.status === 403) {
         toast('You are not allowed to do that.', 'danger');
+        return;
+    }
+    if (response && response.status === 409 && response.data && response.data.pending) {
+        // The first try may still be saving: sending again could save it twice.
+        toast('Still saving your first try. Refresh the page in a minute to see if it was saved before sending again.', 'warning');
         return;
     }
     if (response && response.status === 404) {
