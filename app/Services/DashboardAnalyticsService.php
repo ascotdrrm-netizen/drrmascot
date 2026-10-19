@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\RiskMatrix;
 use App\Models\ActivityLog;
 use App\Models\Building\HazardInspection;
 use App\Models\Drill\Drill;
@@ -297,10 +298,10 @@ class DashboardAnalyticsService
             ->groupBy('hi.risk_level')
             ->pluck('total', 'risk_level');
 
-        $data = array_map(fn ($level) => (int) ($rows[$level] ?? 0), ['Low', 'Medium', 'High']);
+        $data = array_map(fn ($level) => (int) ($rows[$level] ?? 0), RiskMatrix::LEVELS);
 
         return [
-            'labels' => ['Low', 'Medium', 'High'],
+            'labels' => RiskMatrix::LEVELS,
             'data' => $data,
             'has_data' => array_sum($data) > 0,
         ];
@@ -454,14 +455,14 @@ class DashboardAnalyticsService
 
     /**
      * SQL condition for "open high-risk finding" on inspection alias $alias
-     * joined to buildings as `b`: rated High, building not deleted, and no
+     * joined to buildings as `b`: rated High or Very High, building not deleted, and no
      * later inspection of the same building — by anyone, so a re-inspection a
      * colleague recorded still closes a coordinator's finding (only whether
      * one exists is used, never its contents).
      */
     protected function openFindingSql(string $alias): string
     {
-        return "{$alias}.risk_level = 'High' AND b.deleted_at IS NULL AND NOT EXISTS (
+        return "{$alias}.risk_level IN ('High', 'Very High') AND b.deleted_at IS NULL AND NOT EXISTS (
             SELECT 1 FROM hazard_inspections later
             WHERE later.building_id = {$alias}.building_id
               AND (later.inspection_date > {$alias}.inspection_date

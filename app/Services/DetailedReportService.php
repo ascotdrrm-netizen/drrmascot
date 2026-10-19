@@ -83,7 +83,7 @@ class DetailedReportService
 
     public function highRiskHazardInspectionRows(CarbonImmutable $start, CarbonImmutable $end, ?int $campusId): Builder
     {
-        return $this->hazardInspectionRows($start, $end, $campusId)->where('hazard_inspections.risk_level', 'High');
+        return $this->hazardInspectionRows($start, $end, $campusId)->whereIn('hazard_inspections.risk_level', \App\Support\RiskMatrix::HIGH_LEVELS);
     }
 
     // ============================== INCIDENTS ================================

@@ -49,16 +49,17 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div @if ($routePrefix !== 'admin') class="md:col-span-2" @endif>
-                <label for="risk_level" class="form-label">Risk level</label>
-                <select id="risk_level" name="risk_level" required aria-describedby="risk_level-help"
-                        class="form-input">
-                    @foreach (['Low', 'Medium', 'High'] as $level)
-                        <option value="{{ $level }}" @selected(old('risk_level', $building->risk_level ?? '') === $level)>{{ $level }}</option>
-                    @endforeach
-                </select>
-                {{-- PLACEHOLDER until the risk checklist defines the levels. --}}
-                <p id="risk_level-help" class="form-help">{{ config('glossary.risk_level') }}</p>
+            {{-- The level is not picked here: it comes from the latest hazard inspection (5×5 risk matrix). --}}
+            <div @if ($routePrefix !== 'admin') class="md:col-span-2" @endif data-risk-from-inspection>
+                <p class="form-label">Risk level</p>
+                <div class="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+                    @if ($isEdit && $building->risk_level)
+                        <x-badge :value="$building->risk_level" /> <span class="ml-1">from its latest inspection.</span>
+                    @else
+                        Not yet assessed.
+                    @endif
+                    <span class="mt-1 block text-xs text-gray-600">{{ config('glossary.risk_level_from_inspection') }}</span>
+                </div>
             </div>
 
             @if ($routePrefix === 'admin')

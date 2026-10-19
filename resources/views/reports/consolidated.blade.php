@@ -89,8 +89,9 @@
                 @php
                     $riskBadgeClasses = [
                         'Low' => 'bg-green-100 text-green-700',
-                        'Medium' => 'bg-amber-100 text-amber-700',
-                        'High' => 'bg-red-100 text-red-700',
+                        'Moderate' => 'bg-amber-100 text-amber-700',
+                        'High' => 'bg-orange-100 text-orange-800',
+                        'Very High' => 'bg-red-100 text-red-700',
                     ];
                 @endphp
                 <div class="flex flex-wrap gap-4">
@@ -387,7 +388,7 @@
                             labels: Object.keys(riskLevels),
                             datasets: [{
                                 data: Object.values(riskLevels),
-                                backgroundColor: ['#16a34a', '#f59e0b', '#dc2626'],
+                                backgroundColor: @json(array_map(fn ($c) => $c[0], array_values(\App\Support\RiskMatrix::COLOURS))),
                             }],
                         },
                         options: {

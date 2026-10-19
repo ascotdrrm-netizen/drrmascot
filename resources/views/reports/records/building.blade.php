@@ -22,7 +22,7 @@
         </tr>
         <tr>
             <td><div class="field-label">Hazard type</div><div class="field-value"><x-pdf.value :value="$building->hazard_type" /></div></td>
-            <td><div class="field-label">Latest risk level</div><div class="field-value"><x-pdf.tag :value="$building->risk_level" /></div></td>
+            <td><div class="field-label">Latest risk level</div><div class="field-value">@if ($building->risk_level)<x-pdf.tag :value="$building->risk_level" />@else<span class="not-specified">Not yet assessed</span>@endif</div></td>
         </tr>
         <tr>
             <td class="field-wide" colspan="2">
@@ -46,7 +46,7 @@
     <h2 class="section">Inspection History</h2>
     <p class="lead">
         {{ $building->hazardInspections->count() }} inspection(s) recorded
-        &mdash; latest risk level: {{ $building->risk_level }}
+        &mdash; latest risk level: {{ $building->risk_level ?? 'not yet assessed' }}
     </p>
 
     <table class="data">
@@ -61,7 +61,7 @@
             @forelse ($building->hazardInspections as $inspection)
                 <tr>
                     <td class="nowrap">{{ $inspection->inspection_date->format('M d, Y') }}</td>
-                    <td><x-pdf.tag :value="$inspection->risk_level" /></td>
+                    <td><x-pdf.tag :value="$inspection->risk_level" />@if ($inspection->risk_score)<br><span class="sub">score {{ $inspection->risk_score }}</span>@endif</td>
                     <td class="wrap">{{ $inspection->findings ?: '—' }}</td>
                 </tr>
             @empty

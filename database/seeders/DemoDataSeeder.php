@@ -34,30 +34,32 @@ class DemoDataSeeder extends Seeder
         [$zabali, $bazal, $casiguran] = [$campuses[0], $campuses[1], $campuses[2]];
         $by = ['created_by' => $admin->personnel_id, 'created_by_name' => $admin->full_name];
 
-        // Buildings and areas, near each campus centre.
+        // Buildings and areas, near each campus centre, each rated on the
+        // 5×5 risk matrix (likelihood, impact) by one inspection; the building
+        // takes its inspection's level.
         $buildings = [
-            [$zabali, 'Engineering Building', 'Earthquake', 'Medium', 15.7362, 121.5489],
-            [$zabali, 'General Education Building', 'Fire', 'Low', 15.7369, 121.5496],
-            [$zabali, 'Ermita Hill Access Road', 'Landslide', 'High', 15.7381, 121.5512],
-            [$zabali, 'Men\'s Dormitory', 'Typhoon', 'Medium', 15.7355, 121.5478],
-            [$bazal, 'Agriculture Laboratory', 'Flood', 'High', 15.7898, 121.4743],
-            [$bazal, 'Bazal Gymnasium', 'Typhoon', 'Low', 15.7905, 121.4751],
-            [$casiguran, 'Fisheries Hatchery', 'Storm Surge', 'High', 16.2849, 122.1196],
-            [$casiguran, 'Casiguran Admin Building', 'Earthquake', 'Low', 16.2856, 122.1189],
+            [$zabali, 'Engineering Building', 'Earthquake', 2, 4, 15.7362, 121.5489],
+            [$zabali, 'General Education Building', 'Fire', 1, 3, 15.7369, 121.5496],
+            [$zabali, 'Ermita Hill Access Road', 'Landslide', 4, 5, 15.7381, 121.5512],
+            [$zabali, "Men's Dormitory", 'Typhoon', 3, 3, 15.7355, 121.5478],
+            [$bazal, 'Agriculture Laboratory', 'Flood', 4, 3, 15.7898, 121.4743],
+            [$bazal, 'Bazal Gymnasium', 'Typhoon', 2, 2, 15.7905, 121.4751],
+            [$casiguran, 'Fisheries Hatchery', 'Storm Surge', 4, 4, 16.2849, 122.1196],
+            [$casiguran, 'Casiguran Admin Building', 'Earthquake', 1, 4, 16.2856, 122.1189],
         ];
 
-        foreach ($buildings as $i => [$campus, $name, $hazard, $risk, $lat, $lng]) {
+        foreach ($buildings as $i => [$campus, $name, $hazard, $likelihood, $impact, $lat, $lng]) {
             $building = Building::forceCreate($by + [
                 'campus_id' => $campus->campus_id, 'building_name' => $name, 'hazard_type' => $hazard,
-                'risk_level' => $risk, 'latitude' => $lat, 'longitude' => $lng,
+                'latitude' => $lat, 'longitude' => $lng,
             ]);
 
-            HazardInspection::forceCreate($by + [
+            (new HazardInspection)->forceFill($by + [
                 'building_id' => $building->building_id,
                 'inspection_date' => Carbon::today()->subDays(3 + $i * 4),
                 'findings' => "Routine inspection of the {$name}.",
-                'risk_level' => $risk, 'latitude' => $lat, 'longitude' => $lng,
-            ]);
+                'latitude' => $lat, 'longitude' => $lng,
+            ])->rate($likelihood, $impact)->save();
         }
 
         // Incidents over the last two months.

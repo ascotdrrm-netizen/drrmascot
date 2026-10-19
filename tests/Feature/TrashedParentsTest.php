@@ -64,7 +64,7 @@ class TrashedParentsTest extends TestCase
         // Past tense: counted everywhere.
         $kpis = collect($this->dashboard()['kpis'])->keyBy('key');
         $this->assertSame(2, $kpis['inspections']['current'], 'Inspections conducted KPI');
-        $this->assertSame([1, 0, 1], $this->dashboard()['charts']['findings_by_risk']['data'], 'findings by risk level: Low, Medium, High');
+        $this->assertSame([1, 0, 1, 0], $this->dashboard()['charts']['findings_by_risk']['data'], 'findings by risk level: Low, Moderate, High, Very High');
         $hazard = $this->consolidated()['hazard_auditor'];
         $this->assertSame(2, $hazard['inspections_conducted']);
         $this->assertSame(2, $hazard['buildings_inspected'], 'a trashed building still counts as inspected');

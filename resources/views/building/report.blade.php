@@ -37,7 +37,7 @@
             <td class="label">Hazard Type</td>
             <td class="value">{{ $building->hazard_type ?? '—' }}</td>
             <td class="label">Risk Level</td>
-            <td class="value">{{ $building->risk_level }}</td>
+            <td class="value">{{ $building->risk_level ?? 'Not yet assessed' }}</td>
         </tr>
     </table>
 

@@ -46,7 +46,7 @@ class LocationMapTest extends TestCase
     {
         return [
             'building' => [route('coordinator.buildings.store'), ['building_name' => 'Pinned Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low'], fn () => Building::where('building_name', 'Pinned Hall')->first()],
-            'inspection' => [route('coordinator.buildings.inspections.store', $this->building), ['inspection_date' => '2026-09-20', 'risk_level' => 'Low', 'findings' => 'Pinned inspection'], fn () => HazardInspection::where('findings', 'Pinned inspection')->first()],
+            'inspection' => [route('coordinator.buildings.inspections.store', $this->building), ['inspection_date' => '2026-09-20', 'likelihood' => 1, 'impact' => 2, 'findings' => 'Pinned inspection'], fn () => HazardInspection::where('findings', 'Pinned inspection')->first()],
             'incident' => [route('coordinator.incidents.store'), ['hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'description' => 'Pinned incident'], fn () => Incident::where('description', 'Pinned incident')->first()],
         ];
     }
@@ -102,7 +102,7 @@ class LocationMapTest extends TestCase
         $coords = ['latitude' => '15.7376192', 'longitude' => '121.5494202'];
 
         $this->actingAs($this->coordinator)->put(route('coordinator.buildings.update', $this->building), ['building_name' => 'Map Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low'] + $coords)->assertSessionHasNoErrors();
-        $this->actingAs($this->coordinator)->put(route('coordinator.buildings.inspections.update', [$this->building, $inspection]), ['inspection_date' => '2026-09-20', 'risk_level' => 'Low'] + $coords)->assertSessionHasNoErrors();
+        $this->actingAs($this->coordinator)->put(route('coordinator.buildings.inspections.update', [$this->building, $inspection]), ['inspection_date' => '2026-09-20', 'likelihood' => 1, 'impact' => 2] + $coords)->assertSessionHasNoErrors();
         $this->actingAs($this->coordinator)->put(route('coordinator.incidents.update', $incident), ['hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active'] + $coords)->assertSessionHasNoErrors();
 
         foreach ([$this->building->fresh(), $inspection->fresh(), $incident->fresh()] as $record) {

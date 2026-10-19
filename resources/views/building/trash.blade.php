@@ -40,11 +40,7 @@
                             <td class="table-td font-medium text-gray-900">{{ $building->building_name }}</td>
                             <td class="table-td text-gray-600">{{ $building->hazard_type ?? '—' }}</td>
                             <td class="table-td">
-                                <x-badge :value="$building->risk_level" :map="[
-                                    'Low' => 'bg-green-100 text-green-700',
-                                    'Medium' => 'bg-amber-100 text-amber-700',
-                                    'High' => 'bg-red-100 text-red-700',
-                                ]" />
+                                <x-risk-badge :level="$building->risk_level" />
                             </td>
                             @if ($routePrefix === 'admin')
                                 <td class="table-td text-gray-600">{{ $building->campus->campus_name ?? '—' }}</td>

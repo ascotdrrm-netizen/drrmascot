@@ -18,7 +18,7 @@
         </tr>
         <tr>
             <td><div class="field-label">Inspection date</div><div class="field-value">{{ $inspection->inspection_date->format('F d, Y') }}</div></td>
-            <td><div class="field-label">Risk level</div><div class="field-value"><x-pdf.tag :value="$inspection->risk_level" /></div></td>
+            <td><div class="field-label">Risk level</div><div class="field-value"><x-pdf.tag :value="$inspection->risk_level" />@if ($inspection->risk_breakdown)<br><span class="sub">{{ $inspection->risk_breakdown }} (5×5 risk matrix)</span>@endif</div></td>
         </tr>
         <tr>
             <td><div class="field-label">Hazards found (building hazard type)</div><div class="field-value"><x-pdf.value :value="$building->hazard_type" /></div></td>

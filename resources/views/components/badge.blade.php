@@ -8,13 +8,15 @@
     $canonical = [
         // Danger
         'Active' => 'bg-red-50 text-red-800 ring-red-600/20',
-        'High' => 'bg-red-50 text-red-800 ring-red-600/20',
+        'Very High' => 'bg-red-50 text-red-800 ring-red-600/20', // risk level (App\Support\RiskMatrix)
+        'High' => 'bg-orange-50 text-orange-800 ring-orange-600/25',
         'Total' => 'bg-red-50 text-red-800 ring-red-600/20',
         'Failed' => 'bg-red-50 text-red-800 ring-red-600/20',
         'In effect' => 'bg-red-50 text-red-800 ring-red-600/20', // an advisory's stored "Active"
         // Warning
         'Under Response' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
-        'Medium' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
+        'Moderate' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
+        'Medium' => 'bg-amber-50 text-amber-800 ring-amber-600/25', // a pre-matrix risk level
         'Major' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
         'Partial' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
         'Expired' => 'bg-amber-50 text-amber-800 ring-amber-600/25', // an advisory past its valid-until time
@@ -29,9 +31,9 @@
     ];
 
     // A hover hint with the meaning of known statuses (the info tips and the
-    // Help page carry the same sentences for touch and keyboard users). Risk
-    // levels get none until the risk checklist defines them.
+    // Help page carry the same sentences for touch and keyboard users).
     $tip = $tip ?? (config('glossary.incident_status')[$value] ?? config('glossary.damage_level')[$value]
+        ?? config('glossary.risk_levels')[$value]
         ?? config('glossary.delivery_status')[$value] ?? null);
 
     $classes = $canonical[$value] ?? (isset($map[$value]) ? $map[$value] . ' ring-gray-500/10' : 'bg-gray-50 text-gray-700 ring-gray-500/20');

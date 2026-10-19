@@ -36,11 +36,7 @@
             <div class="flex items-center justify-between">
                 <dt class="text-gray-600">Risk level <x-info-tip term="Risk level" :text="config('glossary.risk_level')" /></dt>
                 <dd>
-                    <x-badge :value="$building->risk_level" :map="[
-                        'Low' => 'bg-green-100 text-green-700',
-                        'Medium' => 'bg-amber-100 text-amber-700',
-                        'High' => 'bg-red-100 text-red-700',
-                    ]" />
+                    <x-risk-badge :level="$building->risk_level" />
                 </dd>
             </div>
             <div class="flex justify-between">
@@ -86,11 +82,7 @@
 
                     <div class="flex items-center justify-between gap-4">
                         <span class="text-sm font-semibold text-gray-900">{{ $inspection->inspection_date->format('M d, Y') }}</span>
-                        <x-badge :value="$inspection->risk_level" :map="[
-                            'Low' => 'bg-green-100 text-green-700',
-                            'Medium' => 'bg-amber-100 text-amber-700',
-                            'High' => 'bg-red-100 text-red-700',
-                        ]" />
+                        <x-risk-badge :level="$inspection->risk_level" :score="$inspection->risk_score" />
                     </div>
 
                     <p class="caption leading-6">School: {{ $inspection->school->school_name ?? '—' }}</p>
@@ -147,11 +139,7 @@
                                     </td>
                                     <td class="table-td font-medium text-gray-900">{{ $inspection->inspection_date->format('M d, Y') }}</td>
                                     <td class="table-td">
-                                        <x-badge :value="$inspection->risk_level" :map="[
-                                            'Low' => 'bg-green-100 text-green-700',
-                                            'Medium' => 'bg-amber-100 text-amber-700',
-                                            'High' => 'bg-red-100 text-red-700',
-                                        ]" />
+                                        <x-risk-badge :level="$inspection->risk_level" :score="$inspection->risk_score" />
                                     </td>
                                     <td class="table-td text-gray-600">{{ $inspection->school->school_name ?? '—' }}</td>
                                     <td class="table-td text-gray-600">{{ \Illuminate\Support\Str::limit($inspection->findings ?? 'No findings recorded.', 80) }}</td>

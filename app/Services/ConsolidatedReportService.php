@@ -204,11 +204,9 @@ class ConsolidatedReportService
         return [
             'inspections_conducted' => $inspectionsConducted,
             'buildings_inspected' => $buildingsInspected,
-            'by_risk_level' => [
-                'Low' => $byRiskLevel['Low'] ?? 0,
-                'Medium' => $byRiskLevel['Medium'] ?? 0,
-                'High' => $byRiskLevel['High'] ?? 0,
-            ],
+            // The 5×5 matrix's four levels (App\Support\RiskMatrix).
+            'by_risk_level' => collect(\App\Support\RiskMatrix::LEVELS)
+                ->mapWithKeys(fn ($level) => [$level => (int) ($byRiskLevel[$level] ?? 0)])->all(),
             'has_data' => $inspectionsConducted > 0,
         ];
     }

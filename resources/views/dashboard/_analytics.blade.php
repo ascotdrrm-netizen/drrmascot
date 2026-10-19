@@ -302,7 +302,7 @@
 
             // Colours come from the active theme (resources/css/app.css): gray
             // bars with the largest one in the accent (inspo), the line in the
-            // accent; risk levels keep their meaning (Low/Medium/High).
+            // accent; risk levels keep their meaning (App\Support\RiskMatrix::COLOURS).
             function palette() {
                 var css = getComputedStyle(document.documentElement);
                 var v = function (name) { return css.getPropertyValue(name).trim(); };
@@ -314,7 +314,7 @@
                     tick: v('--color-gray-500'),
                     legend: v('--color-gray-600'),
                     fill: dark ? 'rgba(249, 115, 22, 0.12)' : 'rgba(194, 65, 12, 0.08)',
-                    risk: dark ? ['#22c55e', '#f59e0b', '#ef4444'] : ['#16a34a', '#d97706', '#dc2626'],
+                    risk: @json(array_map(fn ($c) => $c, array_values(\App\Support\RiskMatrix::COLOURS))).map(function (c) { return dark ? c[1] : c[0]; }),
                 };
             }
 

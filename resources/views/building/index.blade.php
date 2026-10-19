@@ -48,11 +48,7 @@
 
                     <div class="mb-4 flex flex-wrap items-center gap-x-4 leading-8">
                         <span class="text-sm text-gray-600">{{ $building->hazard_type ?? '—' }}</span>
-                        <x-badge :value="$building->risk_level" :map="[
-                            'Low' => 'bg-green-100 text-green-700',
-                            'Medium' => 'bg-amber-100 text-amber-700',
-                            'High' => 'bg-red-100 text-red-700',
-                        ]" />
+                        <x-risk-badge :level="$building->risk_level" />
                         @if ($routePrefix === 'admin')
                             <span class="text-sm text-gray-600">{{ $building->campus->campus_name ?? '—' }}</span>
                         @endif
@@ -116,11 +112,7 @@
                                     </td>
                                     <td class="table-td text-gray-600">{{ $building->hazard_type ?? '—' }}</td>
                                     <td class="table-td">
-                                        <x-badge :value="$building->risk_level" :map="[
-                                            'Low' => 'bg-green-100 text-green-700',
-                                            'Medium' => 'bg-amber-100 text-amber-700',
-                                            'High' => 'bg-red-100 text-red-700',
-                                        ]" />
+                                        <x-risk-badge :level="$building->risk_level" />
                                     </td>
                                     @if ($routePrefix === 'admin')
                                         <td class="table-td text-gray-600">{{ $building->campus->campus_name ?? '—' }}</td>

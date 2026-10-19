@@ -37,7 +37,7 @@
             <td class="label">Inspection Date</td>
             <td class="value">{{ $inspection->inspection_date->format('F d, Y') }}</td>
             <td class="label">Risk Level</td>
-            <td class="value">{{ $inspection->risk_level }}</td>
+            <td class="value">{{ $inspection->risk_level }}{{ $inspection->risk_breakdown ? ' — ' . $inspection->risk_breakdown : '' }}</td>
         </tr>
     </table>
 

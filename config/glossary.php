@@ -16,10 +16,17 @@
 
 return [
 
-    // PLACEHOLDER — neutral wording until the weighted risk checklist lands.
-    // Replace this (and drop per-level definitions in) when it does; until
-    // then Low / Medium / High deliberately have no definitions of their own.
-    'risk_level' => 'How serious the hazard is, as judged by the person who recorded it.',
+    // The 5×5 risk matrix (App\Support\RiskMatrix holds the scales and bands).
+    'risk_level' => 'Likelihood (1–5) × impact (1–5) gives a score of 1 to 25: Low 1–4, Moderate 5–9, High 10–16, Very High 17–25.',
+    'risk_level_from_inspection' => 'A building or area takes the risk level of its latest hazard inspection.',
+    'likelihood' => 'How likely the hazard is to cause harm here.',
+    'impact' => 'How bad the harm would be if it happened.',
+    'risk_levels' => [
+        'Low' => 'Score 1–4. Keep watching it; fix it during routine maintenance.',
+        'Moderate' => 'Score 5–9. Plan a fix within the semester and tell the people who use the area.',
+        'High' => 'Score 10–16. Fix it within 30 days; limit use of the area and post warnings.',
+        'Very High' => 'Score 17–25. Act now: close or evacuate the area until it is made safe.',
+    ],
 
     'building_hazard_type' => 'The main hazard this building or area is exposed to.',
     // The incident's type (stored in incidents.hazard_type): config/incident_types.php.
@@ -91,7 +98,7 @@ return [
         'total_incidents' => 'Incidents whose date falls in the selected period.',
         'unresolved_incidents' => 'Incidents in the period still marked Active or Under Response.',
         'inspections' => 'Hazard inspections dated in the selected period.',
-        'open_high_risk' => 'Inspections rated High that are still the latest inspection of their building — a newer inspection closes them.',
+        'open_high_risk' => 'Inspections rated High or Very High that are still the latest inspection of their building — a newer inspection closes them.',
         'drills' => 'Drills documented as held in the period, counted by the date they were held.',
     ],
     'kpi_coordinator_scope' => 'Your dashboard counts only the incidents and inspections you recorded, and your campus’s drills.',

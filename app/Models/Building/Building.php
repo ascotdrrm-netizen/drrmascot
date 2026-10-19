@@ -55,6 +55,23 @@ class Building extends Model
         });
     }
 
+    /**
+     * Sets the building's risk level to its latest inspection's (by date,
+     * then the newest record). A building whose inspections are all gone
+     * keeps its last level.
+     */
+    public static function refreshRiskLevelOf(?int $buildingId): void
+    {
+        if (! $buildingId) {
+            return;
+        }
+        $latest = HazardInspection::where('building_id', $buildingId)
+            ->orderByDesc('inspection_date')->orderByDesc('inspection_id')->value('risk_level');
+        if ($latest !== null) {
+            static::withTrashed()->whereKey($buildingId)->update(['risk_level' => $latest]);
+        }
+    }
+
     /** Its photo and its inspections' photos (the records disk, App\Support\Files): what a permanent delete removes. */
     public function storedFiles(): array
     {

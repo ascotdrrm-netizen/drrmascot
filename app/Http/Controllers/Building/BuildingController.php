@@ -106,7 +106,6 @@ class BuildingController extends Controller
             'building_name' => $data['building_name'],
             'description' => $data['description'] ?? null,
             'hazard_type' => $data['hazard_type'] ?? null,
-            'risk_level' => $data['risk_level'],
             'latitude' => $data['latitude'] ?? null,
             'longitude' => $data['longitude'] ?? null,
             'photo_caption' => $data['photo_caption'] ?? null,
@@ -162,7 +161,6 @@ class BuildingController extends Controller
             'building_name' => $data['building_name'],
             'description' => $data['description'] ?? null,
             'hazard_type' => $data['hazard_type'] ?? null,
-            'risk_level' => $data['risk_level'],
             'latitude' => $data['latitude'] ?? null,
             'longitude' => $data['longitude'] ?? null,
             'photo_caption' => $data['photo_caption'] ?? null,
@@ -260,7 +258,6 @@ class BuildingController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
             // What the photo shows (thesis panel, Engineering).
             'photo_caption' => ['nullable', 'string', 'max:200'],
-            'risk_level' => ['required', 'in:Low,Medium,High'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'campus_id' => $user->role === 'DRRMO Admin'

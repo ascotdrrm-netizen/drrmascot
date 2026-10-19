@@ -52,7 +52,7 @@ CREATE TABLE `buildings` (
   `photo_path` varchar(255) DEFAULT NULL,
   `latitude` decimal(10,7) DEFAULT NULL,
   `longitude` decimal(10,7) DEFAULT NULL,
-  `risk_level` enum('Low','Medium','High') NOT NULL DEFAULT 'Low',
+  `risk_level` varchar(20) DEFAULT NULL, -- latest inspection's 5x5 risk-matrix level
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`building_id`),
   KEY `buildings_campus_id_foreign` (`campus_id`),
@@ -165,7 +165,10 @@ CREATE TABLE `hazard_inspections` (
   `building_id` bigint(20) unsigned NOT NULL,
   `inspection_date` date NOT NULL,
   `findings` text DEFAULT NULL,
-  `risk_level` enum('Low','Medium','High') NOT NULL,
+  `risk_level` varchar(20) NOT NULL, -- Low, Moderate, High, Very High
+  `likelihood` tinyint unsigned DEFAULT NULL,
+  `impact` tinyint unsigned DEFAULT NULL,
+  `risk_score` tinyint unsigned DEFAULT NULL,
   `photo_path` varchar(255) DEFAULT NULL,
   `latitude` decimal(10,7) DEFAULT NULL,
   `longitude` decimal(10,7) DEFAULT NULL,

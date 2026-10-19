@@ -95,7 +95,7 @@ class PerPersonVisibilityTest extends TestCase
 
         // Both inspect the same (shared) building.
         $this->inspectionA = $this->inspect($this->coordA, 'Alpha finding', 'High', '2026-09-21');
-        $this->inspectionB = $this->inspect($this->coordB, 'Bravo finding', 'Medium', '2026-09-20');
+        $this->inspectionB = $this->inspect($this->coordB, 'Bravo finding', 'Moderate', '2026-09-20');
 
         $this->actingAs($this->coordA)->post(route('coordinator.incidents.damage-reports.store', $this->incidentA), [
             'building_id' => $this->sharedBuilding->building_id, 'damage_level' => 'Minor', 'casualty_count' => 0,
@@ -127,8 +127,10 @@ class PerPersonVisibilityTest extends TestCase
 
     protected function inspect(Personnel $as, string $findings, string $risk, string $date): HazardInspection
     {
+        // A 5×5 matrix rating that lands on $risk.
+        [$likelihood, $impact] = ['Low' => [1, 2], 'Moderate' => [3, 2], 'High' => [4, 4], 'Very High' => [5, 5]][$risk];
         $this->actingAs($as)->post(route('coordinator.buildings.inspections.store', $this->sharedBuilding), [
-            'inspection_date' => $date, 'risk_level' => $risk, 'findings' => $findings,
+            'inspection_date' => $date, 'likelihood' => $likelihood, 'impact' => $impact, 'findings' => $findings,
         ])->assertRedirect();
 
         return HazardInspection::where('findings', $findings)->firstOrFail();
@@ -265,7 +267,7 @@ class PerPersonVisibilityTest extends TestCase
             ['delete', route('coordinator.incidents.damage-reports.destroy', [$i, $this->damageA])],
             ['get', route('coordinator.incidents.alerts.report', [$i, $this->alertA])],
             ['get', route('coordinator.buildings.inspections.edit', [$this->sharedBuilding, $this->inspectionA])],
-            ['put', route('coordinator.buildings.inspections.update', [$this->sharedBuilding, $this->inspectionA]), ['inspection_date' => '2026-09-21', 'risk_level' => 'Low']],
+            ['put', route('coordinator.buildings.inspections.update', [$this->sharedBuilding, $this->inspectionA]), ['inspection_date' => '2026-09-21', 'likelihood' => 1, 'impact' => 1]],
             ['delete', route('coordinator.buildings.inspections.destroy', [$this->sharedBuilding, $this->inspectionA])],
             ['get', route('coordinator.buildings.inspections.report', [$this->sharedBuilding, $this->inspectionA])],
         ];

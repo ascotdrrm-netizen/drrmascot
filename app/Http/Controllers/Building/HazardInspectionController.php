@@ -45,16 +45,17 @@ class HazardInspectionController extends Controller
 
         $data = $this->validated($request);
 
-        $inspection = $building->hazardInspections()->create([
+        $inspection = $building->hazardInspections()->make([
             // Attribution: the inspector's own school (null for the Admin / no school).
             'school_id' => School::attributedTo(Auth::user(), (int) $building->campus_id),
             'inspection_date' => $data['inspection_date'],
             'findings' => $data['findings'] ?? null,
-            'risk_level' => $data['risk_level'],
             'latitude' => $data['latitude'] ?? null,
             'longitude' => $data['longitude'] ?? null,
             'photo_caption' => $data['photo_caption'] ?? null,
         ]);
+        // Score and level come from the matrix, never from the request.
+        $inspection->rate((int) $data['likelihood'], (int) $data['impact'])->save();
 
         if ($request->hasFile('photo')) {
             $inspection->update([
@@ -91,11 +92,11 @@ class HazardInspectionController extends Controller
         $attributes = [
             'inspection_date' => $data['inspection_date'],
             'findings' => $data['findings'] ?? null,
-            'risk_level' => $data['risk_level'],
             'latitude' => $data['latitude'] ?? null,
             'longitude' => $data['longitude'] ?? null,
             'photo_caption' => $data['photo_caption'] ?? null,
         ];
+        $inspection->rate((int) $data['likelihood'], (int) $data['impact']);
 
         if ($request->hasFile('photo')) {
             if ($inspection->photo_path) {
@@ -185,12 +186,19 @@ class HazardInspectionController extends Controller
         return $request->validate([
             'inspection_date' => ['required', 'date', 'before_or_equal:today'],
             'findings' => ['nullable', 'string', 'max:2000'],
-            'risk_level' => ['required', 'in:Low,Medium,High'],
+            // The 5×5 risk matrix (App\Support\RiskMatrix): the level is computed.
+            'likelihood' => ['required', 'integer', 'between:1,5'],
+            'impact' => ['required', 'integer', 'between:1,5'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
             // What the photo shows (thesis panel, Engineering).
             'photo_caption' => ['nullable', 'string', 'max:200'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
+        ], [
+            'likelihood.required' => 'Choose how likely the hazard is to cause harm (1 to 5).',
+            'impact.required' => 'Choose how bad the harm would be (1 to 5).',
+            'likelihood.between' => 'Likelihood is rated 1 to 5.',
+            'impact.between' => 'Impact is rated 1 to 5.',
         ]);
     }
 

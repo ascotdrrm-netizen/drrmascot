@@ -140,7 +140,10 @@
     --color-blue-900: #bfdbfe;
 
     --color-orange-50: #2a1709;
+    --color-orange-100: #3a1f0c;
+    --color-orange-500: #f97316;
     --color-orange-600: #fb923c;
+    --color-orange-800: #fdba74; /* the High risk badge */
     --color-indigo-100: #1c1b3a;
     --color-indigo-700: #a5b4fc;
 }

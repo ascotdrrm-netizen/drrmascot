@@ -292,7 +292,7 @@ class SchoolAttributionTest extends TestCase
 
         $building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Eng Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
         $this->actingAs($this->engineering)->post(route('coordinator.buildings.inspections.store', $building), [
-            'inspection_date' => '2026-09-21', 'risk_level' => 'Medium', 'findings' => 'Eng inspection',
+            'inspection_date' => '2026-09-21', 'likelihood' => 3, 'impact' => 2, 'findings' => 'Eng inspection',
         ])->assertRedirect();
         $this->assertSame($this->engineering->school_id, HazardInspection::where('findings', 'Eng inspection')->value('school_id'));
 
