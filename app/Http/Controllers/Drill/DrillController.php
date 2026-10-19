@@ -138,7 +138,17 @@ class DrillController extends Controller
         $data = $this->validatedSchedule($request, $isAdmin);
         $campusIds = $isAdmin ? $data['campus_ids'] : [$user->campus_id];
 
-        $drills = DB::transaction(fn () => Campus::whereIn('campus_id', $campusIds)->orderBy('campus_name')->get()
+        // The same drill entered twice (a second tap, or two people scheduling
+        // it) is refused: one per campus, type, date, time and venue.
+        if ($existing = $this->sameDrill($campusIds, $data)) {
+            return back()->withInput()->withErrors(['scheduled_date' => sprintf(
+                'This drill is already on the calendar for %s (%s, %s at %s). Open it from the calendar instead of scheduling it again.',
+                $existing->campus->campus_name ?? 'this campus', $existing->drill_type,
+                $existing->scheduled_date->format('M j, Y'), $existing->scheduled_time?->format('g:i A') ?? '',
+            )]);
+        }
+
+        $drills =DB::transaction(fn () => Campus::whereIn('campus_id', $campusIds)->orderBy('campus_name')->get()
             ->map(function (Campus $campus) use ($data, $user) {
                 $drill = Drill::withoutActivityLog(fn () => Drill::create(['campus_id' => $campus->campus_id] + $this->scheduleFields($data)));
                 $drill->setRelation('campus', $campus);
@@ -146,6 +156,8 @@ class DrillController extends Controller
 
                 return $drill;
             }));
+
+        $this->noticeToReporters($drills);
 
         if ($drills->count() === 1) {
             return redirect()
@@ -268,6 +280,39 @@ class DrillController extends Controller
     {
         $this->authorizeRecordAccess($drill);
         abort_unless(RecordAccess::canManageDrill($drill, Auth::user()), 403, 'Only the person who scheduled this drill, or the DRRMO, can change it.');
+    }
+
+    /**
+     * Students and staff of the campus see upcoming drills in the phone app
+     * (Alerts); a new one also raises their Alerts badge. A drill recorded
+     * after it was held needs no notice.
+     */
+    protected function noticeToReporters($drills): void
+    {
+        $today = CarbonImmutable::now('Asia/Manila')->startOfDay();
+        foreach ($drills as $drill) {
+            if ($drill->scheduled_date->lt($today)) {
+                continue;
+            }
+            $reporters = \App\Models\Personnel::where('role', 'Reporter')->where('is_approved', true)->where('campus_id', $drill->campus_id)->get();
+            \App\Support\EmergencyNotices::record($reporters, 'drill', (int) $drill->drill_id, (int) $drill->campus_id, sprintf(
+                'Drill scheduled: %s, %s%s at %s', $drill->drill_type, $drill->scheduled_date->format('M j'),
+                $drill->scheduled_time ? ', ' . $drill->scheduled_time->format('g:i A') : '', $drill->venue));
+        }
+    }
+
+    /** An undeleted drill matching the schedule in any of $campusIds, if there is one. */
+    protected function sameDrill(array $campusIds, array $data): ?Drill
+    {
+        $venue = mb_strtolower(trim($data['venue']));
+
+        return Drill::with('campus:campus_id,campus_name')
+            ->whereIn('campus_id', $campusIds)
+            ->where('drill_type', $data['drill_type'])
+            ->whereDate('scheduled_date', $data['scheduled_date'])
+            ->get()
+            ->first(fn (Drill $d) => $d->scheduled_time?->format('H:i') === $data['scheduled_time']
+                && mb_strtolower(trim($d->venue)) === $venue);
     }
 
     protected function scheduleFields(array $data): array

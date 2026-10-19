@@ -25,8 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff' => \App\Http\Middleware\EnsureStaffRole::class,
         ]);
         // E-mail addresses are compared lower-case on every database; AJAX
-        // requests get JSON instead of a redirect (resources/js/modules/ajax.js).
-        $middleware->web(append: [NormalizeEmails::class, \App\Http\Middleware\PrivateResponses::class, \App\Http\Middleware\AjaxResponses::class,
+        // requests get JSON instead of a redirect (resources/js/modules/ajax.js),
+        // and a retried submission is saved once (IdempotentRequests wraps the JSON).
+        $middleware->web(append: [NormalizeEmails::class, \App\Http\Middleware\PrivateResponses::class, \App\Http\Middleware\IdempotentRequests::class, \App\Http\Middleware\AjaxResponses::class,
             \App\Http\Middleware\HydrateDirectUploads::class, \App\Http\Middleware\OffloadLargeDownloads::class]);
         $middleware->appendToPriorityList(\Illuminate\Auth\Middleware\Authorize::class, \App\Http\Middleware\HydrateDirectUploads::class);
     })

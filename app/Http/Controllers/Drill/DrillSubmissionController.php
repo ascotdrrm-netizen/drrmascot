@@ -12,6 +12,7 @@ use App\Support\FilenameSlug;
 use App\Support\PdfImage;
 use App\Traits\RendersPdfAssets;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -89,8 +90,8 @@ abstract class DrillSubmissionController extends Controller
         $files = $request->file('attachments', []);
         $fields = collect($data)->except(['attachments'])->all();
 
-        $created = DB::transaction(function () use ($drill, $fields, $files, $user) {
-            $record = $drill->{$this->relation()};
+        $save = function () use ($drill, $fields, $files, $user) {
+            $record = $drill->{$this->relation()}()->first();
             $created = $record === null;
 
             if ($created) {
@@ -108,7 +109,16 @@ abstract class DrillSubmissionController extends Controller
             }
 
             return $created;
-        });
+        };
+
+        // Two sends at once (a double tap) both find no record; the unique
+        // drill_id lets one insert, and the other then saves as an update.
+        try {
+            $created = DB::transaction($save);
+        } catch (UniqueConstraintViolationException) {
+            DB::transaction($save);
+            $created = false;
+        }
 
         DrillLog::record($user, $drill, $this->logAction(), strtolower($this->label()) . ($created ? ' submitted' : ' updated') . ($files ? ' (' . count($files) . ' file' . (count($files) === 1 ? '' : 's') . ' attached)' : ''));
 

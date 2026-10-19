@@ -72,12 +72,33 @@ export function toast(message, tone = 'success') {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Sends a request; when there is no answer at all (offline), tries up to 3 more times. */
+/** One key per submission (App\Http\Middleware\IdempotentRequests): a retry of it is never saved twice. */
+export function idempotencyKey() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+
+/**
+ * Sends a request; when there is no answer at all (offline), tries up to 3
+ * more times. A change (anything but GET) carries one Idempotency-Key for all
+ * its tries, so a try whose answer was lost on a slow connection is not saved
+ * again: the server answers the retry with the first try's result (or 409
+ * while the first try is still running, and then this waits and asks again).
+ */
 export async function send(config, { retries = 3, onRetry } = {}) {
-    for (let attempt = 0; ; attempt++) {
+    if ((config.method || 'get').toLowerCase() !== 'get') {
+        config.headers = { 'Idempotency-Key': idempotencyKey(), ...(config.headers || {}) };
+    }
+    for (let attempt = 0, waits = 0; ; attempt++) {
         try {
             return await http(config);
         } catch (error) {
+            if (error.response && error.response.status === 409 && error.response.data && error.response.data.pending && waits < 10) {
+                waits++;
+                attempt--;
+                await sleep(1500);
+                continue;
+            }
             const noAnswer = ! error.response && error.code !== 'ERR_CANCELED';
             if (! noAnswer || attempt >= retries) throw error;
             if (onRetry) onRetry(attempt + 1, retries);
@@ -263,6 +284,8 @@ function handleFailure(error, form) {
 // ---------------------------------------------------------------- forms
 
 async function submitForm(form, submitter) {
+    // A second tap or Enter while the first is still sending is ignored.
+    if (form.getAttribute('aria-busy') === 'true') return;
     const method = (form.getAttribute('method') || 'post').toLowerCase();
     const data = new FormData(form);
     if (submitter && submitter.name) data.append(submitter.name, submitter.value);
@@ -307,6 +330,7 @@ document.addEventListener('submit', (e) => {
 // --------------------------------------------------------------- actions
 
 async function runAction(button) {
+    if (button.getAttribute('aria-busy') === 'true') return;
     const method = (button.dataset.method || 'post').toLowerCase();
     setBusy(button, true, button.dataset.loadingText);
     try {
