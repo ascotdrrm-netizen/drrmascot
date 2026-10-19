@@ -40,6 +40,10 @@ services:
         sync: false
       - key: DB_SSLMODE
         value: require
+      # Reuse each worker's connection (Session pooler, port 5432): saves a
+      # TLS handshake to Supabase on every page.
+      - key: DB_PERSISTENT
+        value: "true"
 
       # The container disk is wiped on every deploy and wake, so records,
       # photos and backups live in the private Supabase bucket.

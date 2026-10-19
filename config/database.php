@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // DB_PERSISTENT=true (render.yaml): each Apache worker keeps its
+            // connection to Supabase instead of a new TLS handshake per page.
+            'options' => env('DB_PERSISTENT', false) && extension_loaded('pdo_pgsql') ? [PDO::ATTR_PERSISTENT => true] : [],
         ],
 
         'sqlsrv' => [

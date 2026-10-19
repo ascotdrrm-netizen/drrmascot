@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Consolidated DRRM Report - ASCOT DRRMS')
+@section('charts', 'yes')
 @section('heading', 'Consolidated DRRM Report')
 @section('subheading', Auth::user()->role === 'DRRMO Admin'
     ? 'Every module summed up for one period, per campus and per school. For one module\'s full list of records, use Generate Report on that module\'s page.'

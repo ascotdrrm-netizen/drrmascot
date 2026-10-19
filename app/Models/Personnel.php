@@ -77,7 +77,7 @@ class Personnel extends Authenticatable implements MustVerifyEmail
      */
     public function existingPhotoUrl(): ?string
     {
-        return $this->photo_path && \App\Support\Files::exists($this->photo_path) ? $this->photo_url : null;
+        return $this->photo_path && \App\Support\Files::existsRemembered($this->photo_path) ? $this->photo_url : null;
     }
 
     // Laravel's auth system expects "password" — map it to our password_hash column.

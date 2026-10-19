@@ -26,7 +26,7 @@ if [ -n "${DEMO_ACCOUNTS_PASSWORD:-}" ]; then
 fi
 
 # Restarted if they exit (memory limit, --max-time, a crash).
-( while true; do as_app php artisan queue:work --sleep=3 --tries=3 --max-time=3600 --memory=128; sleep 5; done ) &
+( while true; do as_app php artisan queue:work --sleep=5 --tries=3 --max-time=3600 --memory=128; sleep 5; done ) &
 ( while true; do as_app php artisan schedule:work; sleep 5; done ) &
 
 exec apache2-foreground

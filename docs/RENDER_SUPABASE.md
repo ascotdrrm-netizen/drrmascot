@@ -7,7 +7,7 @@ request (vercel-community/php#650).
 
 ## 1. Supabase
 
-1. Create a project (this one is in Seoul, `ap-northeast-2`; `render.yaml` sets the S3 region to match). Keep the database password in your password manager.
+1. Create a project in **Southeast Asia (Singapore)**, next to the Render server (the first one was in Seoul, `ap-northeast-2`; see section 5). `render.yaml` sets the S3 region to match. Keep the database password in your password manager.
 2. **Connect > Session pooler**: copy the URI on **port 5432**. This is `DB_URL`.
    Percent-encode special characters in the password (`@` → `%40`, `#` → `%23`).
 3. **Storage**: create bucket **drrms**, **Public OFF**, max file size **10 MB**.
@@ -57,7 +57,32 @@ and refuses to run twice. Do not run `db:seed` or `migrate:fresh` against the li
   (`MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`,
   `MAIL_FROM_ADDRESS`) in Render before inviting Reporters.
 
-## 5. Check after deploy
+## 5. Speed: move Supabase to Singapore
+
+The Render server is in Singapore and the current Supabase project is in Seoul,
+so every database query and file check crosses that distance — the main reason
+pages load slowly. A new Supabase project in **Southeast Asia (Singapore)**
+removes it (and replaces the keys that were once pasted in chat).
+
+1. In Supabase, **New project**, region **Southeast Asia (Singapore)**. Create
+   bucket **drrms** (Public OFF, 10 MB) and an S3 access key, as in step 1.
+2. Copy the database across. On this PC (PostgreSQL client tools installed),
+   with the two Session-pooler URIs:
+   ```powershell
+   pg_dump --no-owner --no-privileges --format=custom --file=drrms.dump "OLD_SEOUL_DB_URL"
+   pg_restore --no-owner --no-privileges --clean --if-exists --dbname="NEW_SINGAPORE_DB_URL" drrms.dump
+   ```
+   Delete `drrms.dump` afterwards: it holds personal data.
+3. Copy the files (photos, attachments, stored backups). A normal backup holds
+   the rows only, so copy the bucket itself with [rclone](https://rclone.org/s3/#supabase):
+   add two S3 remotes (provider `Other`, the old and the new endpoint and keys),
+   then `rclone copy seoul:drrms singapore:drrms --progress`.
+4. In Render > Environment, replace `DB_URL`, `SUPABASE_S3_ENDPOINT`,
+   `SUPABASE_S3_ACCESS_KEY_ID`, `SUPABASE_S3_SECRET_ACCESS_KEY`; in `render.yaml`
+   change `SUPABASE_S3_REGION` to `ap-southeast-1` and push. Update `.env.render` too.
+5. Check section 6, then pause or delete the Seoul project and revoke its S3 key.
+
+## 6. Check after deploy
 
 1. `/up` returns 200; landing page, login and dashboard load with CSS, icons, map and charts.
 2. Log in as the Admin, log out, log in again.

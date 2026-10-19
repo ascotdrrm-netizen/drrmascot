@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Admin Dashboard - ASCOT DRRMS')
+@section('charts', 'yes')
 @section('heading', 'Dashboard')
 @section('subheading', 'Welcome, ' . Auth::user()->full_name . ' · DRRMO Admin')
 

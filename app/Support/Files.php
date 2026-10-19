@@ -6,6 +6,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -25,6 +26,9 @@ use Illuminate\Support\Str;
 class Files
 {
     public const SIGNED_MINUTES = 60;
+
+    /** How long existsRemembered() trusts a found file. */
+    public const REMEMBER_SECONDS = 600;
 
     /** Folders a file may live in (and be restored into). */
     public const FOLDERS = [
@@ -76,12 +80,42 @@ class Files
         return filled($path) && self::disk()->exists($path);
     }
 
+    /**
+     * exists(), remembered for REMEMBER_SECONDS once the file is found: the
+     * signed-in user's photo is checked on every page, and on Supabase each
+     * check is a round trip to the bucket. A missing file is always checked
+     * again; delete() forgets the answer.
+     */
+    public static function existsRemembered(?string $path): bool
+    {
+        if (! filled($path)) {
+            return false;
+        }
+        if (Cache::get(self::existsKey($path))) {
+            return true;
+        }
+        $exists = self::exists($path);
+        if ($exists) {
+            Cache::put(self::existsKey($path), true, self::REMEMBER_SECONDS);
+        }
+
+        return $exists;
+    }
+
+    protected static function existsKey(string $path): string
+    {
+        return 'file-exists:' . sha1(self::diskName() . '|' . $path);
+    }
+
     /** @param string|list<string>|null $paths */
     public static function delete(string|array|null $paths): void
     {
         $paths = array_values(array_filter((array) $paths));
         if ($paths) {
             self::disk()->delete($paths);
+            foreach ($paths as $path) {
+                Cache::forget(self::existsKey($path));
+            }
         }
     }
 
