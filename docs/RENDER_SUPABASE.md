@@ -59,6 +59,10 @@ and refuses to run twice. Do not run `db:seed` or `migrate:fresh` against the li
 
 ## 5. Speed: move Supabase to Singapore
 
+**Done 2026-10-21:** the live system now uses the project `drrmascot-sg`
+(Southeast Asia, Singapore). Database copied with all 40 tables matching, and
+the 6 stored files copied. Keep the steps below for any future move.
+
 The Render server is in Singapore and the current Supabase project is in Seoul,
 so every database query and file check crosses that distance — the main reason
 pages load slowly. A new Supabase project in **Southeast Asia (Singapore)**
