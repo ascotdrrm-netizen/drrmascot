@@ -107,6 +107,50 @@ class DrillModuleTest extends TestCase
         $this->assertSame(2, ActivityLog::where('action', 'drill_scheduled')->count());
     }
 
+    /**
+     * UAT 2026-10-21: the same Earthquake drill was entered twice on one day
+     * ("Gym court" 12:45 PM, then "Gym" 5:00 PM) and showed as two. A second
+     * drill of the same type that day is asked about first; a different type
+     * is not.
+     */
+    public function test_a_second_drill_of_the_same_type_that_day_is_asked_about_first(): void
+    {
+        $first = $this->drill($this->zabali, $this->admin, '2026-10-21', 'Gym court', 'Earthquake', '12:45:00');
+        $second = ['campus_ids' => [$this->zabali->campus_id], 'drill_type' => 'Earthquake',
+            'scheduled_date' => '2026-10-21', 'scheduled_time' => '17:00', 'venue' => 'Gym'];
+
+        $this->actingAs($this->admin)->from(route('admin.drills.create'))->post(route('admin.drills.store'), $second)
+            ->assertRedirect(route('admin.drills.create'))
+            ->assertSessionHasErrors(['confirm_same_day' => 'ASCOT Zabali Campus already has an Earthquake drill on Oct 21, 2026 (12:45 PM, Gym court). If this is a separate drill, tick "Schedule it anyway" and save again.']);
+        $this->assertSame(1, Drill::count());
+
+        // As AJAX: a 422 on the checkbox, which the form then shows.
+        $this->actingAs($this->admin)->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+            ->post(route('admin.drills.store'), $second)
+            ->assertUnprocessable()->assertJsonValidationErrors('confirm_same_day');
+        $this->flushHeaders();
+        $this->actingAs($this->admin)->get(route('admin.drills.create'))->assertSee('name="confirm_same_day"', false);
+
+        $this->actingAs($this->admin)->post(route('admin.drills.store'), $second + ['confirm_same_day' => '1'])->assertRedirect();
+        $this->assertSame(2, Drill::count());
+
+        // Another type that day, or the same type on another campus, is not asked about.
+        $this->actingAs($this->admin)->post(route('admin.drills.store'), ['drill_type' => 'Fire'] + $second)->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post(route('admin.drills.store'), ['campus_ids' => [$this->bazal->campus_id]] + $second)->assertSessionHasNoErrors();
+
+        // Editing a drill onto that day asks too.
+        $other = $this->drill($this->zabali, $this->admin, '2026-10-25', 'Field', 'Earthquake', '08:00:00');
+        $this->actingAs($this->admin)->put(route('admin.drills.update', $other), ['drill_type' => 'Earthquake',
+            'scheduled_date' => '2026-10-21', 'scheduled_time' => '08:00', 'venue' => 'Field'])->assertSessionHasErrors('confirm_same_day');
+        $this->assertSame('2026-10-25', $other->fresh()->scheduled_date->toDateString());
+        $this->assertSame($first->drill_id, Drill::orderBy('drill_id')->first()->drill_id);
+
+        // A drill already sharing its day saves without being asked again.
+        $this->actingAs($this->admin)->put(route('admin.drills.update', $first), ['drill_type' => 'Earthquake',
+            'scheduled_date' => '2026-10-21', 'scheduled_time' => '12:45', 'venue' => 'Gym court, north side'])->assertSessionHasNoErrors();
+        $this->assertSame('Gym court, north side', $first->fresh()->venue);
+    }
+
     public function test_coordinator_can_schedule_a_drill_for_their_own_campus(): void
     {
         $response = $this->actingAs($this->coordA)->post(route('coordinator.drills.store'), [

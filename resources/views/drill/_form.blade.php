@@ -121,6 +121,14 @@
         </div>
         </x-form-section>
 
+        {{-- Shown only when the campus already has a drill of this type that day
+             (DrillController::sameDayDrill): the server's warning appears under it. --}}
+        <label class="{{ $errors->has('confirm_same_day') ? 'flex' : 'hidden' }} has-[[aria-invalid=true]]:flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" data-same-day-confirm>
+            <input type="checkbox" name="confirm_same_day" value="1" class="mt-0.5 h-4 w-4 shrink-0" @checked(old('confirm_same_day'))>
+            <span><span class="font-medium">Schedule it anyway</span> — this is a separate drill, not the one already on the calendar that day.</span>
+        </label>
+        @error('confirm_same_day')<p class="form-error">{{ $message }}</p>@enderror
+
         <x-form-actions>
             <button type="submit" class="btn btn-primary">
             {{ $isEdit ? 'Update schedule' : 'Schedule drill' }}

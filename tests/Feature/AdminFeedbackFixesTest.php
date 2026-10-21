@@ -185,7 +185,7 @@ class AdminFeedbackFixesTest extends TestCase
         $this->travelTo(Carbon::parse('2026-10-20 10:00:00', 'Asia/Manila'));
         $fields = ['drill_type' => 'Fire', 'scheduled_date' => '2026-11-10', 'scheduled_time' => '09:00', 'venue' => 'Gym'];
         $this->actingAs($this->coordinator)->post(route('coordinator.drills.store'), $fields)->assertRedirect();
-        $this->post(route('coordinator.drills.store'), ['scheduled_time' => '13:00'] + $fields)->assertRedirect();
+        $this->post(route('coordinator.drills.store'), ['scheduled_time' => '13:00', 'confirm_same_day' => '1'] + $fields)->assertRedirect();
         $second = Drill::where('scheduled_time', '13:00:00')->firstOrFail();
 
         $this->put(route('coordinator.drills.update', $second), $fields)->assertSessionHasErrors('scheduled_date');

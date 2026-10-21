@@ -35,11 +35,11 @@ class DrillDuplicateTest extends TestCase
         ]);
     }
 
-    protected function schedule(array $headers = [], string $time = '12:45')
+    protected function schedule(array $headers = [], string $time = '12:45', array $extra = [])
     {
         return $this->actingAs($this->coord)->withHeaders($headers)->post(route('coordinator.drills.store'), [
             'drill_type' => 'Earthquake', 'scheduled_date' => '2026-10-21', 'scheduled_time' => $time, 'venue' => 'Gym',
-        ]);
+        ] + $extra);
     }
 
     public function test_the_same_drill_cannot_be_scheduled_twice(): void
@@ -50,11 +50,14 @@ class DrillDuplicateTest extends TestCase
         $this->assertSame(1, Drill::count());
     }
 
-    public function test_a_different_time_is_a_different_drill(): void
+    public function test_a_different_time_is_a_different_drill_once_confirmed(): void
     {
         $this->schedule()->assertRedirect();
-        $this->schedule([], '17:00')->assertRedirect();
+        // The same type that day: asked about first (DrillModuleTest has the message).
+        $this->schedule([], '17:00')->assertSessionHasErrors('confirm_same_day');
+        $this->assertSame(1, Drill::count());
 
+        $this->schedule([], '17:00', ['confirm_same_day' => '1'])->assertSessionHasNoErrors();
         $this->assertSame(2, Drill::count());
     }
 
@@ -77,7 +80,7 @@ class DrillDuplicateTest extends TestCase
     {
         $headers = ['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'];
         $this->schedule($headers + ['Idempotency-Key' => 'first-key-0001'])->assertOk();
-        $this->schedule($headers + ['Idempotency-Key' => 'other-key-0002'], '17:00')->assertOk();
+        $this->schedule($headers + ['Idempotency-Key' => 'other-key-0002'], '17:00', ['confirm_same_day' => '1'])->assertOk();
 
         $this->assertSame(2, Drill::count());
     }

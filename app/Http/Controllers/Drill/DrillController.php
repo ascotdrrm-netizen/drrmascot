@@ -156,6 +156,9 @@ class DrillController extends Controller
             if ($existing = $this->sameDrill($campusIds, $data)) {
                 return back()->withInput()->withErrors(['scheduled_date' => $this->duplicateMessage($existing)]);
             }
+            if (! $request->boolean('confirm_same_day') && $sameDay = $this->sameDayDrill($campusIds, $data)) {
+                return back()->withInput()->withErrors(['confirm_same_day' => $this->sameDayMessage($sameDay)]);
+            }
 
             $drills = DB::transaction(fn () => Campus::whereIn('campus_id', $campusIds)->orderBy('campus_name')->get()
                 ->map(function (Campus $campus) use ($data, $user) {
@@ -200,6 +203,13 @@ class DrillController extends Controller
         // Editing must not turn this drill into a copy of another one on its campus.
         if ($existing = $this->sameDrill([$drill->campus_id], $data, $drill->drill_id)) {
             return back()->withInput()->withErrors(['scheduled_date' => $this->duplicateMessage($existing)]);
+        }
+        // Asked only when the edit moves it onto that day or that type: a drill
+        // already sharing its day (confirmed when scheduled) saves as before.
+        $moved = $drill->scheduled_date->toDateString() !== \Carbon\Carbon::parse($data['scheduled_date'])->toDateString()
+            || $drill->drill_type !== $data['drill_type'];
+        if ($moved && ! $request->boolean('confirm_same_day') && $sameDay = $this->sameDayDrill([$drill->campus_id], $data, $drill->drill_id)) {
+            return back()->withInput()->withErrors(['confirm_same_day' => $this->sameDayMessage($sameDay)]);
         }
         $drill->update($this->scheduleFields($data));
 
@@ -331,6 +341,33 @@ class DrillController extends Controller
             ->get()
             ->first(fn (Drill $d) => $d->scheduled_time?->format('H:i') === $data['scheduled_time']
                 && mb_strtolower(trim($d->venue)) === $venue);
+    }
+
+    /**
+     * An undeleted drill of the same type on the same day in any of $campusIds,
+     * at another time or venue. Allowed, but asked about first: the usual
+     * cause is the same drill entered again (UAT 2026-10-21: "Gym court"
+     * at 12:45 PM, then "Gym" at 5:00 PM).
+     */
+    protected function sameDayDrill(array $campusIds, array $data, ?int $except = null): ?Drill
+    {
+        return Drill::with('campus:campus_id,campus_name')
+            ->whereIn('campus_id', $campusIds)
+            ->when($except !== null, fn ($q) => $q->whereKeyNot($except))
+            ->where('drill_type', $data['drill_type'])
+            ->whereDate('scheduled_date', $data['scheduled_date'])
+            ->orderBy('scheduled_time')
+            ->first();
+    }
+
+    protected function sameDayMessage(Drill $existing): string
+    {
+        return sprintf(
+            '%s already has a%s %s drill on %s (%s, %s). If this is a separate drill, tick "Schedule it anyway" and save again.',
+            $existing->campus->campus_name ?? 'This campus',
+            preg_match('/^[AEIOU]/i', $existing->drill_type) ? 'n' : '', $existing->drill_type,
+            $existing->scheduled_date->format('M j, Y'), $existing->scheduled_time?->format('g:i A') ?? 'no time set', $existing->venue,
+        );
     }
 
     protected function duplicateMessage(Drill $existing): string
