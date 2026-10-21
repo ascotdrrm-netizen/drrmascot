@@ -151,15 +151,22 @@ class ConsolidatedReportService
         ];
 
         return array_map(function ($row) use ($current, $previous) {
-            $currentValue = $current[$row['key']];
-            $previousValue = $previous[$row['key']];
+            $currentValue = max(0, (int) $current[$row['key']]);
+            $previousValue = max(0, (int) $previous[$row['key']]);
+            $change = $currentValue - $previousValue;
+            $pct = $this->percentChange($currentValue, $previousValue);
 
             return [
                 'label' => $row['label'],
                 'current' => $currentValue,
                 'previous' => $previousValue,
-                'change' => $currentValue - $previousValue,
-                'change_pct' => $this->percentChange($currentValue, $previousValue),
+                'change' => $change,
+                'change_pct' => $pct,
+                // How the report prints a change: "Up 3 (50%)", "Down 3 (50%)",
+                // "No change" — a size and a direction, never a minus number.
+                'direction' => $change > 0 ? 'up' : ($change < 0 ? 'down' : 'same'),
+                'change_size' => abs($change),
+                'change_pct_size' => $pct === null ? null : abs($pct),
             ];
         }, $rows);
     }
@@ -268,8 +275,9 @@ class ConsolidatedReportService
             ->pluck('total', 'damage_level')
             ->all();
 
-        $totalCasualties = (clone $damageQuery)->sum('damage_reports.casualty_count');
-        $totalEstCost = (clone $damageQuery)->sum('damage_reports.est_cost');
+        // Only positive figures count: an old row saved before the min:0 rules can't pull a total below zero.
+        $totalCasualties = (clone $damageQuery)->where('damage_reports.casualty_count', '>', 0)->sum('damage_reports.casualty_count');
+        $totalEstCost = (clone $damageQuery)->where('damage_reports.est_cost', '>', 0)->sum('damage_reports.est_cost');
 
         return [
             'total' => $total,
@@ -358,7 +366,7 @@ class ConsolidatedReportService
             'scheduled' => $scheduled,
             'total' => $conducted,
             'after_activity_reports' => $this->drillAfterActivityReportsQuery($start, $end, $campusId)->count(),
-            'total_participants' => (int) (clone $documented)->sum('drill_documentations.participant_count'),
+            'total_participants' => (int) (clone $documented)->where('drill_documentations.participant_count', '>', 0)->sum('drill_documentations.participant_count'),
             'by_type' => $byType,
             'has_data' => $scheduled > 0 || $conducted > 0,
         ];
@@ -413,7 +421,7 @@ class ConsolidatedReportService
     {
         $total = $this->alertsQuery($start, $end, $campusId)->count();
 
-        $totalRecipients = $this->alertsQuery($start, $end, $campusId)->sum('alerts.recipient_count');
+        $totalRecipients = $this->alertsQuery($start, $end, $campusId)->where('alerts.recipient_count', '>', 0)->sum('alerts.recipient_count');
 
         // Alerts have no standalone "type" column — delivery_status
         // (Sent/Partial/Failed) is the only existing categorical field.
@@ -491,7 +499,7 @@ class ConsolidatedReportService
         return [
             'total' => $total,
             'followed' => $followed,
-            'not_followed' => $total - $followed,
+            'not_followed' => max(0, $total - $followed),
             'by_hazard_type' => $byHazard,
             // Every source, zeros included, in the form's order.
             'by_source' => collect(\App\Http\Controllers\Advisory\DisasterAdvisoryController::SOURCES)
@@ -554,7 +562,7 @@ class ConsolidatedReportService
 
     public const REPORT_STATUSES = ['New', 'Verified', 'Responding', 'Resolved', 'Rejected'];
 
-    public const SOS_STATUSES = ['New', 'Acknowledged', 'Responding', 'Resolved'];
+    public const SOS_STATUSES = ['New', 'Acknowledged', 'Responding', 'Resolved', 'Rejected'];
 
     /** Reporter-app reports; the school is the reporter's (a deleted reporter's reports count as "not assigned"). */
     public function citizenReportsQuery(CarbonImmutable $start, CarbonImmutable $end, ?int $campusId): Builder

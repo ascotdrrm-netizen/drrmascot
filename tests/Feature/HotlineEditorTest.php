@@ -48,16 +48,19 @@ class HotlineEditorTest extends TestCase
         $this->assertSame(config('hotlines.groups'), Hotlines::groups());
     }
 
-    public function test_the_admin_sees_every_group_and_a_coordinator_only_their_campus(): void
+    public function test_the_admin_sees_every_group_and_a_coordinator_edits_only_their_campus(): void
     {
         $this->actingAs($this->admin)->get(route('admin.hotlines.index'))->assertOk()
             ->assertSee('Aurora Province')->assertSee('Baler')->assertSee('Casiguran');
 
-        $html = $this->actingAs($this->coordinator)->get(route('coordinator.hotlines.index'))->assertOk()->getContent();
-        $this->assertSame(1, substr_count($html, 'data-hotline-group-card='));
-        $this->assertStringContainsString('data-hotline-group-card="' . $this->baler->hotline_group_id . '"', $html);
-
+        // A coordinator sees every group (they call the province and other towns
+        // too), with Edit only on their own campus's group.
         $province = HotlineGroup::where('title', 'Aurora Province')->firstOrFail();
+        $html = $this->actingAs($this->coordinator)->get(route('coordinator.hotlines.index'))->assertOk()->getContent();
+        $this->assertSame(HotlineGroup::count(), substr_count($html, 'data-hotline-group-card='));
+        $this->assertStringContainsString(route('coordinator.hotlines.edit', $this->baler), $html);
+        $this->assertStringNotContainsString(route('coordinator.hotlines.edit', $province), $html);
+
         $this->get(route('coordinator.hotlines.edit', $province))->assertForbidden();
         $this->put(route('coordinator.hotlines.update', $province), ['entries' => [['label' => 'X', 'numbers' => '0917 000 0000']]])->assertForbidden();
     }

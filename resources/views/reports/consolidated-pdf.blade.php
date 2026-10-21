@@ -28,7 +28,7 @@
                     <td>{{ $row['label'] }}</td>
                     <td class="num">{{ $row['current'] }}</td>
                     <td class="num">{{ $row['previous'] }}</td>
-                    <td class="num">{{ $row['change'] > 0 ? '+' : '' }}{{ $row['change'] }}</td>
+                    <td class="num">{{ ['up' => 'Up ' . $row['change_size'], 'down' => 'Down ' . $row['change_size'], 'same' => 'No change'][$row['direction']] }}</td>
                     <td class="num">
                         @if ($row['change_pct'] === null)
                             @if ($row['previous'] === 0 && $row['current'] > 0)
@@ -36,8 +36,10 @@
                             @else
                                 —
                             @endif
+                        @elseif ($row['direction'] === 'same')
+                            0%
                         @else
-                            {{ $row['change_pct'] > 0 ? '+' : '' }}{{ $row['change_pct'] }}%
+                            {{ $row['direction'] === 'up' ? 'Up' : 'Down' }} {{ $row['change_pct_size'] }}%
                         @endif
                     </td>
                 </tr>

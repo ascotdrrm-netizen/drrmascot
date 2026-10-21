@@ -27,6 +27,8 @@ class DataSet
     public const EXCLUDED_TABLES = [
         'migrations', 'password_reset_tokens', 'cache', 'cache_locks', 'jobs', 'job_batches',
         'failed_jobs', 'sessions', 'users', 'backups', 'sqlite_sequence', 'phone_verifications',
+        // The Data Privacy Password's hash: never in a backup, never replaced by a restore.
+        'system_secrets',
     ];
 
     /** @var array<string, list<array{column: string, table: string}>> */

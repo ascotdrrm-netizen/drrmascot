@@ -407,7 +407,7 @@ class DashboardAnalyticsService
     }
 
     /**
-     * Drills whose date has passed but that still lack their documentation
+     * Drills whose start has passed but that still lack their documentation
      * or their After Activity Report — oldest first. One query: the first
      * LIST_LIMIT rows, the full total (COUNT(*) OVER () is evaluated before
      * LIMIT) and the campus name (joined, not eager-loaded).
@@ -417,7 +417,13 @@ class DashboardAnalyticsService
         $items = $this->ownDrills(Drill::query())
             ->join('campuses', 'campuses.campus_id', '=', 'drills.campus_id')
             ->when($campusId !== null, fn ($q) => $q->where('drills.campus_id', $campusId))
-            ->where('drills.scheduled_date', '<=', CarbonImmutable::now('Asia/Manila')->toDateString())
+            // Held already: an earlier day, or today once its start time has passed.
+            ->where(function ($q) {
+                $now = CarbonImmutable::now('Asia/Manila');
+                $q->where('drills.scheduled_date', '<', $now->toDateString())
+                    ->orWhere(fn ($q) => $q->where('drills.scheduled_date', $now->toDateString())
+                        ->where('drills.scheduled_time', '<=', $now->format('H:i:s')));
+            })
             ->where(fn ($q) => $q->whereDoesntHave('documentation')->orWhereDoesntHave('afterActivityReport'))
             ->select(['drills.drill_id', 'drills.campus_id', 'drills.drill_type', 'drills.scheduled_date', 'drills.scheduled_time', 'drills.venue', 'campuses.campus_name'])
             ->withExists(['documentation', 'afterActivityReport'])

@@ -18,7 +18,8 @@ class CitizenReport extends Model
     protected static function booted(): void
     {
         static::updated(function (CitizenReport $report) {
-            if ($report->wasChanged('status')) \App\Models\StaffNotification::create([
+            // A deleted reporter (reporter_id null) has no one to tell.
+            if ($report->wasChanged('status') && $report->reporter_id !== null) \App\Models\StaffNotification::create([
                 'personnel_id' => $report->reporter_id, 'campus_id' => $report->campus_id,
                 'kind' => 'report_update', 'subject_id' => $report->getKey(),
                 'message' => "Report #{$report->getKey()} is now {$report->status}.",

@@ -13,7 +13,7 @@
     $nothingToClear = $inventory['total'] === 0 && $inventory['file_count'] === 0;
     $cleared = session('cleared');
     $blockedReason = match (true) {
-        ! $dataPrivacyPasswordConfigured => 'The Data Privacy Password is not configured on this server. Contact your system administrator.',
+        ! $dataPrivacyPasswordConfigured => 'Set the Data Privacy Password first, at the top of the Backup & Restore page.',
         ! $zipSupported => "This server's PHP can't write password-protected ZIP backups, so the backup taken first can't be made — and nothing is cleared without one.",
         $nothingToClear => 'There is nothing to clear: every table below is already empty.',
         default => null,

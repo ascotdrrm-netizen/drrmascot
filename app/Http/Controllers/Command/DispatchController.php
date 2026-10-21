@@ -33,7 +33,7 @@ class DispatchController extends Controller
 
     public function index(Request $request)
     {
-        $responders = $this->scoped(Responder::with(['campus', 'activeAssignment']), $request)->orderBy('full_name')->get();
+        $responders = $this->scoped(Responder::with(['campus', 'activeAssignment.report', 'activeAssignment.sos']), $request)->orderBy('full_name')->get();
         $query = $this->scoped(Assignment::with(['responder', 'report', 'sos']), $request);
         $assignments = (clone $query)->whereIn('status', Assignment::ACTIVE)->oldest('assigned_at')->get()
             ->concat((clone $query)->whereNotIn('status', Assignment::ACTIVE)->latest('assigned_at')->limit(20)->get());
@@ -54,14 +54,29 @@ class DispatchController extends Controller
 
     public function storeResponder(Request $request)
     {
-        $data = $request->validate(['campus_id' => ['required', 'integer', 'exists:campuses,campus_id'],
-            'full_name' => ['required', 'string', 'max:150'], 'team' => ['required', 'string', 'max:100'],
-            'contact_number' => ['required', 'string', 'max:20']]);
+        $data = $request->validate(['campus_id' => ['required', 'integer', 'exists:campuses,campus_id']] + $this->detailRules());
         $this->campus($request, (int) $data['campus_id']);
         $responder = Responder::create($data);
         $this->log($request, 'responder', $responder->getKey(), 'created', 'added responder '.$responder->full_name);
 
         return response()->json(['message' => 'Responder added.', 'id' => $responder->getKey()], 201);
+    }
+
+    /** Name, position, team/office, usual post and number; the campus stays as it is. */
+    public function updateResponderDetails(Request $request, Responder $responder)
+    {
+        $this->campus($request, (int) $responder->campus_id);
+        $responder->update($request->validate($this->detailRules()));
+        $this->log($request, 'responder', $responder->getKey(), 'updated', 'updated the details of responder '.$responder->full_name);
+
+        return response()->json(['message' => 'Responder details saved.']);
+    }
+
+    private function detailRules(): array
+    {
+        return ['full_name' => ['required', 'string', 'max:150'], 'position' => ['nullable', 'string', 'max:100'],
+            'team' => ['required', 'string', 'max:100'], 'assigned_post' => ['nullable', 'string', 'max:150'],
+            'contact_number' => ['required', 'string', 'max:20']];
     }
 
     public function updateResponder(Request $request, Responder $responder)

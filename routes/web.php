@@ -140,6 +140,7 @@ $hotlineRoutes = function () {
 
     Route::get('/reports-inbox', [CommandPreviewController::class, 'inbox'])->name('command.inbox');
     Route::get('/sos-console', [CommandPreviewController::class, 'sos'])->name('command.sos');
+    Route::post('/sos-console/trash/{sos}/restore', [\App\Http\Controllers\Command\ResponseApiController::class, 'restoreSos'])->name('sos.restore');
     Route::get('/campus-status', [CommandPreviewController::class, 'campusStatus'])->name('command.campus-status');
     Route::get('/roll-calls', [\App\Http\Controllers\Command\RollCallController::class, 'index'])->name('roll-calls.index');
     Route::post('/roll-calls', [\App\Http\Controllers\Command\RollCallController::class, 'store'])->name('roll-calls.store');
@@ -173,6 +174,7 @@ Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes,
     Route::prefix('api/command')->middleware('staff')->name('api.command.')->group(function () {
         Route::post('/responders', [\App\Http\Controllers\Command\DispatchController::class, 'storeResponder'])->name('responders.store');
         Route::patch('/responders/{responder}', [\App\Http\Controllers\Command\DispatchController::class, 'updateResponder'])->name('responders.update');
+        Route::put('/responders/{responder}', [\App\Http\Controllers\Command\DispatchController::class, 'updateResponderDetails'])->name('responders.details');
         Route::post('/assignments', [\App\Http\Controllers\Command\DispatchController::class, 'assign'])->name('assignments.store');
         Route::patch('/assignments/{assignment}', [\App\Http\Controllers\Command\DispatchController::class, 'updateAssignment'])->name('assignments.update');
         Route::get('/notifications', [\App\Http\Controllers\Command\StaffNotificationController::class, 'summary'])->middleware('staff')->name('notifications');
@@ -181,6 +183,7 @@ Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes,
         Route::patch('/reports/{report}', [\App\Http\Controllers\Command\ResponseApiController::class, 'updateReport'])->name('reports.update');
         Route::get('/sos', [\App\Http\Controllers\Command\ResponseApiController::class, 'sos'])->name('sos');
         Route::patch('/sos/{sos}', [\App\Http\Controllers\Command\ResponseApiController::class, 'updateSos'])->name('sos.update');
+        Route::delete('/sos/{sos}', [\App\Http\Controllers\Command\ResponseApiController::class, 'destroySos'])->name('sos.destroy');
     });
 
     // The Help page, both roles (linked from the sidebar).
@@ -270,6 +273,7 @@ Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes,
         Route::post('/settings/schools', [SettingsController::class, 'storeSchool'])->name('settings.schools.store');
         Route::put('/settings/schools/{school}', [SettingsController::class, 'updateSchool'])->name('settings.schools.update');
         Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
+        Route::post('/backup/privacy-password', [BackupController::class, 'setDataPrivacyPassword'])->middleware('throttle:10,1')->name('backup.privacy-password');
         Route::post('/backup/download', [BackupController::class, 'download'])->name('backup.download');
         Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
         Route::get('/backup/stored/{backup}/download', [BackupController::class, 'downloadStored'])->name('backup.stored.download');

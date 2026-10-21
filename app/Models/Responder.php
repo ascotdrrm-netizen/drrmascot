@@ -8,7 +8,7 @@ class Responder extends Model
 {
     protected $primaryKey = 'responder_id';
 
-    protected $fillable = ['campus_id', 'full_name', 'team', 'contact_number', 'is_on_duty', 'is_active'];
+    protected $fillable = ['campus_id', 'full_name', 'position', 'team', 'assigned_post', 'contact_number', 'is_on_duty', 'is_active'];
 
     protected $casts = ['is_on_duty' => 'boolean', 'is_active' => 'boolean'];
 

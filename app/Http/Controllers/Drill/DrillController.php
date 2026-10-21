@@ -13,10 +13,12 @@ use App\Support\FilterSummary;
 use App\Support\RecordAccess;
 use App\Traits\RendersPdfAssets;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -139,23 +141,33 @@ class DrillController extends Controller
         $campusIds = $isAdmin ? $data['campus_ids'] : [$user->campus_id];
 
         // The same drill entered twice (a second tap, or two people scheduling
-        // it) is refused: one per campus, type, date, time and venue.
-        if ($existing = $this->sameDrill($campusIds, $data)) {
-            return back()->withInput()->withErrors(['scheduled_date' => sprintf(
-                'This drill is already on the calendar for %s (%s, %s at %s). Open it from the calendar instead of scheduling it again.',
-                $existing->campus->campus_name ?? 'this campus', $existing->drill_type,
-                $existing->scheduled_date->format('M j, Y'), $existing->scheduled_time?->format('g:i A') ?? '',
-            )]);
+        // it) is refused: one per campus, type, date, time and venue. The check
+        // and the insert hold one lock, so two submits arriving together can't
+        // both pass the check before either has saved.
+        $lock = Cache::lock('drill-schedule:' . md5(implode('|', [$data['drill_type'], $data['scheduled_date'],
+            $data['scheduled_time'], mb_strtolower(trim($data['venue']))])), 10);
+        try {
+            $lock->block(5);
+        } catch (LockTimeoutException) {
+            return back()->withInput()->withErrors(['scheduled_date' => 'This drill is being saved right now. Check the calendar before scheduling it again.']);
         }
 
-        $drills =DB::transaction(fn () => Campus::whereIn('campus_id', $campusIds)->orderBy('campus_name')->get()
-            ->map(function (Campus $campus) use ($data, $user) {
-                $drill = Drill::withoutActivityLog(fn () => Drill::create(['campus_id' => $campus->campus_id] + $this->scheduleFields($data)));
-                $drill->setRelation('campus', $campus);
-                DrillLog::record($user, $drill, 'drill_scheduled', 'scheduled');
+        try {
+            if ($existing = $this->sameDrill($campusIds, $data)) {
+                return back()->withInput()->withErrors(['scheduled_date' => $this->duplicateMessage($existing)]);
+            }
 
-                return $drill;
-            }));
+            $drills = DB::transaction(fn () => Campus::whereIn('campus_id', $campusIds)->orderBy('campus_name')->get()
+                ->map(function (Campus $campus) use ($data, $user) {
+                    $drill = Drill::withoutActivityLog(fn () => Drill::create(['campus_id' => $campus->campus_id] + $this->scheduleFields($data)));
+                    $drill->setRelation('campus', $campus);
+                    DrillLog::record($user, $drill, 'drill_scheduled', 'scheduled');
+
+                    return $drill;
+                }));
+        } finally {
+            $lock->release();
+        }
 
         $this->noticeToReporters($drills);
 
@@ -184,7 +196,12 @@ class DrillController extends Controller
     {
         $this->authorizeManage($drill);
 
-        $drill->update($this->scheduleFields($this->validatedSchedule($request, false)));
+        $data = $this->validatedSchedule($request, false);
+        // Editing must not turn this drill into a copy of another one on its campus.
+        if ($existing = $this->sameDrill([$drill->campus_id], $data, $drill->drill_id)) {
+            return back()->withInput()->withErrors(['scheduled_date' => $this->duplicateMessage($existing)]);
+        }
+        $drill->update($this->scheduleFields($data));
 
         return redirect()
             ->route("{$this->routePrefix()}.drills.show", $drill)
@@ -302,17 +319,27 @@ class DrillController extends Controller
     }
 
     /** An undeleted drill matching the schedule in any of $campusIds, if there is one. */
-    protected function sameDrill(array $campusIds, array $data): ?Drill
+    protected function sameDrill(array $campusIds, array $data, ?int $except = null): ?Drill
     {
         $venue = mb_strtolower(trim($data['venue']));
 
         return Drill::with('campus:campus_id,campus_name')
             ->whereIn('campus_id', $campusIds)
+            ->when($except !== null, fn ($q) => $q->whereKeyNot($except))
             ->where('drill_type', $data['drill_type'])
             ->whereDate('scheduled_date', $data['scheduled_date'])
             ->get()
             ->first(fn (Drill $d) => $d->scheduled_time?->format('H:i') === $data['scheduled_time']
                 && mb_strtolower(trim($d->venue)) === $venue);
+    }
+
+    protected function duplicateMessage(Drill $existing): string
+    {
+        return sprintf(
+            'This drill is already on the calendar for %s (%s, %s at %s). Open it from the calendar instead of scheduling it again.',
+            $existing->campus->campus_name ?? 'this campus', $existing->drill_type,
+            $existing->scheduled_date->format('M j, Y'), $existing->scheduled_time?->format('g:i A') ?? '',
+        );
     }
 
     protected function scheduleFields(array $data): array

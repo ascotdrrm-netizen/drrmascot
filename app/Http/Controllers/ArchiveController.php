@@ -7,6 +7,7 @@ use App\Models\Building\Building;
 use App\Models\Campus;
 use App\Models\Drill\Drill;
 use App\Models\Incident\Incident;
+use App\Models\Reporter\SosEvent;
 use App\Support\RecordAccess;
 use App\Support\TrashPurge;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class ArchiveController extends Controller
         'incidents' => 'Incidents',
         'drills' => 'Drills',
         'advisories' => 'Advisories',
+        'sos' => 'SOS alerts',
     ];
 
     public const PERIODS = ['7' => 'Last 7 days', '30' => 'Last 30 days', '90' => 'Last 90 days'];
@@ -72,6 +74,15 @@ class ArchiveController extends Controller
             $q = $scope(DisasterAdvisory::onlyTrashed()->with('campus'));
             RecordAccess::applyToAdvisories($q, $user);
             $rows = $rows->concat($q->get()->map(fn ($a) => $this->row($a, 'Advisory', 'campaign', $a->headline, route("{$prefix}.advisories.restore", $a->advisory_id))));
+        }
+
+        if (! $type || $type === 'sos') {
+            // SOS alerts are campus records, not anyone's own: a coordinator sees their campus's.
+            $q = $scope(SosEvent::onlyTrashed()->with(['campus', 'reporter']))
+                ->when(! $isAdmin, fn ($q) => $q->where('campus_id', $user->campus_id));
+            $rows = $rows->concat($q->get()->map(fn ($s) => $this->row($s, 'SOS alert', 'sos',
+                'SOS #' . $s->sos_id . ' · ' . ($s->reporter?->full_name ?: 'Former reporter') . ' · ' . $s->created_at->format('M j, Y'),
+                route("{$prefix}.sos.restore", $s->sos_id))));
         }
 
         return view('archive.index', [

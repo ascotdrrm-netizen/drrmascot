@@ -179,7 +179,8 @@ class AppPreviewController extends Controller
     {
         if ($this->live()) {
             $request->validate(['sos' => ['nullable', 'integer', 'min:1']]);
-            $sos = SosEvent::where('reporter_id', Auth::id())->when($request->filled('sos'), fn ($q) => $q->whereKey($request->integer('sos')))->latest()->firstOrFail();
+            // withTrashed: an SOS the office deleted still has a status page, shown as closed.
+            $sos = SosEvent::withTrashed()->where('reporter_id', Auth::id())->when($request->filled('sos'), fn ($q) => $q->whereKey($request->integer('sos')))->latest()->firstOrFail();
             $timeline = [['status' => 'Sent', 'note' => 'Your SOS reached the DRRM Office.', 'at' => $sos->created_at, 'done' => true]];
             foreach (['Acknowledged' => 'The DRRM Office acknowledged your SOS.', 'Responding' => 'Help is on the way.', 'Resolved' => 'The response was completed.'] as $status => $note) {
                 $done = in_array($status, match ($sos->status) {
@@ -190,9 +191,16 @@ class AppPreviewController extends Controller
                 }, true);
                 $timeline[] = ['status' => $status, 'note' => $note, 'at' => $done ? ($status === 'Acknowledged' ? $sos->acknowledged_at : ($status === 'Resolved' ? $sos->resolved_at : $sos->updated_at)) : null, 'done' => $done];
             }
+            if ($sos->status === 'Rejected' || $sos->trashed()) {
+                // Closed without a response: drop the steps that never happened.
+                $timeline = array_values(array_filter($timeline, fn ($step) => $step['done']));
+                $timeline[] = ['status' => 'Closed', 'note' => $sos->status === 'Rejected'
+                    ? 'The DRRM Office marked this SOS as a false alarm.' : 'The DRRM Office closed this SOS.',
+                    'at' => $sos->status === 'Rejected' ? $sos->resolved_at : $sos->deleted_at, 'done' => true];
+            }
 
             return view('reporter.sos-status', $this->shared() + ['sos' => [
-                'id' => $sos->sos_id, 'type' => $sos->type ?: 'Emergency', 'status' => $sos->status, 'sent_at' => $sos->created_at,
+                'id' => $sos->sos_id, 'type' => $sos->type ?: 'Emergency', 'status' => $sos->trashed() ? 'Closed' : $sos->status, 'sent_at' => $sos->created_at,
                 'location' => $sos->place ?: ($sos->latitude ? 'GPS coordinates shared' : 'Location not shared'),
                 'accuracy' => $sos->accuracy_m ?: 'unknown', 'timeline' => $timeline,
             ]]);

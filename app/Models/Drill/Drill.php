@@ -55,7 +55,8 @@ class Drill extends Model
 
     protected $casts = [
         'scheduled_date' => \App\Casts\DateOnly::class,
-        'scheduled_time' => 'datetime:H:i',
+        // On the drill's own date, not today's (App\Casts\TimeOnly).
+        'scheduled_time' => \App\Casts\TimeOnly::class . ':scheduled_date',
     ];
 
     /** Attachment files to remove once a permanent delete has gone through, by model instance. */
@@ -115,6 +116,20 @@ class Drill extends Model
     public function attachments()
     {
         return $this->hasMany(DrillAttachment::class, 'drill_id', 'drill_id')->orderBy('attachment_id');
+    }
+
+    /** When the drill starts: its date at its time (start of the day when no time is set), Asia/Manila. */
+    public function scheduledAt(): \Carbon\CarbonImmutable
+    {
+        $at = $this->scheduled_time ?? $this->scheduled_date;
+
+        return \Carbon\CarbonImmutable::parse($at->format('Y-m-d H:i:s'), 'Asia/Manila');
+    }
+
+    /** True once the scheduled start has passed — not merely once its date has come. */
+    public function hasStarted(): bool
+    {
+        return $this->scheduledAt()->lte(now('Asia/Manila'));
     }
 
     /** "Earthquake", "Fire", "Evacuation", or "Other" for a custom type. */

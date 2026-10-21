@@ -62,7 +62,13 @@
                             <td class="table-td font-medium text-gray-900">{{ $row['title'] }}</td>
                             <td class="table-td text-gray-600">{{ $row['campus'] }}</td>
                             <td class="table-td whitespace-nowrap text-gray-600">{{ $row['deleted_at']->format('M d, Y g:i A') }}</td>
-                            @if ($retentionRunning)<x-trash-removal-cell :record="$row['record']" />@endif
+                            @if ($retentionRunning)
+                                @if (in_array($row['record']::class, \App\Support\TrashPurge::MODELS, true))
+                                    <x-trash-removal-cell :record="$row['record']" />
+                                @else
+                                    <td class="table-td text-gray-600">Kept until restored</td>
+                                @endif
+                            @endif
                             <td class="table-td text-right">
                                 <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ $row['restore_url'] }}">
                                     @csrf

@@ -37,11 +37,24 @@
                                     <x-icon name="sos" class="h-4 w-4" /> <span x-text="(a.type || 'Type not given') + ' · ' + a.campus + ' Campus'"></span>
                                 </p>
                                 <h2 class="mt-1 text-lg font-semibold text-gray-900" x-text="a.reporter + ' (' + a.role + ')'"></h2>
-                                <p class="text-sm text-gray-600" x-text="a.place + ' · accurate to about ' + a.accuracy + ' m'"></p>
+                                <p class="flex flex-wrap items-center gap-x-3 text-sm text-gray-600" data-sos-location>
+                                    <span x-text="a.place"></span>
+                                    <a x-show="a.map_url" :href="a.map_url" target="_blank" rel="noopener" class="link inline-flex items-center gap-1"><x-icon name="map" class="h-4 w-4" /> Open in Google Maps</a>
+                                </p>
                             </div>
-                            <div class="text-right">
-                                <p class="font-display text-4xl font-semibold tabular-nums" :class="a.acknowledged ? 'text-gray-900' : 'text-red-700'" x-text="elapsed(a)"></p>
-                                <p class="text-xs text-gray-500" x-text="'pressed at ' + a.sent_label"></p>
+                            <div class="flex items-start gap-2">
+                                <div class="text-right">
+                                    <p class="font-display text-4xl font-semibold tabular-nums" :class="a.acknowledged ? 'text-gray-900' : 'text-red-700'" x-text="elapsed(a)"></p>
+                                    <p class="text-xs text-gray-500" x-text="'pressed at ' + a.sent_label"></p>
+                                </div>
+                                {{-- Options: a false alarm is rejected (kept in the records); delete moves it to the Archive. --}}
+                                <div class="relative" x-data="{ open: false }" x-on:keydown.escape.window="open = false" x-on:click.outside="open = false" data-sos-options>
+                                    <button type="button" class="btn btn-secondary btn-sm px-2" x-on:click="open = ! open" :aria-expanded="open" aria-haspopup="menu" aria-label="More options"><x-icon name="more_vert" class="h-5 w-5" /></button>
+                                    <div x-show="open" x-cloak role="menu" class="absolute right-0 z-[1000] mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 text-left">
+                                        <button type="button" role="menuitem" class="nav-item w-full text-left" x-on:click="open = false; reject(a)"><x-icon name="block" class="h-5 w-5" /> Reject (false alarm)</button>
+                                        <button type="button" role="menuitem" class="nav-item w-full text-left text-red-700" x-on:click="open = false; remove(a)"><x-icon name="delete" class="h-5 w-5" /> Delete</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="mt-4 flex flex-wrap gap-2">
@@ -100,9 +113,9 @@
                                 var phone = s.reporter?.contact_number || '';
                                 return {
                                     id: s.sos_id, type: s.type, status: s.status, acknowledged: s.status !== 'New',
-                                    reporter: s.reporter?.full_name || 'Reporter', role: s.reporter?.reporter_kind || 'Reporter',
+                                    reporter: s.reporter?.full_name || 'Former reporter', role: s.reporter?.reporter_kind || 'Reporter',
                                     campus: s.campus?.campus_name || 'Campus', phone: phone,
-                                    tel: 'tel:' + phone.replace(/\D/g, ''), place: s.place || 'Location not shared',
+                                    tel: 'tel:' + phone.replace(/\D/g, ''), place: s.location_label, map_url: s.map_url,
                                     lat: s.latitude === null ? null : Number(s.latitude),
                                     lng: s.longitude === null ? null : Number(s.longitude), accuracy: s.accuracy_m,
                                     sent: Math.floor(when.getTime() / 1000), sent_label: when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
@@ -127,6 +140,35 @@
                         } catch (error) {
                             window.drrmsAjax.toast(error.response?.data?.message || 'Could not update the SOS.', 'danger');
                         }
+                    },
+                    // Takes the SOS off the console, then redraws the map without it.
+                    drop: function (a) {
+                        this.alerts = this.alerts.filter(function (item) { return item.id !== a.id; });
+                        this.$nextTick(() => { if (this.map) { this.map.remove(); this.map = null; } this.drawMap(); });
+                    },
+                    reject: function (a) {
+                        var self = this;
+                        window.drrmsConfirm('SOS #' + a.id + ' from ' + a.reporter + ' will be closed as a false alarm. It stays in the records and reports, and the sender is told.', async function () {
+                            try {
+                                await window.drrmsAjax.send({ method: 'patch', url: opts.updateUrl + '/' + a.id, data: { status: 'Rejected' } });
+                                self.drop(a);
+                                window.drrmsAjax.toast('SOS #' + a.id + ' rejected as a false alarm.');
+                            } catch (error) {
+                                window.drrmsAjax.toast(error.response?.data?.message || 'Could not reject the SOS.', 'danger');
+                            }
+                        }, { title: 'Reject this SOS?', button: 'Reject SOS', tone: 'danger' });
+                    },
+                    remove: function (a) {
+                        var self = this;
+                        window.drrmsConfirm('SOS #' + a.id + ' moves to the Archive and leaves this console. You can restore it from the Archive.', async function () {
+                            try {
+                                var response = await window.drrmsAjax.send({ method: 'delete', url: opts.updateUrl + '/' + a.id });
+                                self.drop(a);
+                                window.drrmsAjax.toast(response.data?.message || 'SOS deleted.');
+                            } catch (error) {
+                                window.drrmsAjax.toast(error.response?.data?.message || 'Could not delete the SOS.', 'danger');
+                            }
+                        }, { title: 'Delete this SOS?', button: 'Delete', tone: 'danger' });
                     },
                     drawMap: function () {
                         var el = this.$root.querySelector('[data-sos-map]');

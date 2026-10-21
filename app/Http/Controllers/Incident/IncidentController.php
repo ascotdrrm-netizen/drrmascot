@@ -335,7 +335,7 @@ class IncidentController extends Controller
 
         $pdf = $this->loadPdfViewWithPageCount('reports.records.incident', [
             'incident' => $incident,
-            'totalBuildings' => $incident->damageReports->unique('building_id')->count(),
+            'totalBuildings' => $incident->damageReports->unique(fn ($r) => \App\Models\Incident\DamageReport::normalizeArea($r->areaLabel()))->count(),
             'totalCasualties' => $incident->damageReports->sum('casualty_count'),
             'totalCost' => $incident->damageReports->sum('est_cost'),
             'photoDataUri' => $this->storagePhotoDataUri($incident->photo_path),

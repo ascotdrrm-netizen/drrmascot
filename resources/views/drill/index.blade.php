@@ -30,6 +30,13 @@
     $limit = \App\Http\Controllers\Drill\DrillController::DAY_PILL_LIMIT;
     $monthDrills = $drills->filter(fn ($d) => $d->scheduled_date->format('Y-m') === $month->format('Y-m'));
     $pillText = fn ($d) => trim(($d->scheduled_time?->format('g:i A') ?? '') . ' · ' . $d->venue, ' ·');
+    // All campuses: the same drill scheduled for several campuses (one record
+    // each, so each campus documents its own) shows as ONE entry, not copies.
+    $grouping = $isAdmin && ! $selectedCampusId;
+    $groups = fn ($dayDrills) => $grouping
+        ? $dayDrills->groupBy(fn ($d) => $d->drill_type . '|' . $d->scheduled_time?->format('H:i') . '|' . mb_strtolower(trim($d->venue)))->values()
+        : $dayDrills->map(fn ($d) => collect([$d]))->values();
+    $shortCampus = fn ($d) => str_replace(['ASCOT ', ' Campus'], '', $d->campus->campus_name ?? '');
 @endphp
 
 @section('actions')
@@ -109,29 +116,31 @@
                 @for ($date = $gridStart; $date->lte($gridEnd); $date = $date->addDay())
                     @php
                         $key = $date->toDateString();
-                        $dayDrills = $byDate[$key] ?? collect();
+                        $dayGroups = $groups($byDate[$key] ?? collect());
                         $inMonth = $date->month === $month->month;
                         $isToday = $date->equalTo($today);
                     @endphp
                     <li class="min-h-[7.5rem] min-w-0 border-b border-r border-gray-100 p-2 {{ $date->dayOfWeek === 6 ? 'border-r-0' : '' }} {{ $inMonth ? 'bg-white' : 'bg-gray-50/70' }}"
                         data-day="{{ $key }}" @if (! $inMonth) data-outside-month @endif @if ($isToday) aria-current="date" data-today @endif
-                        aria-label="{{ $date->format('l, F j, Y') }}: {{ $dayDrills->count() === 0 ? 'no drills' : $dayDrills->count() . ' ' . \Illuminate\Support\Str::plural('drill', $dayDrills->count()) }}">
+                        aria-label="{{ $date->format('l, F j, Y') }}: {{ $dayGroups->count() === 0 ? 'no drills' : $dayGroups->count() . ' ' . \Illuminate\Support\Str::plural('drill', $dayGroups->count()) }}">
                         <div class="mb-1 flex justify-end">
                             <span class="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm {{ $isToday ? 'bg-accent font-bold text-on-accent' : ($inMonth ? 'font-medium text-gray-900' : 'text-gray-400') }}" aria-hidden="true">{{ $date->day }}</span>
                         </div>
                         {{-- Outside the month only the number and background fade; pills keep full contrast. --}}
                         <div class="space-y-1">
-                            @foreach ($dayDrills->take($limit) as $drill)
-                                <a href="{{ route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}"
-                                   title="{{ $drill->drill_type }} — {{ $pillText($drill) }}{{ $isAdmin ? ' (' . ($drill->campus->campus_name ?? '') . ')' : '' }}"
+                            @foreach ($dayGroups->take($limit) as $group)
+                                @php $drill = $group->first(); $many = $group->count() > 1; @endphp
+                                {{-- One campus: its drill. Several: the day's list, one row per campus. --}}
+                                <a href="{{ $many ? $link(['view' => 'list', 'date' => $key, 'month' => null]) : route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}" @if ($many) data-drill-group="{{ $group->count() }}" @endif
+                                   title="{{ $drill->drill_type }} — {{ $pillText($drill) }}{{ $isAdmin ? ' (' . $group->map(fn ($d) => $d->campus->campus_name ?? '')->join(', ') . ')' : '' }}"
                                    class="block min-w-0 rounded-md border px-2 py-1 text-xs leading-4 hover:brightness-95 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line {{ $drill->typeColours()['pill'] }}">
                                     <span class="block truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
-                                    {{-- All campuses: name the campus, so two campuses' drills on one day don't look like a duplicate. --}}
-                                    <span class="block truncate uppercase opacity-90">{{ $pillText($drill) }}{{ $isAdmin && ! $selectedCampusId ? ' · ' . str_replace(['ASCOT ', ' Campus'], '', $drill->campus->campus_name ?? '') : '' }}</span>
+                                    {{-- All campuses: name the campus (or how many), so two campuses' drills on one day don't look like a duplicate. --}}
+                                    <span class="block truncate uppercase opacity-90">{{ $pillText($drill) }}{{ $grouping ? ' · ' . ($many ? $group->count() . ' campuses' : $shortCampus($drill)) : '' }}</span>
                                 </a>
                             @endforeach
-                            @if ($dayDrills->count() > $limit)
-                                <a href="{{ $link(['view' => 'list', 'date' => $key, 'month' => null]) }}" class="link block truncate px-2 text-xs" data-day-overflow>+{{ $dayDrills->count() - $limit }} more</a>
+                            @if ($dayGroups->count() > $limit)
+                                <a href="{{ $link(['view' => 'list', 'date' => $key, 'month' => null]) }}" class="link block truncate px-2 text-xs" data-day-overflow>+{{ $dayGroups->count() - $limit }} more</a>
                             @endif
                         </div>
                     </li>
@@ -149,12 +158,13 @@
                         {{ $date->format('D, M j') }}
                     </h3>
                     <ul class="space-y-2">
-                        @foreach ($dayDrills as $drill)
+                        @foreach ($groups($dayDrills) as $group)
+                            @php $drill = $group->first(); $many = $group->count() > 1; @endphp
                             <li>
-                                <a href="{{ route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}"
+                                <a href="{{ $many ? $link(['view' => 'list', 'date' => $key, 'month' => null]) : route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}" @if ($many) data-drill-group="{{ $group->count() }}" @endif
                                    class="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border px-4 py-2 text-sm {{ $drill->typeColours()['pill'] }}">
                                     <span class="truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
-                                    <span class="truncate text-xs uppercase">{{ $pillText($drill) }}{{ $isAdmin ? ' · ' . ($drill->campus->campus_name ?? '') : '' }}</span>
+                                    <span class="truncate text-xs uppercase">{{ $pillText($drill) }}{{ $isAdmin ? ' · ' . ($many ? $group->count() . ' campuses: ' . $group->map($shortCampus)->join(', ') : ($drill->campus->campus_name ?? '')) : '' }}</span>
                                 </a>
                             </li>
                         @endforeach

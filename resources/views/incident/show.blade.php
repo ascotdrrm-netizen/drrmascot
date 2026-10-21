@@ -126,7 +126,7 @@
     @endif
 
     @php
-        $totalBuildings = $incident->damageReports->unique('building_id')->count();
+        $totalBuildings = $incident->damageReports->unique(fn ($r) => \App\Models\Incident\DamageReport::normalizeArea($r->areaLabel()))->count();
         $totalCasualties = $incident->damageReports->sum('casualty_count');
         $totalCost = $incident->damageReports->sum('est_cost');
     @endphp
@@ -158,7 +158,7 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($incident->damageReports as $report)
                         <tr class="hover:bg-gray-50">
-                            <td class="table-td text-gray-900">{{ $report->building->building_name ?? '—' }}</td>
+                            <td class="table-td text-gray-900">{{ $report->areaLabel() }}</td>
                             <td class="table-td">
                                 <x-badge :value="$report->damage_level" :map="[
                                     'Minor' => 'bg-green-100 text-green-700',
@@ -172,7 +172,7 @@
                                 <td class="table-td">
                                     <div class="table-actions">
                                         <a href="{{ route("{$routePrefix}.incidents.damage-reports.edit", [$incident, $report]) }}" class="link">Edit</a>
-                                        <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.incidents.damage-reports.destroy", [$incident, $report]) }}" data-confirm-form="This permanently deletes the damage report for {{ $report->building->building_name ?? 'this building/area' }}. It cannot be undone." data-confirm-title="Delete damage report?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
+                                        <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.incidents.damage-reports.destroy", [$incident, $report]) }}" data-confirm-form="This permanently deletes the damage report for {{ $report->areaLabel() }}. It cannot be undone." data-confirm-title="Delete damage report?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="link-danger">Delete</button>

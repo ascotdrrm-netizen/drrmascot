@@ -9,16 +9,11 @@
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-                <label for="building_id" class="form-label">Building/Area affected</label>
-                <select id="building_id" name="building_id" required
-                        class="form-input">
-                    <option value="">-- Select building --</option>
-                    @foreach ($buildings as $building)
-                        <option value="{{ $building->building_id }}" @selected((string) old('building_id', $damageReport->building_id ?? '') === (string) $building->building_id)>
-                            {{ $building->building_name }}
-                        </option>
-                    @endforeach
-                </select>
+                <label for="area_name" class="form-label">Building/Area affected</label>
+                <input type="text" id="area_name" name="area_name" maxlength="150" required aria-describedby="area_name-help"
+                       value="{{ old('area_name', $isEdit ? $damageReport->areaLabel() : '') }}" placeholder="e.g. Main Gym, Library, Parking area"
+                       class="form-input">
+                <p id="area_name-help" class="form-help">Type the building or area. If it matches a building in Buildings/Areas, the report is also listed in that building's history.</p>
             </div>
 
             <div>

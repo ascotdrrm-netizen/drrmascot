@@ -111,7 +111,10 @@ class PasswordToggleTest extends TestCase
     {
         $html = $this->actingAs($this->admin)->get(route('admin.backup.index'))->assertOk()->getContent();
 
-        $this->assertToggles($html, ['data_privacy_password', 'data_privacy_password'], ['download_data_privacy_password', 'restore_data_privacy_password']);
+        // Not set yet: the "Set the Data Privacy Password" card's three fields come first.
+        $this->assertToggles($html,
+            ['account_password', 'new_data_privacy_password', 'new_data_privacy_password_confirmation', 'data_privacy_password', 'data_privacy_password'],
+            ['account_password', 'new_data_privacy_password', 'new_data_privacy_password_confirmation', 'download_data_privacy_password', 'restore_data_privacy_password']);
     }
 
     public function test_validation_errors_still_display_under_the_field(): void

@@ -31,6 +31,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call(SchoolSeeder::class);
 
+        // The hotline groups were created before these campuses existed.
+        \App\Support\Hotlines::linkCampuses();
+
         // Default DRRMO admin account — change this password immediately after first login.
         Personnel::create([
             'campus_id' => $zabali->campus_id,

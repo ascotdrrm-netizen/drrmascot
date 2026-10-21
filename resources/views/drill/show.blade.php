@@ -37,7 +37,8 @@
     {{-- Where this drill is in its flow, and the one thing to do next (a jump to that step's card,
          which keeps the only link to its form). --}}
     @php
-        $notHeldYet = $drill->scheduled_date->gt(now('Asia/Manila')->startOfDay());
+        // Held once its start time has passed, not as soon as its date comes.
+        $notHeldYet = ! $drill->hasStarted();
         $flow = [
             ['label' => 'Scheduled', 'done' => true, 'action' => null, 'href' => null],
             ['label' => 'Documentation', 'done' => (bool) $doc, 'action' => 'Next: documentation', 'href' => '#documentation'],

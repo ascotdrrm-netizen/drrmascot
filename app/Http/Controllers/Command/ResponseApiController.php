@@ -57,7 +57,7 @@ class ResponseApiController extends Controller
     {
         $this->authorizeStaff($request);
         return response()->json($this->scoped(SosEvent::with(['reporter', 'campus'])
-            ->where('status', '!=', 'Resolved')->oldest(), $request)
+            ->whereNotIn('status', ['Resolved', 'Rejected'])->oldest(), $request)
             ->limit(100)->get());
     }
 
@@ -65,8 +65,11 @@ class ResponseApiController extends Controller
     {
         $this->authorizeStaff($request);
         abort_unless($request->user()->isAdmin() || (int) $sos->campus_id === (int) $request->user()->campus_id, 404);
-        $data = $request->validate(['status' => ['required', Rule::in(['Acknowledged', 'Responding', 'Resolved'])]]);
-        $transitions = ['New' => ['Acknowledged'], 'Acknowledged' => ['Responding'], 'Responding' => ['Resolved']];
+        $data = $request->validate(['status' => ['required', Rule::in(['Acknowledged', 'Responding', 'Resolved', 'Rejected'])],
+            'note' => ['nullable', 'string', 'max:500']]);
+        // Rejected: a false alarm or prank, found out at any point before the case is closed.
+        $transitions = ['New' => ['Acknowledged', 'Rejected'], 'Acknowledged' => ['Responding', 'Rejected'],
+            'Responding' => ['Resolved', 'Rejected']];
         DB::transaction(function () use ($sos, $data, $request, $transitions) {
             $locked = SosEvent::whereKey($sos->getKey())->lockForUpdate()->firstOrFail();
             abort_unless(in_array($data['status'], $transitions[$locked->status] ?? [], true), 422);
@@ -74,16 +77,57 @@ class ResponseApiController extends Controller
             if ($data['status'] === 'Acknowledged') {
                 $updates += ['acknowledged_by' => $request->user()->personnel_id, 'acknowledged_at' => now()];
             }
-            if ($data['status'] === 'Resolved') {
+            if (in_array($data['status'], ['Resolved', 'Rejected'], true)) {
                 $updates['resolved_at'] = now();
             }
             $locked->update($updates);
-            if ($data['status'] === 'Resolved') {
-                \App\Models\Assignment::where('sos_id', $locked->getKey())->whereIn('status', \App\Models\Assignment::ACTIVE)
-                    ->update(['status' => 'Cancelled', 'cancelled_at' => now(), 'notes' => 'Case closed by the DRRM Office.']);
+            if (in_array($data['status'], ['Resolved', 'Rejected'], true)) {
+                $this->cancelSosAssignments($locked);
+            }
+            if ($data['status'] === 'Rejected') {
+                $this->log($request, $locked, 'updated', 'rejected SOS #' . $locked->getKey() . ' as a false alarm'
+                    . (filled($data['note'] ?? null) ? ': ' . $data['note'] : ''));
             }
         });
 
         return response()->json(['id' => $sos->sos_id, 'status' => $data['status']]);
+    }
+
+    /** Moves an SOS to the Archive (Trash); restoreSos() brings it back. */
+    public function destroySos(Request $request, SosEvent $sos): JsonResponse
+    {
+        $this->authorizeStaff($request);
+        abort_unless($request->user()->isAdmin() || (int) $sos->campus_id === (int) $request->user()->campus_id, 404);
+        DB::transaction(function () use ($sos, $request) {
+            $locked = SosEvent::whereKey($sos->getKey())->lockForUpdate()->firstOrFail();
+            $this->cancelSosAssignments($locked);
+            $locked->delete();
+            $this->log($request, $locked, 'deleted', 'deleted SOS #' . $locked->getKey());
+        });
+
+        return response()->json(['id' => $sos->sos_id, 'message' => 'SOS moved to the Archive. You can restore it from there.']);
+    }
+
+    public function restoreSos(Request $request, int $sos)
+    {
+        $this->authorizeStaff($request);
+        $sos = SosEvent::onlyTrashed()->findOrFail($sos);
+        abort_unless($request->user()->isAdmin() || (int) $sos->campus_id === (int) $request->user()->campus_id, 404);
+        $sos->restore();
+        $this->log($request, $sos, 'restored', 'restored SOS #' . $sos->getKey());
+
+        return back()->with('status', 'SOS #' . $sos->getKey() . ' restored.');
+    }
+
+    private function cancelSosAssignments(SosEvent $sos): void
+    {
+        \App\Models\Assignment::where('sos_id', $sos->getKey())->whereIn('status', \App\Models\Assignment::ACTIVE)
+            ->update(['status' => 'Cancelled', 'cancelled_at' => now(), 'notes' => 'Case closed by the DRRM Office.']);
+    }
+
+    private function log(Request $request, SosEvent $sos, string $action, string $description): void
+    {
+        \App\Models\ActivityLog::create(['personnel_id' => $request->user()->personnel_id, 'subject_type' => 'sos', 'subject_id' => $sos->getKey(),
+            'action' => $action, 'description' => mb_substr($request->user()->full_name . ' ' . $description, 0, 255), 'ip_address' => $request->ip()]);
     }
 }

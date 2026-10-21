@@ -60,7 +60,7 @@ class UatConsolidatedReporterCasesTest extends TestCase
         $this->assertSame(3, $section['reports_total']);
         $this->assertSame(['New' => 1, 'Verified' => 0, 'Responding' => 1, 'Resolved' => 1, 'Rejected' => 0], $section['reports_by_status']);
         $this->assertSame(2, $section['sos_total']);
-        $this->assertSame(['New' => 1, 'Acknowledged' => 0, 'Responding' => 0, 'Resolved' => 1], $section['sos_by_status']);
+        $this->assertSame(['New' => 1, 'Acknowledged' => 0, 'Responding' => 0, 'Resolved' => 1, 'Rejected' => 0], $section['sos_by_status']);
     }
 
     public function test_the_executive_summary_counts_them_and_every_resolved_case(): void

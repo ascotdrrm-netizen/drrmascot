@@ -7,6 +7,7 @@ use App\Models\Backup;
 use App\Support\Backup\BackupArchive;
 use App\Support\Backup\DataSet;
 use App\Support\Backup\StoredBackups;
+use App\Support\DataPrivacyPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -162,7 +163,52 @@ class BackupController extends Controller
 
     protected function isDataPrivacyPasswordConfigured(): bool
     {
-        return filled(config('privacy.data_privacy_password_hash'));
+        return DataPrivacyPassword::isConfigured();
+    }
+
+    /**
+     * Set the Data Privacy Password from the Backup & Restore page. The first
+     * time, the Admin confirms with their OWN login password; after that, a
+     * change needs the current Data Privacy Password (same throttle and
+     * data_privacy_denied log as every other use of it).
+     */
+    public function setDataPrivacyPassword(Request $request): RedirectResponse
+    {
+        $changing = $this->isDataPrivacyPasswordConfigured();
+        if ($changing) {
+            $this->verifyDataPrivacyPassword($request);
+        } else {
+            $request->validate(['account_password' => ['required', 'string']]);
+            $throttleKey = 'data-privacy-password:' . Auth::id();
+            if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                throw ValidationException::withMessages(['account_password' => 'Too many attempts. Please try again in ' . RateLimiter::availableIn($throttleKey) . ' seconds.']);
+            }
+            if (! Hash::check($request->input('account_password'), Auth::user()->getAuthPassword())) {
+                RateLimiter::hit($throttleKey, 60);
+                throw ValidationException::withMessages(['account_password' => 'That is not your login password.']);
+            }
+            RateLimiter::clear($throttleKey);
+        }
+
+        $data = $request->validate([
+            'new_data_privacy_password' => ['required', 'string', 'min:8', 'max:72', 'confirmed'],
+        ], [
+            'new_data_privacy_password.confirmed' => 'The two new passwords do not match.',
+        ]);
+        if (Hash::check($data['new_data_privacy_password'], Auth::user()->getAuthPassword())) {
+            throw ValidationException::withMessages(['new_data_privacy_password' => 'Use a different password from your own login: this one is a second lock.']);
+        }
+
+        DataPrivacyPassword::set($data['new_data_privacy_password']);
+        ActivityLog::create([
+            'personnel_id' => Auth::id(), 'action' => 'updated', 'subject_type' => null, 'subject_id' => null,
+            'description' => Auth::user()->full_name . ($changing ? ' changed' : ' set') . ' the Data Privacy Password',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return redirect()->route('admin.backup.index')->with('status', $changing
+            ? 'Data Privacy Password changed. Use the new one from now on.'
+            : 'Data Privacy Password set. Download Backup, Restore and Clear All Records are now available.');
     }
 
     /**
@@ -203,7 +249,7 @@ class BackupController extends Controller
     {
         if (! $this->isDataPrivacyPasswordConfigured()) {
             throw ValidationException::withMessages([
-                'data_privacy_password' => 'Data privacy password not configured — contact your system administrator.',
+                'data_privacy_password' => 'Set the Data Privacy Password first (Backup & Restore page).',
             ]);
         }
 
@@ -221,9 +267,7 @@ class BackupController extends Controller
             ]);
         }
 
-        $hash = config('privacy.data_privacy_password_hash');
-
-        if (! Hash::check($request->input('data_privacy_password'), $hash)) {
+        if (! DataPrivacyPassword::check($request->input('data_privacy_password'))) {
             RateLimiter::hit($throttleKey, 60);
 
             ActivityLog::create([

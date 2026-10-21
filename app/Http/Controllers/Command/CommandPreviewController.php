@@ -57,14 +57,14 @@ class CommandPreviewController extends Controller
             ->filter(fn ($e) => in_array($e['label'], ['Baler BFP', 'MDRRMO Baler', 'RHU Baler', 'Maria Aurora MDRRMO', 'Casiguran MDRRMO'], true) && ! empty($e['numbers']))
             ->map(fn ($e) => ['label' => $e['label'], 'number' => $e['numbers'][0]])->values();
 
-        $query = SosEvent::with(['reporter', 'campus'])->where('status', '!=', 'Resolved')->oldest();
+        $query = SosEvent::with(['reporter', 'campus'])->whereNotIn('status', ['Resolved', 'Rejected'])->oldest();
         if ($this->prefix() === 'coordinator') {
             $query->where('campus_id', Auth::user()->campus_id);
         }
         $alerts = $query->limit(100)->get()->map(fn ($sos) => [
             'id' => $sos->sos_id, 'type' => $sos->type, 'reporter' => $sos->reporter?->full_name ?: 'Former reporter',
             'role' => $sos->reporter?->reporter_kind ?: 'Reporter', 'phone' => $sos->reporter?->contact_number ?: '',
-            'campus' => $sos->campus?->campus_name ?: 'Campus', 'place' => $sos->place ?: 'Location not shared',
+            'campus' => $sos->campus?->campus_name ?: 'Campus', 'place' => $sos->location_label, 'map_url' => $sos->map_url,
             'lat' => $sos->latitude === null ? null : (float) $sos->latitude,
             'lng' => $sos->longitude === null ? null : (float) $sos->longitude,
             'accuracy' => $sos->accuracy_m, 'sent_at' => $sos->created_at,

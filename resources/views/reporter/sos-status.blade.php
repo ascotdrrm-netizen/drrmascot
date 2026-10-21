@@ -7,7 +7,8 @@
         <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"><x-icon name="sos" class="h-5 w-5" /> SOS sent · {{ $sos['type'] }}</p>
         <p class="mt-1 text-2xl font-semibold">{{ match ($sos['status'] ?? 'Responding') {
             'New' => 'SOS received', 'Acknowledged' => 'SOS acknowledged',
-            'Resolved' => 'Response completed', default => 'Help is coming',
+            'Resolved' => 'Response completed', 'Rejected' => 'Marked as a false alarm',
+            'Closed' => 'Closed by the DRRM Office', default => 'Help is coming',
         } }}</p>
         <p class="text-sm">Stay where you are if it is safe. Keep your phone with you.</p>
         <p class="mt-3 font-display text-4xl font-semibold tabular-nums" x-data="{ start: {{ $sos['sent_at']->getTimestamp() }}, now: Math.floor(Date.now() / 1000) }" x-init="setInterval(() => now = Math.floor(Date.now() / 1000), 1000)"

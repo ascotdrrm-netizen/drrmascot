@@ -63,7 +63,7 @@
                     <tr>
                         <td class="nowrap">{{ optional($row->incident->date_occurred ?? null)->format('M d, Y') ?? '—' }}</td>
                         <td>{{ $row->incident->campus->campus_name ?? '—' }}@if ($row->incident?->school?->school_name)<br><span class="sub">{{ $row->incident->school->school_name }}</span>@endif</td>
-                        <td>{{ $row->building->building_name ?? '—' }}</td>
+                        <td>{{ $row->areaLabel() }}</td>
                         <td><x-pdf.tag :value="$row->damage_level" /></td>
                         <td class="num">{{ $row->casualty_count }}</td>
                         <td class="num">{{ $row->est_cost !== null ? number_format($row->est_cost, 2) : '—' }}</td>

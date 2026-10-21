@@ -24,11 +24,13 @@ class HotlineController extends Controller
     public function index(): View
     {
         $user = Auth::user();
-        $groups = HotlineGroup::with('hotlines', 'campus')->orderBy('sort_order')->get()
-            ->filter(fn (HotlineGroup $group) => $group->editableBy($user))->values();
+        // Every group is shown (coordinators call the province and other
+        // towns too); Edit appears only on the ones $user may change.
+        $groups = HotlineGroup::with('hotlines', 'campus')->orderBy('sort_order')->get();
 
         return view('hotlines.index', [
             'groups' => $groups,
+            'editable' => $groups->filter(fn (HotlineGroup $group) => $group->editableBy($user))->pluck('hotline_group_id')->all(),
             'routePrefix' => $user->role === 'DRRMO Admin' ? 'admin' : 'coordinator',
         ]);
     }

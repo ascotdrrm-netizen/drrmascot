@@ -81,7 +81,7 @@
         <tbody>
             @forelse ($incident->damageReports as $report)
                 <tr>
-                    <td>{{ $report->building->building_name ?? '—' }}</td>
+                    <td>{{ $report->areaLabel() }}</td>
                     <td><x-pdf.tag :value="$report->damage_level" /></td>
                     <td class="num">{{ $report->casualty_count }}</td>
                     <td class="num">{{ $report->est_cost !== null ? 'PHP ' . number_format($report->est_cost, 2) : '—' }}</td>

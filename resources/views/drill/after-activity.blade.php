@@ -31,7 +31,7 @@
                     <div>
                         <label for="date_conducted" class="form-label">Date conducted</label>
                         <input type="date" id="date_conducted" name="date_conducted" required max="{{ now('Asia/Manila')->toDateString() }}"
-                               value="{{ old('date_conducted', $record?->date_conducted?->toDateString() ?? ($drill->scheduled_date->isFuture() ? '' : $drill->scheduled_date->toDateString())) }}" class="form-input">
+                               value="{{ old('date_conducted', $record?->date_conducted?->toDateString() ?? ($drill->hasStarted() ? $drill->scheduled_date->toDateString() : '')) }}" class="form-input">
                         @error('date_conducted')<p class="form-error">{{ $message }}</p>@enderror
                     </div>
                     <div>

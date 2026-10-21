@@ -8,14 +8,38 @@
 @endsection
 
 @section('content')
-    @unless ($dataPrivacyPasswordConfigured)
-        <div class="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            <p class="font-medium">Data privacy password not configured.</p>
-            <p>Download Backup and Restore are disabled until a system administrator sets
-                <span class="font-mono">DATA_PRIVACY_PASSWORD_HASH</span> in the server's .env file. Contact your
-                system administrator.</p>
-        </div>
-    @endunless
+    {{-- The Data Privacy Password, set here by the Admin (App\Support\DataPrivacyPassword).
+         Not set yet: this card comes first and the three actions below wait for it. --}}
+    <x-card class="mb-8 {{ $dataPrivacyPasswordConfigured ? '' : 'border-amber-200 bg-amber-50' }}" data-privacy-password-card>
+        <details @if (! $dataPrivacyPasswordConfigured || $errors->hasAny(['account_password', 'new_data_privacy_password'])) open @endif>
+            <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2">
+                <span>
+                    <span class="card-title">{{ $dataPrivacyPasswordConfigured ? 'Data Privacy Password' : 'Set the Data Privacy Password' }}</span>
+                    <span class="mt-1 block text-sm text-gray-600">
+                        @if ($dataPrivacyPasswordConfigured)
+                            Set. Download Backup, Restore and Clear All Records ask for it. Open this to change it.
+                        @else
+                            A second password, separate from your login, that Download Backup, Restore and Clear All Records ask for. Set it to turn them on.
+                        @endif
+                    </span>
+                </span>
+            </summary>
+            <form method="POST" action="{{ route('admin.backup.privacy-password') }}" data-ajax class="mt-4 grid gap-4 md:grid-cols-3">
+                @csrf
+                @if ($dataPrivacyPasswordConfigured)
+                    <x-password-input name="data_privacy_password" id="current_data_privacy_password" label="Current Data Privacy Password" autocomplete="off" required />
+                @else
+                    <x-password-input name="account_password" id="account_password" label="Your login password" autocomplete="current-password" required />
+                @endif
+                <x-password-input name="new_data_privacy_password" id="new_data_privacy_password" label="New Data Privacy Password" autocomplete="new-password" required />
+                <x-password-input name="new_data_privacy_password_confirmation" id="new_data_privacy_password_confirmation" label="Type it again" autocomplete="new-password" required />
+                <div class="md:col-span-3">
+                    <p class="form-help mb-3">At least 8 characters, and not the same as your login password. Keep it somewhere safe: it is stored only as a hash and can't be shown again.</p>
+                    <button type="submit" class="btn btn-primary">{{ $dataPrivacyPasswordConfigured ? 'Change password' : 'Set password' }}</button>
+                </div>
+            </form>
+        </details>
+    </x-card>
 
     <div class="flex flex-col gap-6 xl:flex-row xl:items-start">
         <div class="grid min-w-0 flex-1 grid-cols-1 gap-6 xl:grid-cols-2">

@@ -43,8 +43,12 @@
                             <span class="text-gray-600">No data either period</span>
                         @endif
                     @else
-                        <span class="font-medium {{ $row['change'] > 0 ? 'text-green-700' : ($row['change'] < 0 ? 'text-red-600' : 'text-gray-600') }}">
-                            {{ $row['change'] > 0 ? '+' : '' }}{{ $row['change'] }} ({{ $row['change_pct'] > 0 ? '+' : '' }}{{ $row['change_pct'] }}%)
+                        <span class="font-medium {{ ['up' => 'text-green-700', 'down' => 'text-red-600', 'same' => 'text-gray-600'][$row['direction']] }}" data-change="{{ $row['direction'] }}">
+                            @if ($row['direction'] === 'same')
+                                No change
+                            @else
+                                {{ $row['direction'] === 'up' ? 'Up' : 'Down' }} {{ $row['change_size'] }} ({{ $row['change_pct_size'] }}%)
+                            @endif
                         </span>
                         <span class="text-gray-600">vs. last period</span>
                     @endif

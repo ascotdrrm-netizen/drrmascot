@@ -217,7 +217,7 @@
         <tbody>
             @forelse ($incident->damageReports as $report)
                 <tr>
-                    <td>{{ $report->building->building_name ?? '—' }}</td>
+                    <td>{{ $report->areaLabel() }}</td>
                     <td>{{ $report->damage_level }}</td>
                     <td>{{ $report->casualty_count }}</td>
                     <td>{{ $report->est_cost !== null ? 'PHP ' . number_format($report->est_cost, 2) : '—' }}</td>
