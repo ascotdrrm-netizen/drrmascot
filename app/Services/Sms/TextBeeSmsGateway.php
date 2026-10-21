@@ -3,6 +3,7 @@
 namespace App\Services\Sms;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * TextBee (textbee.dev) gateway: a free Android app sends each text from the
@@ -28,6 +29,9 @@ class TextBeeSmsGateway implements SmsGatewayInterface
             throw new \RuntimeException('SMS provider result unconfirmed.');
         }
         if (! $response->successful()) {
+            Log::warning('TextBee refused the SMS', ['status' => $response->status(),
+                'error' => mb_substr((string) ($response->json('error') ?? $response->json('message') ?? $response->body()), 0, 300)]);
+
             return false;
         }
         $data = $response->json('data');

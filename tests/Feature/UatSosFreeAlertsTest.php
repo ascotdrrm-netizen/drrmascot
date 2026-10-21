@@ -7,6 +7,7 @@ use App\Models\Campus;
 use App\Models\Personnel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -120,5 +121,32 @@ class UatSosFreeAlertsTest extends TestCase
 
         Http::assertSent(fn (HttpRequest $request) => ! isset($request['deviceId']));
         $this->assertDatabaseHas('staff_notifications', ['kind' => 'sos']);
+    }
+
+    /**
+     * UAT 2026-10-21: every incident alert showed "Failed" — its numbers went to
+     * TextBee as "+0917…" instead of "+63917…". A number that isn't a mobile
+     * is skipped and counts as not sent.
+     */
+    public function test_an_incident_alert_texts_each_number_in_international_form(): void
+    {
+        config(['services.sms.driver' => 'textbee', 'services.textbee.api_key' => 'tb-key']);
+        Http::fake(['api.textbee.dev/*' => Http::response(['data' => ['success' => true, 'smsBatchId' => 'b1', 'recipientCount' => 1]])]);
+        $admin = $this->person('DRRMO Admin', 'admin@example.test', '09171234567');
+        $this->person('Coordinator', 'coord@example.test', '0918 765 4321');
+        $incidentId = DB::table('incidents')->insertGetId(['campus_id' => $this->campus->campus_id, 'hazard_type' => 'Fire',
+            'date_occurred' => '2026-10-21', 'description' => 'Fire at the science building'], 'incident_id');
+
+        $this->actingAs($admin)->post(route('admin.incidents.alerts.store', $incidentId), ['message' => 'Evacuate the science building.'])
+            ->assertSessionHasNoErrors();
+
+        Http::assertSentCount(2);
+        Http::assertSent(fn (HttpRequest $request) => $request['recipients'] === ['+639171234567']);
+        Http::assertSent(fn (HttpRequest $request) => $request['recipients'] === ['+639187654321']);
+        $this->assertDatabaseHas('alerts', ['incident_id' => $incidentId, 'recipient_count' => 2, 'delivery_status' => 'Sent']);
+
+        $this->person('Reporter', 'landline@example.test', '(078) 123 4567');
+        $this->actingAs($admin)->post(route('admin.incidents.alerts.store', $incidentId), ['message' => 'All clear.']);
+        $this->assertDatabaseHas('alerts', ['incident_id' => $incidentId, 'message' => 'All clear.', 'recipient_count' => 3, 'delivery_status' => 'Partial']);
     }
 }

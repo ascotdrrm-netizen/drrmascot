@@ -8,11 +8,13 @@ use App\Models\Alert;
 use App\Models\Incident\Incident;
 use App\Models\Personnel;
 use App\Services\Sms\SmsGatewayInterface;
+use App\Support\PhoneNumber;
 use App\Traits\RendersPdfAssets;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class AlertController extends Controller
@@ -51,9 +53,23 @@ class AlertController extends Controller
 
         $successCount = 0;
 
+        // Numbers go out in international form (639…), as every other text does:
+        // a gateway rejects "09…". One failure never stops the rest.
         foreach ($recipients as $person) {
-            if ($this->smsGateway->send($person->contact_number, $data['message'])) {
-                $successCount++;
+            $number = PhoneNumber::normalize($person->contact_number);
+            if ($number === null) {
+                Log::warning('Alert SMS skipped: not a mobile number', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id]);
+                continue;
+            }
+            try {
+                if ($this->smsGateway->send($number, $data['message'])) {
+                    $successCount++;
+                } else {
+                    Log::warning('Alert SMS was not accepted by the gateway', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id]);
+                }
+            } catch (\Throwable $exception) {
+                Log::error('Alert SMS failed', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id,
+                    'error' => $exception->getMessage()]);
             }
         }
 
