@@ -14,7 +14,7 @@
     $cleared = session('cleared');
     $blockedReason = match (true) {
         ! $dataPrivacyPasswordConfigured => 'Set the Data Privacy Password first, at the top of the Backup & Restore page.',
-        ! $zipSupported => "This server's PHP can't write password-protected ZIP backups, so the backup taken first can't be made — and nothing is cleared without one.",
+        ! $zipSupported => "This server can't write password-locked backups (the 7-Zip program or PHP's zip support is missing), so the backup taken first can't be made — and nothing is cleared without one.",
         $nothingToClear => 'There is nothing to clear: every table below is already empty.',
         default => null,
     };
@@ -108,7 +108,7 @@
                 <li>Your Data Privacy Password and the confirmation phrase are checked.</li>
                 <li>
                     A full backup is made with Download Backup's own routine and saved under Stored Backups as
-                    <span class="font-mono text-xs">{{ \App\Http\Controllers\BackupController::PRE_CLEAR_PREFIX }}…zip</span>.
+                    <span class="font-mono text-xs">{{ \App\Http\Controllers\BackupController::PRE_CLEAR_PREFIX }}….7z</span>.
                     It also holds the uploaded files listed above, so restoring it ("Records only") brings back the records and their photos.
                     It is checked: it must open, contain every table, hold exactly as many rows as the database, and contain every file at its full size.
                     It is never removed by the 20-backup limit.

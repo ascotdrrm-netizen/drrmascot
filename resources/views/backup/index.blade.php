@@ -61,13 +61,11 @@
                 </p>
 
                 <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    <p class="font-medium">This .zip is password-protected with a fixed password:
-                        <span class="font-mono font-semibold">ASCOTDRRMS2026</span>.</p>
-                    <p>Right-click the downloaded file → Extract All (Windows) or double-click it
-                        (macOS Archive Utility) and enter that password when prompted — no extra software needed.
-                        Inside is <span class="font-mono">ascot-drrms-backup.zip</span>, which holds the data.
-                        The password is the same for every backup and is built into the app, so still store the
-                        downloaded file somewhere access-controlled and delete it when you no longer need it.</p>
+                    <p class="font-medium">The backup downloads as a password-locked .7z file.</p>
+                    <p>Open it with the free 7-Zip program (<span class="font-mono">7-zip.org</span>): it asks for
+                        the backup password as soon as the file is opened, and shows nothing inside until it is given.
+                        Windows' own "Extract All" can't open a locked .7z. Store the downloaded file somewhere
+                        access-controlled and delete it when you no longer need it.</p>
                 </div>
 
                 <form method="POST" action="{{ route('admin.backup.download') }}" data-confirm-form="Download this backup archive?" class="space-y-4">
@@ -101,14 +99,12 @@
                     @csrf
 
                     <div>
-                        <label for="backup_file" class="form-label">Backup file (.zip)</label>
+                        <label for="backup_file" class="form-label">Backup file (.7z)</label>
                         <p class="text-sm leading-6 text-gray-600">
-                            Accepts the .zip archive produced by Download Backup above (password-protected with
-                            <span class="font-mono">ASCOTDRRMS2026</span>, unlocked automatically; older ones with
-                            <span class="font-mono">ASCOTDRRMS</span> too). A backup made before the move to
-                            Supabase (a .zip or a plain .sql) is still accepted.
+                            Accepts the .7z file produced by Download Backup above (unlocked automatically). Older
+                            .zip backups and plain .sql files from before the move to Supabase are still accepted.
                         </p>
-                        <input type="file" id="backup_file" name="backup_file" accept=".sql,.zip" required
+                        <input type="file" id="backup_file" name="backup_file" accept=".7z,.zip,.sql" required
                                {{ $dataPrivacyPasswordConfigured ? '' : 'disabled' }}
                                class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-full file:border-0 file:bg-accent-soft file:px-4 file:py-2 file:text-sm file:font-medium file:text-accent-ink hover:file:bg-accent-soft-hover disabled:cursor-not-allowed">
                         @error('backup_file')

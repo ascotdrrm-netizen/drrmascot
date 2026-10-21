@@ -20,7 +20,6 @@ use Illuminate\View\View;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
-use ZipArchive;
 
 /**
  * Backup & Restore (DRRMO Admin only).
@@ -81,7 +80,7 @@ class BackupController extends Controller
             'kept' => \App\Support\RecordsClear::kept(),
             'snapshotDir' => \App\Support\Backup\Snapshot::dir(),
             'dataPrivacyPasswordConfigured' => $this->isDataPrivacyPasswordConfigured(),
-            'zipSupported' => extension_loaded('zip') && defined(ZipArchive::class . '::EM_TRAD_PKWARE'),
+            'zipSupported' => extension_loaded('zip') && BackupArchive::sevenZipAvailable(),
             'copyEstimate' => \App\Support\RecordsClear::estimatedCopyBytes(),
             'maxFileBytes' => (int) config('backup.max_file_bytes'),
         ]);
@@ -226,16 +225,17 @@ class BackupController extends Controller
     }
 
     /**
-     * Before WRITING an encrypted archive: the zip extension AND ZipCrypto
-     * support. Never silently falls back to an unencrypted archive.
+     * Before WRITING or reading a locked .7z backup: the zip extension (the
+     * contents are put together as a zip) AND the 7-Zip program. Never
+     * silently falls back to an unlocked archive.
      */
     protected function assertZipEncryptionSupported(string $field): void
     {
         $this->assertZipSupported($field);
 
-        if (! defined(ZipArchive::class . '::EM_TRAD_PKWARE')) {
+        if (! BackupArchive::sevenZipAvailable()) {
             throw ValidationException::withMessages([
-                $field => "This server's PHP zip extension does not support ZIP encryption. Contact your system administrator.",
+                $field => 'The 7-Zip program, which locks the backup with its password, is not installed on this server. Contact your system administrator.',
             ]);
         }
     }
@@ -315,10 +315,11 @@ class BackupController extends Controller
 
         // A backup file name is never reused: names are stamped to the second,
         // so a second backup in the same second gets -2, -3 …
-        for ($name = $base, $n = 2; StoredBackups::disk()->exists("backups/{$name}.zip"); $n++) {
+        $extension = BackupArchive::EXTENSION;
+        for ($name = $base, $n = 2; StoredBackups::disk()->exists("backups/{$name}.{$extension}"); $n++) {
             $name = "{$base}-{$n}";
         }
-        $zipFilename = "{$name}.zip";
+        $zipFilename = "{$name}.{$extension}";
         $storagePath = "backups/{$zipFilename}";
 
         $temporary = tempnam(sys_get_temp_dir(), 'drrms-backup-');
@@ -387,20 +388,22 @@ class BackupController extends Controller
         $file = $request->file('backup_file');
         $extension = strtolower($file->getClientOriginalExtension());
 
-        if (! in_array($extension, ['sql', 'zip'], true)) {
+        if (! in_array($extension, ['sql', 'zip', BackupArchive::EXTENSION], true)) {
             return back()->withErrors([
-                'backup_file' => 'The uploaded file must have a .zip extension (or .sql for a backup made before the move to Supabase).',
+                'backup_file' => 'The uploaded file must have a .7z extension (or .zip / .sql for an older backup).',
             ]);
         }
 
-        if ($extension === 'zip') {
-            $this->assertZipSupported('backup_file');
+        if ($extension !== 'sql') {
+            $extension === BackupArchive::EXTENSION
+                ? $this->assertZipEncryptionSupported('backup_file')
+                : $this->assertZipSupported('backup_file');
             $read = BackupArchive::read($file->getRealPath());
 
             if ($read === null) {
                 return back()->withErrors([
                     'backup_file' => 'This backup file is invalid or unrecognized. Check that it\'s a genuine '
-                        . 'ASCOT-DRRMS backup .zip — this also rejects archives protected with the wrong password '
+                        . 'ASCOT-DRRMS backup — this also rejects archives protected with the wrong password '
                         . 'or damaged on disk.',
                 ]);
             }
@@ -414,7 +417,7 @@ class BackupController extends Controller
             }
         }
 
-        return $this->performRestore($read, $file->getClientOriginalName(), $this->restoreMode($request), $extension === 'zip' ? $file->getRealPath() : null);
+        return $this->performRestore($read, $file->getClientOriginalName(), $this->restoreMode($request), $extension !== 'sql' ? $file->getRealPath() : null);
     }
 
     /**
@@ -430,7 +433,9 @@ class BackupController extends Controller
         ]);
 
         $this->assertConfirmedForRestore($request);
-        $this->assertZipSupported('backup_file');
+        str_ends_with($backup->storage_path, '.' . BackupArchive::EXTENSION)
+            ? $this->assertZipEncryptionSupported('backup_file')
+            : $this->assertZipSupported('backup_file');
 
         if (! StoredBackups::disk()->exists($backup->storage_path)) {
             return back()->withErrors([

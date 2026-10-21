@@ -22,6 +22,11 @@ return [
     // setting stable; existing backup rows do not carry their own disk name.
     'disk' => env('BACKUP_DISK', 'local'),
 
+    // The 7-Zip program that writes and reads the password-locked .7z backups
+    // (App\Support\Backup\BackupArchive). Empty: "7z" on the PATH, or
+    // C:\Program Files\7-Zip\7z.exe on Windows.
+    'seven_zip' => env('BACKUP_7Z_BINARY'),
+
     // Outside the project and outside the web root, e.g.
     // C:\Users\<you>\ASCOT-DRRMS-Backups\snapshots
     'dir' => env('BACKUP_SNAPSHOT_DIR'),

@@ -53,7 +53,8 @@ class StoredBackups
     public static function download(Backup $backup)
     {
         return self::diskName() === 's3'
-            ? CloudDownload::redirect('s3', $backup->storage_path, $backup->filename, 'application/zip')
+            ? CloudDownload::redirect('s3', $backup->storage_path, $backup->filename,
+                str_ends_with($backup->filename, '.' . BackupArchive::EXTENSION) ? 'application/x-7z-compressed' : 'application/zip')
             : response()->download(self::disk()->path($backup->storage_path), $backup->filename);
     }
 }

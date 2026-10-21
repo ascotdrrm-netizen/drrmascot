@@ -44,6 +44,10 @@ jobs:
           node-version: '24'
           cache: npm
 
+      # Backups are written and read with 7-Zip.
+      - name: 7-Zip
+        run: command -v 7z || (sudo apt-get update && sudo apt-get install -y p7zip-full)
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 

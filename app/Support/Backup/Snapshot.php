@@ -20,7 +20,7 @@ use Throwable;
  *     file, counts again.
  *  4. Verifies: the archive opens, has every table, and each table's row
  *     count is within the before/after counts (exactly equal when nothing
- *     changed). Only then is it renamed to ascot_drrms-YYYY-MM-DD-HHmm.zip.
+ *     changed). Only then is it renamed to ascot_drrms-YYYY-MM-DD-HHmm.7z.
  *  5. On PostgreSQL with BACKUP_PG_DUMP set, also a pg_dump (custom format)
  *     beside it, checked with pg_restore --list — a second, independent copy
  *     restorable with PostgreSQL's own tools. Its failure is a warning only.
@@ -31,8 +31,8 @@ use Throwable;
  */
 class Snapshot
 {
-    /** Verified copies; .sql ones are from before the move to Supabase. */
-    public const PATTERN = '/^ascot_drrms-(\d{4}-\d{2}-\d{2}-\d{4})\.(zip|sql)$/';
+    /** Verified copies; .zip ones are older, .sql ones from before the move to Supabase. */
+    public const PATTERN = '/^ascot_drrms-(\d{4}-\d{2}-\d{2}-\d{4})\.(7z|zip|sql)$/';
 
     public const STATUS_FILE = 'status.json';
 
@@ -70,7 +70,7 @@ class Snapshot
             return ['outcome' => 'skipped', 'message' => "A verified copy from {$newest['at']->format('M j, g:i A')} is recent enough."];
         }
 
-        $partial = $dir . DIRECTORY_SEPARATOR . '.partial-' . $this->now->format('YmdHis') . '.zip';
+        $partial = $dir . DIRECTORY_SEPARATOR . '.partial-' . $this->now->format('YmdHis') . '.' . BackupArchive::EXTENSION;
         try {
             $dump = $this->copyAndVerify($partial, $newest);
         } catch (Throwable $e) {
@@ -135,7 +135,7 @@ class Snapshot
         }
         $read = BackupArchive::verify($partial, $ranges);
 
-        $file = 'ascot_drrms-' . $this->now->format('Y-m-d-Hi') . '.zip';
+        $file = 'ascot_drrms-' . $this->now->format('Y-m-d-Hi') . '.' . BackupArchive::EXTENSION;
         $final = dirname($partial) . DIRECTORY_SEPARATOR . $file;
         if (! @rename($partial, $final) && ! (copy($partial, $final) && unlink($partial))) {
             throw new RuntimeException("Could not rename the verified copy to $file.");
@@ -214,7 +214,7 @@ class Snapshot
         foreach ($dumps as $name => $dump) {
             if (! isset($keep[$name])) {
                 @unlink($dir . DIRECTORY_SEPARATOR . $name);
-                @unlink($dir . DIRECTORY_SEPARATOR . preg_replace('/\.(zip|sql)$/', '-pg.dump', $name));
+                @unlink($dir . DIRECTORY_SEPARATOR . preg_replace('/\.(7z|zip|sql)$/', '-pg.dump', $name));
                 $deleted[] = $name;
             }
         }

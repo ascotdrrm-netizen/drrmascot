@@ -30,6 +30,11 @@ FROM php:8.3-apache-bookworm
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions pdo_pgsql pgsql gd zip intl bcmath gmp exif opcache
 
+# 7-Zip ("7z"): backups are .7z files locked with a password, names included.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends p7zip-full \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/php.ini "$PHP_INI_DIR/conf.d/zz-app.ini"
 

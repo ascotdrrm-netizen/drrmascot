@@ -9,7 +9,9 @@ use App\Support\Backup\BackupArchive;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\BackupZips;
 use Tests\TestCase;
@@ -60,59 +62,37 @@ class BackupControllerTest extends TestCase
         ]);
     }
 
-    public function test_downloaded_zip_is_zipcrypto_protected_not_aes_and_holds_every_table_as_rows(): void
+    public function test_downloaded_backup_is_a_7z_that_shows_nothing_without_the_password(): void
     {
         $response = $this->actingAs($this->admin)->post(route('admin.backup.download'), [
             'data_privacy_password' => self::PRIVACY_PASSWORD,
         ]);
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'application/zip');
+        $this->assertStringEndsWith('.7z', $response->getFile()->getFilename());
 
         $path = $response->getFile()->getPathname();
+        $bytes = file_get_contents($path);
+        $this->assertStringStartsWith("7z\xBC\xAF\x27\x1C", $bytes, 'The backup must be a 7-Zip archive.');
 
-        $zip = new ZipArchive();
-        $this->assertTrue($zip->open($path) === true, 'Opening the zip STRUCTURE (no password needed to list entries) should succeed.');
+        // The file names are encrypted too: nothing of what it holds can be read
+        // from the file, not even the table names.
+        $this->assertStringNotContainsString('manifest', $bytes);
+        $this->assertStringNotContainsString('personnel', $bytes);
 
-        // Listing the zip shows ONE locked entry and nothing of what it holds:
-        // no manifest, no table names.
-        $this->assertSame(1, $zip->numFiles);
-        $entryName = BackupArchive::INNER;
-        $this->assertSame($entryName, $zip->getNameIndex(0));
-        $this->assertFalse($zip->locateName('manifest.json'));
-        $this->assertFalse($zip->locateName('data/personnel.jsonl'));
-
-        // Must genuinely be ZipCrypto (EM_TRAD_PKWARE = 1), not AES-256 (EM_AES_256 =
-        // 259) — this is the whole point of this change: universal native-tool support.
-        $stat = $zip->statName($entryName);
-        $this->assertSame(
-            ZipArchive::EM_TRAD_PKWARE,
-            $stat['encryption_method'],
-            'Entry must be encrypted with EM_TRAD_PKWARE (ZipCrypto), not AES-256.'
-        );
-        $this->assertNotSame(ZipArchive::EM_AES_256, $stat['encryption_method']);
-
-        // Without the password, the backup must not be readable. ZipCrypto checks a
-        // wrong password against one header byte, so now and then the read is
-        // "accepted" and returns '' or garbage instead of false — what it must never
-        // return is the SQL. Done on a scratch COPY: when that happens libzip keeps
-        // the file locked until the process ends, and the stored zip must stay free.
+        // Opening it (even just listing it) needs the password.
         $copy = tempnam(sys_get_temp_dir(), 'test_backup_copy_');
         copy($path, $copy);
-        $wrong = new ZipArchive();
-        $this->assertTrue($wrong->open($copy) === true);
-        $wrong->setPassword('totally-wrong-password');
-        $leaked = (string) $wrong->getFromName($entryName);
-        $wrong->close();
+        $list = Process::run([BackupArchive::sevenZip(), 'l', '-p' . 'totally-wrong-password', $copy]);
+        $wrongDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'test_backup_wrong_' . uniqid();
+        $extract = Process::run([BackupArchive::sevenZip(), 'x', '-y', '-ptotally-wrong-password', '-o' . $wrongDir, $copy]);
         @unlink($copy);
-        $this->assertStringNotContainsString('personnel', $leaked, 'A wrong ZIP password must not reveal the contents.');
+        File::deleteDirectory($wrongDir);
+        $this->assertFalse($list->successful(), 'Listing with a wrong password must fail.');
+        $this->assertStringNotContainsString('personnel', $list->output());
+        $this->assertFalse($extract->successful(), 'Extracting with a wrong password must fail.');
 
-        $this->assertFalse($zip->getFromName($entryName), 'Reading the entry WITHOUT the ZIP password must fail.');
-        $zip->setPassword(self::ZIP_PASSWORD);
-        $this->assertNotFalse($zip->getFromName($entryName), 'Reading the entry WITH the correct ZIP password must succeed.');
-        $zip->close();
-
-        // Inside: one JSON row per line, readable as is.
+        // Inside, with the password: one JSON row per line, readable as is.
         $entries = BackupZips::entries($path);
         $emails = array_column(array_map(fn ($l) => json_decode($l, true), array_filter(explode("\n", $entries['data/personnel.jsonl']))), 'email');
         $this->assertContains('admin@ascot-test.local', $emails);
@@ -146,7 +126,7 @@ class BackupControllerTest extends TestCase
         Personnel::where('personnel_id', $marker->personnel_id)->delete();
         $this->assertFalse(Personnel::where('email', 'marker@ascot-test.local')->exists());
 
-        $zipFile = UploadedFile::fake()->createWithContent('ascot-drrms-backup.zip', $zipBytes);
+        $zipFile = UploadedFile::fake()->createWithContent('ascot-drrms-backup.7z', $zipBytes);
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
             'mode' => 'everything', // the full restore, exactly as before records-only existed
@@ -422,8 +402,8 @@ class BackupControllerTest extends TestCase
         $download();
 
         [$first, $second] = Backup::orderBy('backup_id')->get()->all();
-        $this->assertSame('ascot-drrms-backup-2026-10-10_093151.zip', $first->filename);
-        $this->assertSame('ascot-drrms-backup-2026-10-10_093151-2.zip', $second->filename);
+        $this->assertSame('ascot-drrms-backup-2026-10-10_093151.7z', $first->filename);
+        $this->assertSame('ascot-drrms-backup-2026-10-10_093151-2.7z', $second->filename);
         $this->assertNotSame($first->storage_path, $second->storage_path);
         Storage::disk('local')->assertExists([$first->storage_path, $second->storage_path]);
 
@@ -511,15 +491,11 @@ class BackupControllerTest extends TestCase
         $this->assertTrue(Storage::disk('local')->exists($backup->storage_path));
         $this->assertNotNull($backup->created_at);
 
-        // The stored copy must be the same password-protected format as the download.
-        $storedZip = new ZipArchive();
-        $storedZip->open(Storage::disk('local')->path($backup->storage_path));
-        $entryName = BackupArchive::INNER;
-        $this->assertNotFalse($storedZip->locateName($entryName));
-        $this->assertFalse($storedZip->getFromName($entryName), 'Stored copy must also be password-protected.');
-        $storedZip->setPassword(self::ZIP_PASSWORD);
-        $this->assertNotFalse($storedZip->getFromName($entryName));
-        $storedZip->close();
+        // The stored copy must be the same password-locked .7z as the download.
+        $storedPath = Storage::disk('local')->path($backup->storage_path);
+        $this->assertStringEndsWith('.7z', $backup->filename);
+        $this->assertStringStartsWith("7z\xBC\xAF\x27\x1C", file_get_contents($storedPath));
+        $this->assertArrayHasKey('manifest.json', BackupZips::entries($storedPath));
 
         $indexResponse = $this->actingAs($this->admin)->get(route('admin.backup.index'));
         $indexResponse->assertOk();
@@ -585,21 +561,13 @@ class BackupControllerTest extends TestCase
         $storedDownload = $this->actingAs($this->admin)->get(route('admin.backup.stored.download', $backup));
         $storedDownload->assertOk();
 
+        // The stored copy is the same locked .7z as the immediate download, names
+        // hidden — no format drift between the two paths.
         $path = $storedDownload->getFile()->getPathname();
-        $zip = new ZipArchive();
-        $zip->open($path);
-        $entryName = BackupArchive::INNER;
-        $this->assertNotFalse($zip->locateName($entryName));
-
-        // The stored copy must use the same EM_TRAD_PKWARE (ZipCrypto) format as the
-        // immediate download — no format drift between the two write paths.
-        $stat = $zip->statName($entryName);
-        $this->assertSame(ZipArchive::EM_TRAD_PKWARE, $stat['encryption_method']);
-
-        $this->assertFalse($zip->getFromName($entryName), 'Re-downloaded stored backup must still require the ZIP password.');
-        $zip->setPassword(self::ZIP_PASSWORD);
-        $this->assertNotFalse($zip->getFromName($entryName));
-        $zip->close();
+        $bytes = file_get_contents($path);
+        $this->assertStringStartsWith("7z\xBC\xAF\x27\x1C", $bytes);
+        $this->assertStringNotContainsString('manifest', $bytes);
+        $this->assertArrayHasKey('manifest.json', BackupZips::entries($path));
     }
 
     public function test_coordinator_is_forbidden_from_stored_backup_routes(): void

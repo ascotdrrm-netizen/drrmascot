@@ -64,7 +64,7 @@ class BackupSnapshotTest extends TestCase
     {
         $this->artisan('backup:snapshot')->assertExitCode(0);
 
-        $file = $this->dir . '/ascot_drrms-2026-10-09-2100.zip';
+        $file = $this->dir . '/ascot_drrms-2026-10-09-2100.7z';
         $this->assertFileExists($file);
         $this->assertSame([], glob($this->dir . '/.partial-*'), 'no partial left behind');
         $status = Snapshot::readStatus($this->dir);
@@ -161,10 +161,10 @@ class BackupSnapshotTest extends TestCase
 
         $this->artisan('backup:snapshot')->assertExitCode(0);
         $this->assertSame('skipped', Snapshot::readStatus($this->dir)['last_outcome']);
-        $this->assertFileDoesNotExist($this->dir . '/ascot_drrms-2026-10-09-2100.zip');
+        $this->assertFileDoesNotExist($this->dir . '/ascot_drrms-2026-10-09-2100.7z');
 
         $this->artisan('backup:snapshot --force')->assertExitCode(0);
-        $this->assertFileExists($this->dir . '/ascot_drrms-2026-10-09-2100.zip');
+        $this->assertFileExists($this->dir . '/ascot_drrms-2026-10-09-2100.7z');
     }
 
     public function test_a_much_smaller_copy_is_a_warning_never_a_failure(): void
@@ -274,7 +274,7 @@ class BackupSnapshotTest extends TestCase
 
         $this->actingAs($this->admin)->get(route('admin.backup.index'))->assertOk()
             ->assertSee('Automatic Copies on This PC')
-            ->assertSee('ascot_drrms-2026-10-09-2100.zip')
+            ->assertSee('ascot_drrms-2026-10-09-2100.7z')
             ->assertSee('3 files');
     }
 

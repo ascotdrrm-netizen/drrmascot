@@ -3,38 +3,47 @@
 namespace App\Support\Backup;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use ZipArchive;
 
 /**
- * An ASCOT-DRRMS backup file: a .zip holding ONE password-protected entry,
- * INNER (ZipCrypto, so Windows' own "Extract All" opens it; see ZIP_PASSWORD).
- * A zip never hides its entry names, so the tables sit inside that one locked
- * entry: opening the backup shows a single name, and nothing more until the
- * password is given. INNER is a plain zip holding
+ * An ASCOT-DRRMS backup file: a 7-Zip (.7z) archive locked with ZIP_PASSWORD,
+ * its file names encrypted too (-mhe), so opening the file asks for the
+ * password before it shows anything. (A .zip can't: its list of entries is
+ * never encrypted.) It holds
  *
  *   manifest.json           what it is, when, from which database, and the
  *                           row count of every table (and the files' sizes)
  *   data/<table>.jsonl      one table each, one row per line (JSON)
  *   files/<disk>/<path>     uploaded record files (Clear All Records' copy only)
  *
+ * Written and read with the 7-Zip program (sevenZip()); in between, the same
+ * entries live in a plain temporary zip, which is what the reading code works on.
+ *
  * The same on every database, so a backup taken on Supabase restores into the
- * test database and back. Older backups are still read: those entries locked
- * one by one at the top level (no INNER), and those made before the move to
- * Supabase (a .zip with one MySQL .sql file, or a plain .sql), whose INSERT
- * statements become rows the same way (App\Support\Backup\LegacySql).
+ * test database and back. Older .zip backups are still read: those holding one
+ * locked entry, INNER; those with every entry locked at the top level; and
+ * those made before the move to Supabase (a .zip with one MySQL .sql file, or
+ * a plain .sql), whose INSERT statements become rows the same way
+ * (App\Support\Backup\LegacySql).
  */
 class BackupArchive
 {
     /**
-     * Fixed password on every backup zip, so an Admin can open one with no
-     * extra software. ZipCrypto, not AES-256, on purpose: Windows' and macOS's
-     * built-in extractors only open ZipCrypto. It is not the security boundary
-     * (anyone with this source knows it): the Data Privacy Password, the typed
+     * Fixed password on every backup. It is not the security boundary (anyone
+     * with this source knows it): the Data Privacy Password, the typed
      * confirmation and the Admin-only routes are.
      */
     public const ZIP_PASSWORD = 'ASCOTDRRMS2026';
+
+    /** The file extension of a backup. */
+    public const EXTENSION = '7z';
+
+    /** First bytes of every 7-Zip archive. */
+    protected const SEVEN_ZIP_SIGNATURE = "7z\xBC\xAF\x27\x1C";
 
     /** Passwords earlier backups were written with; still tried when reading one. */
     public const OLD_ZIP_PASSWORDS = ['ASCOTDRRMS'];
@@ -45,7 +54,7 @@ class BackupArchive
 
     public const MANIFEST = 'manifest.json';
 
-    /** The one locked entry of a backup zip, holding all of its contents. */
+    /** The one locked entry of an older backup zip, holding all of its contents. */
     public const INNER = 'ascot-drrms-backup.zip';
 
     /**
@@ -55,45 +64,158 @@ class BackupArchive
      */
     public static function write(string $absolutePath, array $files = []): array
     {
-        if (! defined(ZipArchive::class . '::EM_TRAD_PKWARE')) {
-            throw new RuntimeException("This server's PHP zip extension does not support ZIP encryption.");
-        }
-
-        $innerPath = tempnam(sys_get_temp_dir(), 'drrms_backup_');
+        $contents = tempnam(sys_get_temp_dir(), 'drrms_backup_');
         try {
-            $manifest = self::writeContents($innerPath, $files);
-            self::lock($innerPath, $absolutePath);
+            $manifest = self::writeContents($contents, $files);
+            self::seal($contents, $absolutePath);
         } catch (\Throwable $e) {
             if (is_file($absolutePath)) {
                 @unlink($absolutePath);
             }
             throw $e;
         } finally {
-            @unlink($innerPath);
+            @unlink($contents);
         }
 
         return $manifest;
     }
 
-    /** Writes $absolutePath as the outer zip: $innerPath as its one locked entry, INNER. */
-    protected static function lock(string $innerPath, string $absolutePath): void
+    /**
+     * Writes $absolutePath as a 7-Zip archive of the entries of the plain zip
+     * $contentsZip, locked with ZIP_PASSWORD, names included.
+     */
+    public static function seal(string $contentsZip, string $absolutePath): void
     {
-        $zip = new ZipArchive();
-        $open = $zip->open($absolutePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        if ($open !== true) {
-            throw new RuntimeException("Unable to create the backup archive at {$absolutePath} (ZipArchive error code: {$open}).");
-        }
-        self::add($zip, self::INNER, fn () => $zip->addFile($innerPath, self::INNER));
-        $zip->setCompressionName(self::INNER, ZipArchive::CM_STORE); // already compressed
-        $zip->setPassword(self::ZIP_PASSWORD);
-        if (! $zip->close()) {
-            throw new RuntimeException('The backup archive could not be finished: ' . $zip->getStatusString());
+        $dir = self::tempDirectory();
+        try {
+            $zip = new ZipArchive();
+            if ($zip->open($contentsZip) !== true) {
+                throw new RuntimeException('The backup contents could not be prepared.');
+            }
+            $extracted = $zip->extractTo($dir);
+            $zip->close();
+            if (! $extracted) {
+                throw new RuntimeException('The backup contents could not be prepared.');
+            }
+
+            @unlink($absolutePath); // 7-Zip would add to an existing file, not replace it
+            // -mhe=on encrypts the names too; -mx=3 -mmt=1 keep memory low on a small server.
+            $result = Process::path($dir)->timeout(600)->run([
+                self::sevenZip(), 'a', '-t7z', '-mhe=on', '-mx=3', '-mmt=1', '-p' . self::ZIP_PASSWORD, '-y', '-bd', $absolutePath, '*',
+            ]);
+            if (! $result->successful() || ! is_file($absolutePath)) {
+                throw new RuntimeException('7-Zip could not write the backup archive: ' . trim($result->errorOutput() ?: $result->output()));
+            }
+        } finally {
+            File::deleteDirectory($dir);
         }
     }
 
     /**
+     * Opens the 7-Zip backup at $absolutePath with ZIP_PASSWORD (or an older
+     * one) and copies what it holds into a plain temporary zip, which the
+     * caller reads and deletes. Null when 7-Zip is missing, the file isn't a
+     * 7-Zip archive, or no known password opens it.
+     */
+    public static function contentsZip(string $absolutePath): ?string
+    {
+        // 7-Zip reads its own copy: on Windows it can't open a file another
+        // handle still has open for writing (an upload's temp file, say).
+        $copy = tempnam(sys_get_temp_dir(), 'drrms_7z_');
+        try {
+            if (! copy($absolutePath, $copy)) {
+                return null;
+            }
+            foreach ([self::ZIP_PASSWORD, ...self::OLD_ZIP_PASSWORDS] as $password) {
+                $zipPath = self::extractToZip($copy, $password);
+                if ($zipPath !== null) {
+                    return $zipPath;
+                }
+            }
+
+            return null;
+        } finally {
+            @unlink($copy);
+        }
+    }
+
+    /** contentsZip() with one password: the temp zip, or null when it doesn't open. */
+    protected static function extractToZip(string $archive, string $password): ?string
+    {
+        $dir = self::tempDirectory();
+        try {
+            $result = Process::timeout(600)->run([self::sevenZip(), 'x', '-y', '-bd', '-p' . $password, '-o' . $dir, $archive]);
+            $files = $result->successful() ? File::allFiles($dir, true) : [];
+            if ($files === []) {
+                return null;
+            }
+            $zipPath = tempnam(sys_get_temp_dir(), 'drrms_contents_');
+            $zip = new ZipArchive();
+            $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+            foreach ($files as $file) {
+                $zip->addFile($file->getPathname(), str_replace('\\', '/', $file->getRelativePathname()));
+            }
+            if (! $zip->close()) {
+                @unlink($zipPath);
+
+                return null;
+            }
+
+            return $zipPath;
+        } catch (\Throwable) {
+            return null; // 7-Zip missing or failed to start
+        } finally {
+            File::deleteDirectory($dir);
+        }
+    }
+
+    /** The 7-Zip program: BACKUP_7Z_BINARY, else its usual place on Windows, else "7z" on the PATH. */
+    public static function sevenZip(): string
+    {
+        $configured = config('backup.seven_zip');
+        if (filled($configured)) {
+            return $configured;
+        }
+        $windows = 'C:\\Program Files\\7-Zip\\7z.exe';
+
+        return PHP_OS_FAMILY === 'Windows' && is_file($windows) ? $windows : '7z';
+    }
+
+    /** Whether the 7-Zip program can be run here. */
+    public static function sevenZipAvailable(): bool
+    {
+        try {
+            return Process::timeout(15)->run([self::sevenZip(), 'i'])->successful();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    protected static function isSevenZip(string $absolutePath): bool
+    {
+        $handle = @fopen($absolutePath, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+        $head = fread($handle, strlen(self::SEVEN_ZIP_SIGNATURE));
+        fclose($handle);
+
+        return $head === self::SEVEN_ZIP_SIGNATURE;
+    }
+
+    protected static function tempDirectory(): string
+    {
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'drrms_' . bin2hex(random_bytes(8));
+        if (! @mkdir($dir, 0700)) {
+            throw new RuntimeException('Unable to prepare a temporary folder for the backup.');
+        }
+
+        return $dir;
+    }
+
+    /**
      * Writes the backup's contents (manifest, tables, files) as a plain zip
-     * at $absolutePath, the entry that lock() then protects.
+     * at $absolutePath, which seal() then turns into the locked archive.
      *
      * @param  list<array{0: string, 1: string, 2?: int}>  $files
      */
@@ -147,15 +269,31 @@ class BackupArchive
     }
 
     /**
-     * Opens a backup for reading: the zip holding its entries (INNER, copied
-     * to a temporary file, for a current backup; the file itself, for an older
-     * one), with its password set. Null when it can't be opened or no known
-     * password opens it. The caller closes the zip and deletes the temp file.
+     * Opens a backup for reading: the zip holding its entries (a temporary
+     * copy, for a .7z backup or an older zip's INNER; the file itself, for an
+     * older zip with entries at the top level), with its password set. Null
+     * when it can't be opened or no known password opens it. The caller
+     * closes the zip and deletes the temp file.
      *
      * @return array{0: ZipArchive, 1: ?string}|null [zip, temp file to delete]
      */
     protected static function openContents(string $absolutePath): ?array
     {
+        if (self::isSevenZip($absolutePath)) {
+            $temp = self::contentsZip($absolutePath);
+            if ($temp === null) {
+                return null;
+            }
+            $zip = new ZipArchive();
+            if ($zip->open($temp) !== true) {
+                @unlink($temp);
+
+                return null;
+            }
+
+            return [$zip, $temp];
+        }
+
         $zip = new ZipArchive();
         if ($zip->open($absolutePath) !== true) {
             return null;
@@ -401,13 +539,6 @@ class BackupArchive
         }
 
         return $contents;
-    }
-
-    protected static function add(ZipArchive $zip, string $entry, callable $adder): void
-    {
-        if (! $adder() || ! $zip->setEncryptionName($entry, ZipArchive::EM_TRAD_PKWARE)) {
-            throw new RuntimeException("Could not add {$entry} to the backup archive with encryption.");
-        }
     }
 
     /** Adds an entry to the (unencrypted) contents zip. */

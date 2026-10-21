@@ -7,9 +7,10 @@ use RuntimeException;
 use ZipArchive;
 
 /**
- * Reads and edits a backup zip the way the app writes it: one entry,
- * BackupArchive::INNER, locked with the zip password, holding the manifest,
- * tables and files. Static so a stand-in controller in a test can use it too.
+ * Reads and edits a backup the way the app writes it: a .7z locked with the
+ * backup password, opened into a plain zip of its manifest, tables and files
+ * (BackupArchive::contentsZip) and locked again (BackupArchive::seal). Static
+ * so a stand-in controller in a test can use it too.
  */
 class BackupZips
 {
@@ -34,34 +35,17 @@ class BackupZips
 
     private static function withContents(string $path, callable $use, bool $save = false): mixed
     {
-        $outer = new ZipArchive();
-        if ($outer->open($path) !== true || $outer->numFiles !== 1 || $outer->getNameIndex(0) !== BackupArchive::INNER) {
-            throw new RuntimeException("{$path} is not a backup zip with one locked entry.");
-        }
-        $outer->setPassword(BackupArchive::ZIP_PASSWORD);
-        $bytes = $outer->getFromName(BackupArchive::INNER);
-        $outer->close();
-        if ($bytes === false) {
-            throw new RuntimeException("{$path} did not open with the zip password.");
-        }
-
-        $temp = tempnam(sys_get_temp_dir(), 'test_backup_inner_');
-        file_put_contents($temp, $bytes);
+        $temp = BackupArchive::contentsZip($path) ?? throw new RuntimeException("{$path} did not open with the backup password.");
         try {
-            $inner = new ZipArchive();
-            $inner->open($temp);
+            $zip = new ZipArchive();
+            $zip->open($temp);
             try {
-                $result = $use($inner);
+                $result = $use($zip);
             } finally {
-                $inner->close();
+                $zip->close();
             }
             if ($save) {
-                $outer = new ZipArchive();
-                $outer->open($path, ZipArchive::OVERWRITE);
-                $outer->addFile($temp, BackupArchive::INNER);
-                $outer->setEncryptionName(BackupArchive::INNER, ZipArchive::EM_TRAD_PKWARE);
-                $outer->setPassword(BackupArchive::ZIP_PASSWORD);
-                $outer->close();
+                BackupArchive::seal($temp, $path);
             }
         } finally {
             @unlink($temp);
