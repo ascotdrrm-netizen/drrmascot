@@ -87,6 +87,9 @@ class BackupArchive
     public static function seal(string $contentsZip, string $absolutePath): void
     {
         $dir = self::tempDirectory();
+        // 7-Zip adds ".7z" to an output name without an extension (as Linux
+        // temp names are), so it writes here and the file is moved into place.
+        $sealed = $dir . '.' . self::EXTENSION;
         try {
             $zip = new ZipArchive();
             if ($zip->open($contentsZip) !== true) {
@@ -98,16 +101,20 @@ class BackupArchive
                 throw new RuntimeException('The backup contents could not be prepared.');
             }
 
-            @unlink($absolutePath); // 7-Zip would add to an existing file, not replace it
             // -mhe=on encrypts the names too; -mx=3 -mmt=1 keep memory low on a small server.
             $result = Process::path($dir)->timeout(600)->run([
-                self::sevenZip(), 'a', '-t7z', '-mhe=on', '-mx=3', '-mmt=1', '-p' . self::ZIP_PASSWORD, '-y', '-bd', $absolutePath, '*',
+                self::sevenZip(), 'a', '-t7z', '-mhe=on', '-mx=3', '-mmt=1', '-p' . self::ZIP_PASSWORD, '-y', '-bd', $sealed, '*',
             ]);
-            if (! $result->successful() || ! is_file($absolutePath)) {
+            if (! $result->successful() || ! is_file($sealed)) {
                 throw new RuntimeException('7-Zip could not write the backup archive: ' . trim($result->errorOutput() ?: $result->output()));
+            }
+            @unlink($absolutePath);
+            if (! @rename($sealed, $absolutePath) && ! (copy($sealed, $absolutePath) && unlink($sealed))) {
+                throw new RuntimeException("Unable to save the backup archive at {$absolutePath}.");
             }
         } finally {
             File::deleteDirectory($dir);
+            @unlink($sealed);
         }
     }
 

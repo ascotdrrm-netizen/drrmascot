@@ -141,6 +141,26 @@ class BackupControllerTest extends TestCase
         $this->assertTrue(Personnel::where('email', 'marker@ascot-test.local')->exists());
     }
 
+    /**
+     * 7-Zip adds ".7z" to an output name without an extension, as temp names
+     * are on Linux (the server): the archive must still land at the exact path.
+     */
+    public function test_a_backup_written_to_a_name_without_an_extension_lands_at_that_path(): void
+    {
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'test_backup_noext_' . uniqid();
+        mkdir($dir);
+        $path = $dir . DIRECTORY_SEPARATOR . 'drrms-backup-abc123';
+        try {
+            BackupArchive::write($path);
+
+            $this->assertFileExists($path);
+            $this->assertFileDoesNotExist($path . '.7z');
+            $this->assertNotNull(BackupArchive::read($path));
+        } finally {
+            File::deleteDirectory($dir);
+        }
+    }
+
     /** A backup zipped with the password used before ASCOTDRRMS2026 still restores. */
     public function test_backup_made_with_the_old_zip_password_still_restores(): void
     {
