@@ -4,7 +4,11 @@
 
 @section('content')
     <div class="flex items-center gap-4">
-        <span class="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-lg font-semibold text-accent-ink">{{ $reporter['initials'] }}</span>
+        @if (! empty($reporter['photo']))
+            <img src="{{ $reporter['photo'] }}" alt="Your profile photo" class="h-14 w-14 shrink-0 rounded-full object-cover">
+        @else
+            <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-soft text-lg font-semibold text-accent-ink">{{ $reporter['initials'] }}</span>
+        @endif
         <div>
             <h1 class="page-title">{{ $reporter['name'] }}</h1>
             <p class="text-sm text-gray-600">{{ $reporter['role'] }} · {{ $reporter['id_number'] }}</p>
@@ -18,8 +22,37 @@
         <div class="flex justify-between gap-4 p-4"><dt class="text-gray-600">Email</dt><dd class="text-right font-medium">{{ $reporter['email'] }}</dd></div>
     </dl>
 
-    <x-phone-verification />
     @if(session('status'))<p role="status" class="mt-3 text-sm text-green-700">{{ session('status') }}</p>@endif
+
+    @auth
+        @php $editErrors = $errors->hasAny(['photo', 'contact_number']); @endphp
+        <details class="mt-6 rounded-xl border border-gray-100 bg-white" @if ($editErrors) open @endif>
+            <summary class="flex min-h-[3.25rem] cursor-pointer items-center justify-between px-4 text-sm font-medium">
+                <span class="flex items-center gap-3"><x-icon name="edit" class="text-gray-600" /> Edit profile</span>
+                <x-icon name="chevron_right" class="text-gray-400" />
+            </summary>
+            <form method="POST" action="{{ route('app.me.update') }}" enctype="multipart/form-data" class="space-y-4 border-t border-gray-100 p-4">
+                @csrf
+                <div>
+                    <label for="photo" class="form-label">Profile photo</label>
+                    <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp"
+                           class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-full file:border-0 file:bg-accent-soft file:px-4 file:py-2 file:text-sm file:font-medium file:text-accent-ink">
+                    <p class="form-help">JPG, PNG or WebP, up to 5 MB. Leave empty to keep your current photo.</p>
+                    @error('photo')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="contact_number" class="form-label">Mobile number</label>
+                    <input id="contact_number" name="contact_number" type="tel" inputmode="numeric" maxlength="13" pattern="(09\d{9}|\+?639\d{9})" data-digits
+                           autocomplete="tel" value="{{ old('contact_number', $reporter['contact_number'] ?? '') }}" class="form-input" required placeholder="09171234567">
+                    <p class="form-help">Emergency SMS alerts go to this number. A new number must be verified again below.</p>
+                    @error('contact_number')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Save</button>
+            </form>
+        </details>
+    @endauth
+
+    <x-phone-verification />
     <div class="mt-6 divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white">
         <a href="{{ route('app.reports') }}" class="flex min-h-[3.25rem] items-center justify-between px-4 text-sm font-medium"><span class="flex items-center gap-3"><x-icon name="assignment" class="text-gray-600" /> Your reports</span><x-icon name="chevron_right" class="text-gray-400" /></a>
         <a href="{{ route('app.hotlines') }}" class="flex min-h-[3.25rem] items-center justify-between px-4 text-sm font-medium"><span class="flex items-center gap-3"><x-icon name="call" class="text-gray-600" /> Emergency hotlines</span><x-icon name="chevron_right" class="text-gray-400" /></a>

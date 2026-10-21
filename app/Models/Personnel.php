@@ -6,8 +6,10 @@ use App\Notifications\ResetPasswordNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Personnel extends Authenticatable implements MustVerifyEmail
 {
@@ -78,6 +80,19 @@ class Personnel extends Authenticatable implements MustVerifyEmail
     public function existingPhotoUrl(): ?string
     {
         return $this->photo_path && \App\Support\Files::existsRemembered($this->photo_path) ? $this->photo_url : null;
+    }
+
+    /** Stores $photo as this account's photo, deleting the old file; returns the new path (not saved yet). */
+    public function storePhoto(UploadedFile $photo): string
+    {
+        if ($this->photo_path) {
+            \App\Support\Files::delete($this->photo_path);
+        }
+
+        $filename = sprintf('%s-%d-%s.%s', Str::slug($this->full_name) ?: 'personnel', $this->personnel_id,
+            Str::random(6), $photo->getClientOriginalExtension());
+
+        return $photo->storeAs('personnel', $filename, \App\Support\Files::diskName());
     }
 
     // Laravel's auth system expects "password" — map it to our password_hash column.

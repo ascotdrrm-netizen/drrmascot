@@ -36,6 +36,8 @@ class AppPreviewController extends Controller
                     'campus' => $person->campus?->campus_name ?: 'Campus',
                     'school' => $person->school?->school_name ?: '—',
                     'phone' => $person->contact_number ?: '—',
+                    'contact_number' => $person->contact_number,
+                    'photo' => $person->existingPhotoUrl(),
                     'phone_verified' => $person->phone_verified_at !== null,
                     'email' => $person->email,
                 ],

@@ -4,16 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesCampusScoping;
 use App\Models\ActivityLog;
-use App\Models\Personnel;
 use App\Rules\ValidName;
 use App\Rules\ValidPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -45,11 +41,7 @@ class ProfileController extends Controller
         ];
 
         if ($request->hasFile('photo')) {
-            if ($personnel->photo_path) {
-                \App\Support\Files::delete($personnel->photo_path);
-            }
-
-            $attributes['photo_path'] = $this->storePhoto($request->file('photo'), $personnel);
+            $attributes['photo_path'] = $personnel->storePhoto($request->file('photo'));
         }
 
         $personnel->update($attributes);
@@ -101,24 +93,5 @@ class ProfileController extends Controller
         return redirect()
             ->route("{$this->routePrefix()}.profile.show")
             ->with('status', 'Password changed.');
-    }
-
-    protected function storePhoto(UploadedFile $photo, Personnel $personnel): string
-    {
-        $slug = Str::slug($personnel->full_name);
-
-        if ($slug === '') {
-            $slug = 'personnel';
-        }
-
-        $filename = sprintf(
-            '%s-%d-%s.%s',
-            $slug,
-            $personnel->personnel_id,
-            Str::random(6),
-            $photo->getClientOriginalExtension()
-        );
-
-        return $photo->storeAs('personnel', $filename, \App\Support\Files::diskName());
     }
 }

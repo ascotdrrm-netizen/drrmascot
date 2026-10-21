@@ -157,6 +157,7 @@ Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes,
     Route::post('/email/verification-link', [\App\Http\Controllers\Reporter\ReporterAuthController::class, 'sendOwnVerification'])->middleware('throttle:5,1')->name('email.verification.send');
     Route::get('/app/broadcasts/{broadcast}', [AppPreviewController::class, 'broadcast'])->middleware('role:Reporter')->name('app.broadcasts.show');
     Route::post('/app/notifications/{notification}/open', [\App\Http\Controllers\Reporter\NotificationController::class, 'open'])->middleware('role:Reporter')->name('app.notifications.open');
+    Route::post('/app/me', [\App\Http\Controllers\Reporter\ReporterProfileController::class, 'update'])->middleware(['role:Reporter', 'throttle:10,1'])->name('app.me.update');
 
     Route::middleware('role:Reporter')->prefix('api/reporter')->name('api.reporter.')->group(function () {
         Route::get('/notifications', [\App\Http\Controllers\Reporter\NotificationController::class, 'summary'])->name('notifications');
