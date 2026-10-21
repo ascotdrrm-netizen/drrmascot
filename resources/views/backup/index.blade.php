@@ -26,13 +26,21 @@
             </summary>
             <form method="POST" action="{{ route('admin.backup.privacy-password') }}" data-ajax class="mt-4 grid gap-4 md:grid-cols-3">
                 @csrf
-                @if ($dataPrivacyPasswordConfigured)
-                    <x-password-input name="data_privacy_password" id="current_data_privacy_password" label="Current Data Privacy Password" autocomplete="off" required />
-                @else
-                    <x-password-input name="account_password" id="account_password" label="Your login password" autocomplete="current-password" required />
-                @endif
-                <x-password-input name="new_data_privacy_password" id="new_data_privacy_password" label="New Data Privacy Password" autocomplete="new-password" required />
-                <x-password-input name="new_data_privacy_password_confirmation" id="new_data_privacy_password_confirmation" label="Type it again" autocomplete="new-password" required />
+                {{-- One div per field: x-password-input renders its label, box and notes as
+                     separate elements, which a bare grid would scatter across the columns. --}}
+                <div>
+                    @if ($dataPrivacyPasswordConfigured)
+                        <x-password-input name="data_privacy_password" id="current_data_privacy_password" label="Current Data Privacy Password" autocomplete="off" required />
+                    @else
+                        <x-password-input name="account_password" id="account_password" label="Your login password" autocomplete="current-password" required />
+                    @endif
+                </div>
+                <div>
+                    <x-password-input name="new_data_privacy_password" id="new_data_privacy_password" label="New Data Privacy Password" autocomplete="new-password" required />
+                </div>
+                <div>
+                    <x-password-input name="new_data_privacy_password_confirmation" id="new_data_privacy_password_confirmation" label="Type it again" autocomplete="new-password" required />
+                </div>
                 <div class="md:col-span-3">
                     <p class="form-help mb-3">At least 8 characters, and not the same as your login password. Keep it somewhere safe: it is stored only as a hash and can't be shown again.</p>
                     <button type="submit" class="btn btn-primary">{{ $dataPrivacyPasswordConfigured ? 'Change password' : 'Set password' }}</button>
