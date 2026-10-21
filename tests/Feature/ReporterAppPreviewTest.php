@@ -101,6 +101,11 @@ class ReporterAppPreviewTest extends TestCase
         foreach (['Any email works', 'Recovery email (optional)', 'Mobile number', 'Data Privacy Act', 'Your campus coordinator', 'The DRRMO Admin approves', 'data-no-paste'] as $text) {
             $this->assertStringContainsString($text, $html, $text);
         }
+        // The password meter (UAT 2026-10-22), with its script, as on the staff sign-up.
+        foreach (['data-strength-meter data-for="password"', '8+ characters', 'Uppercase letter', 'Number', 'Symbol', 'data-strength-bar'] as $text) {
+            $this->assertStringContainsString($text, $html, $text);
+        }
+        $this->assertStringContainsString("const fieldId = \"password\"", $html);
 
         $this->get('/app/login')->assertOk()->assertSee('Forgot your email too?')->assertDontSee('aria-label="App"', false);
         $this->get('/app/welcome')->assertOk()->assertSee('Add to Home Screen')->assertSee('beforeinstallprompt', false);

@@ -58,7 +58,10 @@
                 <p class="form-help">If you ever forget the email above, we can find your account with this one.</p>
             </div>
 
-            <x-password-input name="password" label="Password" autocomplete="new-password" required />
+            <x-password-input name="password" label="Password" autocomplete="new-password" required>
+                {{-- The same four checks as the server's ValidPassword rule, ticked as they type. --}}
+                @include('auth._password-strength', ['for' => 'password'])
+            </x-password-input>
             <x-password-input name="password_confirmation" label="Confirm password" autocomplete="new-password" required />
 
             {{-- Data Privacy Act (RA 10173). --}}
