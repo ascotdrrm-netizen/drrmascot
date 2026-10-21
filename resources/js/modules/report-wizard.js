@@ -50,13 +50,16 @@ document.addEventListener('alpine:init', () => {
         get categoryLabel() { return this.categories.find((c) => c.key === this.type)?.label || ''; },
         next() { if (this.step < 3) this.step++; window.scrollTo(0, 0); },
         back() { if (this.step > 0) this.step--; },
-        locate() {
-            if (! navigator.geolocation) { this.gpsText = 'GPS is unavailable. Describe the place below.'; return; }
+        async locate() {
             this.gpsText = 'Finding you…';
-            navigator.geolocation.getCurrentPosition((p) => {
-                this.coords = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) };
-                this.gpsText = 'Location found, accurate to about ' + Math.round(p.coords.accuracy) + ' m.';
-            }, () => { this.gpsText = 'Location was not shared. Describe the place below.'; }, { enableHighAccuracy: true, timeout: 10000 });
+            try {
+                const p = await window.drrmsLocate();
+                this.coords = { lat: p.latitude, lng: p.longitude, accuracy: p.accuracy };
+                this.gpsText = 'Location found, accurate to about ' + p.accuracy + ' m.';
+            } catch (error) {
+                const map = document.querySelector('[data-report-map-open]:not([hidden])');
+                this.gpsText = error.message + (map ? ' Or use Pick on map, or describe the place below.' : ' Or describe the place below.');
+            }
         },
         // From the "Pick on map" dialog (reporter/report.blade.php): the pin is the location.
         pickOnMap(detail) {

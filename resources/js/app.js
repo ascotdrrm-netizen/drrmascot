@@ -3,6 +3,7 @@ import './modules/ajax';
 import './modules/serverless-work';
 import './modules/live';
 import './modules/report-queue';
+import './modules/locate';
 import './modules/report-wizard';
 
 document.addEventListener('ajax:success', function (event) {

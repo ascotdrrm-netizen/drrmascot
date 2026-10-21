@@ -13,6 +13,7 @@
          data-centres='@json($centres)' data-tiles='@json(config("map.layers.street.tiles"))'
          data-hazards='@json($pinned)' data-colours='@json($riskColours)'></div>
     <button type="button" id="locate-me" class="btn btn-secondary mt-3 w-full"><x-icon name="my_location" /> Show where I am</button>
+    <p id="locate-status" class="mt-2 text-sm text-gray-600" aria-live="polite" hidden></p>
 
     <section id="hazard-areas" class="mt-8 scroll-mt-20" data-reporter-hazards>
         <h2 class="section-title">Hazardous areas</h2>
@@ -74,11 +75,16 @@
             if (bounds.length === 1) map.setView(bounds[0], 17);
             else map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 });
             document.getElementById('locate-me').addEventListener('click', function () {
-                if (! navigator.geolocation) return;
-                navigator.geolocation.getCurrentPosition(function (p) {
-                    var here = [p.coords.latitude, p.coords.longitude];
+                var status = document.getElementById('locate-status');
+                status.hidden = false;
+                status.textContent = 'Finding your location…';
+                window.drrmsLocate().then(function (p) {
+                    var here = [p.latitude, p.longitude];
                     L.circleMarker(here, { radius: 8, color: '#3b82f6', weight: 3, fillColor: '#3b82f6', fillOpacity: 0.6 }).addTo(map).bindPopup('You are here').openPopup();
                     map.setView(here, 17);
+                    status.hidden = true;
+                }, function (error) {
+                    status.textContent = error.message;
                 });
             });
         })();

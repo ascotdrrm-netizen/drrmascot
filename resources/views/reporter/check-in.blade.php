@@ -45,13 +45,15 @@ document.addEventListener('alpine:init', function () {
         return {
             answer: opts.existing?.answer || null, note: opts.existing?.note || '', saved: !!opts.existing?.answer,
             sending: false, error: '', coords: null, gpsText: 'Location is shared only if you choose to include it.',
-            locate: function () {
-                if (! navigator.geolocation) { this.gpsText = 'GPS is unavailable. Describe your location in the note.'; return; }
+            locate: async function () {
                 this.gpsText = 'Finding your location…';
-                navigator.geolocation.getCurrentPosition((p) => {
-                    this.coords = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy_m: Math.round(p.coords.accuracy) };
+                try {
+                    var p = await window.drrmsLocate();
+                    this.coords = { latitude: p.latitude, longitude: p.longitude, accuracy_m: p.accuracy };
                     this.gpsText = 'Location ready to share.';
-                }, () => { this.gpsText = 'Location was not shared. You can describe it in the note.'; }, { timeout: 10000, enableHighAccuracy: true });
+                } catch (error) {
+                    this.gpsText = error.message + ' Or describe your location in the note.';
+                }
             },
             save: async function () {
                 if (! this.answer || this.sending) return;

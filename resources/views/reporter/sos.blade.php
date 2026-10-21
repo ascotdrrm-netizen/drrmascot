@@ -78,9 +78,8 @@
                         var self = this;
                         if (navigator.vibrate) navigator.vibrate(200);
                         // Start finding the location now, so it's ready when the countdown ends.
-                        if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(function (p) { self.coords = p.coords; }, function () {}, { enableHighAccuracy: true, timeout: 8000 });
-                        }
+                        // An SOS never waits for it: whatever is found by then goes with it.
+                        window.drrmsLocate().then(function (p) { self.coords = p; }, function () {});
                         this.state = 'counting'; this.seconds = 5;
                         this.timer = setInterval(function () {
                             self.seconds--;
