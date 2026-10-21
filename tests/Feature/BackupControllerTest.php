@@ -19,7 +19,7 @@ class BackupControllerTest extends TestCase
 
     protected const PRIVACY_PASSWORD = 'privacy-secret';
 
-    protected const ZIP_PASSWORD = 'ASCOTDRRMS';
+    protected const ZIP_PASSWORD = 'ASCOTDRRMS2026';
 
     protected Personnel $admin;
 
@@ -152,6 +152,58 @@ class BackupControllerTest extends TestCase
         $restoreResponse->assertSessionHasNoErrors();
 
         $this->assertTrue(Personnel::where('email', 'marker@ascot-test.local')->exists());
+    }
+
+    /** A backup zipped with the password used before ASCOTDRRMS2026 still restores. */
+    public function test_backup_made_with_the_old_zip_password_still_restores(): void
+    {
+        $marker = Personnel::create([
+            'campus_id' => $this->campus->campus_id,
+            'full_name' => 'Old Password Marker',
+            'role' => 'Coordinator',
+            'email' => 'oldzip@ascot-test.local',
+            'password_hash' => Hash::make('password'),
+        ]);
+
+        $downloadResponse = $this->actingAs($this->admin)->post(route('admin.backup.download'), [
+            'data_privacy_password' => self::PRIVACY_PASSWORD,
+        ]);
+        $downloadResponse->assertOk();
+        $path = $downloadResponse->getFile()->getPathname();
+
+        // Re-encrypt every entry with the old password, as an older backup was written.
+        $source = new ZipArchive();
+        $source->open($path);
+        $source->setPassword(self::ZIP_PASSWORD);
+        $entries = [];
+        for ($i = 0; $i < $source->numFiles; $i++) {
+            $entries[$source->getNameIndex($i)] = $source->getFromIndex($i);
+        }
+        $source->close();
+        $oldPath = tempnam(sys_get_temp_dir(), 'test_backup_old_');
+        $old = new ZipArchive();
+        $old->open($oldPath, ZipArchive::OVERWRITE);
+        foreach ($entries as $name => $contents) {
+            $old->addFromString($name, $contents);
+            $old->setEncryptionName($name, ZipArchive::EM_TRAD_PKWARE);
+        }
+        $old->setPassword('ASCOTDRRMS');
+        $old->close();
+        $zipBytes = file_get_contents($oldPath);
+        unlink($oldPath);
+
+        Personnel::where('personnel_id', $marker->personnel_id)->delete();
+
+        $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
+            'mode' => 'everything',
+            'backup_file' => UploadedFile::fake()->createWithContent('ascot-drrms-backup.zip', $zipBytes),
+            'confirmation' => 'RESTORE',
+            'data_privacy_password' => self::PRIVACY_PASSWORD,
+        ]);
+
+        $restoreResponse->assertRedirect(route('admin.backup.index'));
+        $restoreResponse->assertSessionHasNoErrors();
+        $this->assertTrue(Personnel::where('email', 'oldzip@ascot-test.local')->exists());
     }
 
     /**

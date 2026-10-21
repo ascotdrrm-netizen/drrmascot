@@ -127,7 +127,7 @@ class ClearAllRecordsTest extends TestCase
                 $zip->open($absolutePath);
                 $zip->addFromString('data/incidents.jsonl', '');
                 $zip->setEncryptionName('data/incidents.jsonl', \ZipArchive::EM_TRAD_PKWARE);
-                $zip->setPassword('ASCOTDRRMS');
+                $zip->setPassword(\App\Support\Backup\BackupArchive::ZIP_PASSWORD);
                 $zip->close();
 
                 return $manifest;

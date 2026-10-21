@@ -30,7 +30,10 @@ class BackupArchive
      * (anyone with this source knows it): the Data Privacy Password, the typed
      * confirmation and the Admin-only routes are.
      */
-    public const ZIP_PASSWORD = 'ASCOTDRRMS';
+    public const ZIP_PASSWORD = 'ASCOTDRRMS2026';
+
+    /** Passwords earlier backups were written with; still tried when reading one. */
+    public const OLD_ZIP_PASSWORDS = ['ASCOTDRRMS'];
 
     public const FORMAT = 'ascot-drrms-backup';
 
@@ -113,9 +116,11 @@ class BackupArchive
         if ($zip->open($absolutePath) !== true) {
             return null;
         }
-        $zip->setPassword(self::ZIP_PASSWORD);
 
         try {
+            if (! self::unlock($zip)) {
+                return null;
+            }
             if ($zip->locateName(self::MANIFEST) !== false) {
                 $manifest = json_decode((string) self::entry($zip, self::MANIFEST), true);
                 if (! is_array($manifest) || ($manifest['format'] ?? null) !== self::FORMAT) {
@@ -232,7 +237,11 @@ class BackupArchive
         if ($zip->open($absolutePath) !== true) {
             return $result;
         }
-        $zip->setPassword(self::ZIP_PASSWORD);
+        if (! self::unlock($zip)) {
+            $zip->close();
+
+            return $result;
+        }
 
         try {
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -260,6 +269,32 @@ class BackupArchive
         }
 
         return $result;
+    }
+
+    /**
+     * Sets the password the archive was written with: ZIP_PASSWORD, or one of
+     * OLD_ZIP_PASSWORDS for a backup made before it changed. Tried on the
+     * manifest (or, in an old MySQL zip, the first entry); entry()'s CRC check
+     * tells a right password from a wrong one. False when none opens it.
+     */
+    protected static function unlock(ZipArchive $zip): bool
+    {
+        $probe = $zip->locateName(self::MANIFEST) !== false ? self::MANIFEST : null;
+        for ($i = 0; $probe === null && $i < $zip->numFiles; $i++) {
+            $name = (string) $zip->getNameIndex($i);
+            $probe = str_ends_with($name, '/') ? null : $name;
+        }
+        if ($probe === null) {
+            return false;
+        }
+        foreach ([self::ZIP_PASSWORD, ...self::OLD_ZIP_PASSWORDS] as $password) {
+            $zip->setPassword($password);
+            if (self::entry($zip, $probe) !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

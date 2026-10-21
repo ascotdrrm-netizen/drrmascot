@@ -54,7 +54,7 @@
 
                 <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                     <p class="font-medium">This .zip is password-protected with a fixed password:
-                        <span class="font-mono font-semibold">ASCOTDRRMS</span>.</p>
+                        <span class="font-mono font-semibold">ASCOTDRRMS2026</span>.</p>
                     <p>Right-click the downloaded file → Extract All (Windows) or double-click it
                         (macOS Archive Utility) and enter that password when prompted — no extra software needed.
                         This is a fixed, non-secret value built into the app — not a real secret like your Data
@@ -96,7 +96,8 @@
                         <label for="backup_file" class="form-label">Backup file (.zip)</label>
                         <p class="text-sm leading-6 text-gray-600">
                             Accepts the .zip archive produced by Download Backup above (password-protected with
-                            <span class="font-mono">ASCOTDRRMS</span>, unlocked automatically). A backup made before the move to
+                            <span class="font-mono">ASCOTDRRMS2026</span>, unlocked automatically; older ones with
+                            <span class="font-mono">ASCOTDRRMS</span> too). A backup made before the move to
                             Supabase (a .zip or a plain .sql) is still accepted.
                         </p>
                         <input type="file" id="backup_file" name="backup_file" accept=".sql,.zip" required

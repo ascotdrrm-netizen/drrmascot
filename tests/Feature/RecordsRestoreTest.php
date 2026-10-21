@@ -257,7 +257,7 @@ class RecordsRestoreTest extends TestCase
     {
         $zip = new ZipArchive();
         $zip->open(Storage::disk('local')->path($backup->storage_path));
-        $zip->setPassword('ASCOTDRRMS');
+        $zip->setPassword(\App\Support\Backup\BackupArchive::ZIP_PASSWORD);
         $entries = [];
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $entries[$zip->getNameIndex($i)] = $zip->getFromIndex($i);
