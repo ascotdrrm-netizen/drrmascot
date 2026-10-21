@@ -42,7 +42,7 @@ class PasswordResetTest extends TestCase
         $response = $this->post('/forgot-password', ['email' => $this->personnel->email]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('status', 'If that email is registered, a reset link has been sent.');
+        $response->assertSessionHas('status', 'If that email is registered, a reset link has been sent. It works for 60 minutes. If you ask again, only the newest email’s link works.');
 
         Notification::assertSentTo($this->personnel, ResetPasswordNotification::class);
 
@@ -59,7 +59,7 @@ class PasswordResetTest extends TestCase
         $response = $this->post('/forgot-password', ['email' => 'nobody@ascot-test.local']);
 
         $response->assertRedirect();
-        $response->assertSessionHas('status', 'If that email is registered, a reset link has been sent.');
+        $response->assertSessionHas('status', 'If that email is registered, a reset link has been sent. It works for 60 minutes. If you ask again, only the newest email’s link works.');
 
         Notification::assertNothingSent();
 
@@ -154,10 +154,32 @@ class PasswordResetTest extends TestCase
             'password_confirmation' => 'NewPassword1!',
         ]);
 
-        $response->assertSessionHasErrors('email');
+        $response->assertSessionHasErrors(['email' => 'This reset link no longer works: it is over 60 minutes old, was already used, or a newer link was sent after it. Request a new link and open the newest email.']);
 
         $this->personnel->refresh();
         $this->assertTrue(Hash::check('OldPassword1!', $this->personnel->password_hash));
+    }
+
+    /**
+     * UAT 2026-10-21: "This password reset token is invalid." with the button
+     * stuck on "Please wait…". A newer request replaces the older link; the
+     * page says so, always offers a new link, and leaves the AJAX form's
+     * button to ajax.js.
+     */
+    public function test_an_older_link_after_a_newer_request_explains_what_to_do(): void
+    {
+        $older = Password::createToken($this->personnel);
+        $newer = Password::createToken($this->personnel);
+
+        $this->post('/reset-password', ['token' => $older, 'email' => $this->personnel->email,
+            'password' => 'NewPassword1!', 'password_confirmation' => 'NewPassword1!'])
+            ->assertSessionHasErrors(['email' => 'This reset link no longer works: it is over 60 minutes old, was already used, or a newer link was sent after it. Request a new link and open the newest email.']);
+
+        $page = $this->get(route('password.reset', ['token' => $newer, 'email' => $this->personnel->email]))->assertOk();
+        $page->assertSee('Request a new one')->assertSee("e.target.matches('form[data-ajax]')", false);
+
+        $this->post('/reset-password', ['token' => $newer, 'email' => $this->personnel->email,
+            'password' => 'NewPassword1!', 'password_confirmation' => 'NewPassword1!'])->assertRedirect(route('login'));
     }
 
     public function test_a_used_token_cannot_be_reused(): void

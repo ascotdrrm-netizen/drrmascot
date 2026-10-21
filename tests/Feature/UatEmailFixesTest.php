@@ -53,6 +53,6 @@ class UatEmailFixesTest extends TestCase
 
         $this->from('/forgot-password')->post('/forgot-password', ['email' => 'someone@example.com'])
             ->assertRedirect('/forgot-password')
-            ->assertSessionHas('status', 'If that email is registered, a reset link has been sent.');
+            ->assertSessionHas('status', 'If that email is registered, a reset link has been sent. It works for 60 minutes. If you ask again, only the newest email’s link works.');
     }
 }

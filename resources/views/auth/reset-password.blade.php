@@ -31,10 +31,9 @@
         </button>
     </form>
 
-    @if ($errors->any())
-        <p class="mt-6 text-center text-sm text-gray-500">
-            Link expired or already used?
-            <a href="{{ route('password.request') }}" class="link">Request a new one</a>
-        </p>
-    @endif
+    {{-- Always shown: an error from the form (sent without reloading) never re-renders this page. --}}
+    <p class="mt-6 text-center text-sm text-gray-500">
+        Link expired or already used?
+        <a href="{{ route('password.request') }}" class="link">Request a new one</a>
+    </p>
 @endsection

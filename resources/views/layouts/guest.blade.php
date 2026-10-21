@@ -158,8 +158,11 @@
     <script>
         // Prevent double submits on login/register/password forms: disable the
         // button and swap its text. No spinner here (auth pages: fades only).
+        // A data-ajax form is left to resources/js/modules/ajax.js, which keeps
+        // its own busy state: changing the text here first made it "restore"
+        // the button to "Please wait…" after an error, stuck there.
         document.addEventListener('submit', function (e) {
-            if (e.defaultPrevented) return;
+            if (e.defaultPrevented || e.target.matches('form[data-ajax]')) return;
             var button = e.submitter || e.target.querySelector('button[type="submit"]');
             if (! button || button.disabled) return;
             button.dataset.originalText = button.textContent;

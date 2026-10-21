@@ -57,7 +57,7 @@ class PasswordResetController extends Controller
         // Always the same message regardless of whether the email matched an
         // account, so this endpoint can't be used to enumerate registered
         // accounts by observing a different response.
-        return back()->with('status', 'If that email is registered, a reset link has been sent.');
+        return back()->with('status', 'If that email is registered, a reset link has been sent. It works for 60 minutes. If you ask again, only the newest email’s link works.');
     }
 
     public function showResetForm(Request $request, string $token): View
@@ -99,8 +99,12 @@ class PasswordResetController extends Controller
         );
 
         if ($status !== Password::PASSWORD_RESET) {
+            // Only the newest link works, for 60 minutes, once. Say so and
+            // what to do, the same for an unknown email (no account hints).
             throw ValidationException::withMessages([
-                'email' => [__($status)],
+                'email' => [in_array($status, [Password::INVALID_TOKEN, Password::INVALID_USER], true)
+                    ? 'This reset link no longer works: it is over 60 minutes old, was already used, or a newer link was sent after it. Request a new link and open the newest email.'
+                    : __($status)],
             ]);
         }
 
