@@ -34,6 +34,7 @@
         <env name="DB_DATABASE" value=":memory:" force="false"/>
         <env name="DB_URL" value=""/>
         <env name="FILES_DISK" value="records"/>
+        <env name="MAP_PDF_ENABLED" value="false"/>
         <env name="SMS_GATEWAY" value="log"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

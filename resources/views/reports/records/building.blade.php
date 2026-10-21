@@ -30,6 +30,7 @@
                 <div class="field-value">
                     @if ($building->hasLocation())
                         {{ $building->latitude }}, {{ $building->longitude }}
+                        <x-pdf.location-map :latitude="$building->latitude" :longitude="$building->longitude" />
                     @else
                         <span class="not-specified">Not specified</span>
                     @endif

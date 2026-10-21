@@ -73,6 +73,26 @@ return [
         ],
     ],
 
+    /*
+    | The map image under "Geo-tagged location" in the incident, building and
+    | inspection PDFs (App\Support\StaticMap). A few OpenStreetMap street tiles
+    | per PDF, cached, with an identifying User-Agent (OpenStreetMap's tile
+    | usage policy) and its credit printed under the image. MAP_PDF_ENABLED=false
+    | leaves the coordinates alone, as the tests do.
+    */
+    'pdf' => [
+        'enabled' => (bool) env('MAP_PDF_ENABLED', true),
+        'tile_url' => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'attribution' => '© OpenStreetMap contributors',
+        'user_agent' => 'ASCOT-DRRMS/1.0 (Aurora State College of Technology DRRM Office)',
+        // 16 shows the nearby roads, rivers and names; 17 is often bare outside town.
+        'zoom' => 16,
+        'width' => 640,
+        'height' => 260,
+        'timeout_seconds' => 6,
+        'cache_days' => 30,
+    ],
+
     // Where a record with no saved pin and no known campus opens: the whole of
     // Aurora province (APPROXIMATE bounds, [[south, west], [north, east]]).
     // Also biases place search towards the province.

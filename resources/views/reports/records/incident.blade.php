@@ -26,6 +26,7 @@
                 <div class="field-value">
                     @if ($incident->hasLocation())
                         {{ $incident->latitude }}, {{ $incident->longitude }}
+                        <x-pdf.location-map :latitude="$incident->latitude" :longitude="$incident->longitude" />
                     @else
                         <span class="not-specified">Not specified</span>
                     @endif

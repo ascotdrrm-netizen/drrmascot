@@ -33,6 +33,11 @@
                 </div>
             </td>
         </tr>
+        @if ($inspection->hasLocation())
+            <tr>
+                <td class="field-wide" colspan="2"><x-pdf.location-map :latitude="$inspection->latitude" :longitude="$inspection->longitude" /></td>
+            </tr>
+        @endif
         <tr>
             <td class="field-wide" colspan="2">
                 <div class="field-label">Findings / Recommendations</div>
