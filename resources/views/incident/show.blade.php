@@ -8,7 +8,7 @@
 @endsection
 
 @section('actions')
-    <a href="{{ route("{$routePrefix}.incidents.report", $incident) }}" data-confirm="Download a PDF report of this incident and its damage reports?" class="btn btn-secondary">Download PDF</a>
+    <x-download-pdf :href="route($routePrefix . '.incidents.report', $incident)" confirm="Download a PDF report of this incident and its damage reports?" />
     <a href="{{ route("{$routePrefix}.incidents.edit", $incident) }}" class="btn btn-primary">Edit incident</a>
     <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.incidents.destroy", $incident) }}" data-confirm-form="This moves the incident, with its damage reports and alerts, to Trash. You can restore it from there, photo included." data-confirm-title="Move to Trash?" data-confirm-button="Move to Trash" data-confirm-tone="danger" data-confirm-focus="cancel">
         @csrf
@@ -229,7 +229,7 @@
                             {{-- Alerts have no school of their own: they're attributed via their incident. --}}
                             <td class="table-td text-gray-600">{{ $incident->school->school_name ?? '—' }}</td>
                             <td class="table-td text-right">
-                                <a href="{{ route("{$routePrefix}.incidents.alerts.report", [$incident, $alert]) }}" data-confirm="Download this report?" class="link-muted">Download PDF</a>
+                                <x-download-pdf :href="route($routePrefix . '.incidents.alerts.report', [$incident, $alert])" confirm="Download the PDF report of this alert?" small />
                             </td>
                         </tr>
                     @empty

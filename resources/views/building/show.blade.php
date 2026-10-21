@@ -8,7 +8,7 @@
 @endsection
 
 @section('actions')
-    <a href="{{ route("{$routePrefix}.buildings.report", $building) }}" data-confirm="Download a PDF report of this building/area and its inspections?" class="btn btn-secondary">Download PDF</a>
+    <x-download-pdf :href="route($routePrefix . '.buildings.report', $building)" confirm="Download a PDF report of this building/area and its inspections?" />
     <a href="{{ route("{$routePrefix}.buildings.edit", $building) }}" class="btn btn-primary">Edit Building/Area</a>
 @endsection
 
@@ -96,7 +96,7 @@
                     @endif
 
                     <div data-tap-row class="mt-auto flex flex-wrap items-center gap-x-4 border-t border-gray-100 pt-4">
-                        <a href="{{ route("{$routePrefix}.buildings.inspections.report", [$building, $inspection]) }}" data-confirm="Download a PDF report of this inspection?" class="link-muted text-sm">Download PDF</a>
+                        <x-download-pdf :href="route($routePrefix . '.buildings.inspections.report', [$building, $inspection])" confirm="Download a PDF report of this inspection?" small />
                         <a href="{{ route("{$routePrefix}.buildings.inspections.edit", [$building, $inspection]) }}" class="link text-sm">Edit</a>
                         <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.buildings.inspections.destroy", [$building, $inspection]) }}" data-confirm-form="This permanently deletes the inspection of {{ $inspection->inspection_date->format('M d, Y') }}, including its photo. It cannot be undone." data-confirm-title="Delete inspection?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
                             @csrf
@@ -145,7 +145,7 @@
                                     <td class="table-td text-gray-600">{{ \Illuminate\Support\Str::limit($inspection->findings ?? 'No findings recorded.', 80) }}</td>
                                     <td class="table-td">
                                         <div class="table-actions">
-                                            <a href="{{ route("{$routePrefix}.buildings.inspections.report", [$building, $inspection]) }}" data-confirm="Download a PDF report of this inspection?" class="link-muted">Download PDF</a>
+                                            <x-download-pdf :href="route($routePrefix . '.buildings.inspections.report', [$building, $inspection])" confirm="Download a PDF report of this inspection?" small />
                                             <a href="{{ route("{$routePrefix}.buildings.inspections.edit", [$building, $inspection]) }}" class="link">Edit</a>
                                             <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.buildings.inspections.destroy", [$building, $inspection]) }}" data-confirm-form="This permanently deletes the inspection of {{ $inspection->inspection_date->format('M d, Y') }}, including its photo. It cannot be undone." data-confirm-title="Delete inspection?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
                                                 @csrf

@@ -107,7 +107,7 @@
                 </div>
                 @if ($doc)
                     <div class="toolbar">
-                        <a href="{{ route("{$routePrefix}.drills.documentation.pdf", $drill) }}" data-confirm="Download this drill’s documentation as a PDF?" class="btn btn-secondary btn-sm">Download PDF</a>
+                        <x-download-pdf :href="route($routePrefix . '.drills.documentation.pdf', $drill)" confirm="Download this drill’s documentation as a PDF?" small />
                         <a href="{{ route("{$routePrefix}.drills.documentation.edit", $drill) }}" class="btn btn-secondary btn-sm">Edit</a>
                     </div>
                 @endif
@@ -144,7 +144,7 @@
                 </div>
                 @if ($aar)
                     <div class="toolbar">
-                        <a href="{{ route("{$routePrefix}.drills.after-activity.pdf", $drill) }}" data-confirm="Download this After Activity Report as a PDF?" class="btn btn-secondary btn-sm">Download PDF</a>
+                        <x-download-pdf :href="route($routePrefix . '.drills.after-activity.pdf', $drill)" confirm="Download this After Activity Report as a PDF?" small />
                         <a href="{{ route("{$routePrefix}.drills.after-activity.edit", $drill) }}" class="btn btn-secondary btn-sm">Edit</a>
                     </div>
                 @endif

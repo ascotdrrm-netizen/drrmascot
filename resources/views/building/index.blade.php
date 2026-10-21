@@ -62,7 +62,7 @@
                     @endif
 
                     <div data-tap-row class="mt-auto flex flex-wrap items-center gap-x-4 border-t border-gray-100 pt-4">
-                        <a href="{{ route("{$routePrefix}.buildings.report", $building) }}" data-confirm="Download a PDF report of this building/area and its inspections?" class="link-muted text-sm">Download PDF</a>
+                        <x-download-pdf :href="route($routePrefix . '.buildings.report', $building)" confirm="Download a PDF report of this building/area and its inspections?" small />
                         <a href="{{ route("{$routePrefix}.buildings.edit", $building) }}" class="link text-sm">Edit</a>
                         {{-- Shared by the campus: only whoever added it, or the Admin, may trash it. --}}
                         @if (\App\Support\RecordAccess::canTrashBuilding($building, Auth::user()))
@@ -119,7 +119,7 @@
                                     @endif
                                     <td class="table-td">
                                         <div class="table-actions">
-                                            <a href="{{ route("{$routePrefix}.buildings.report", $building) }}" data-confirm="Download a PDF report of this building/area and its inspections?" class="link-muted">Download PDF</a>
+                                            <x-download-pdf :href="route($routePrefix . '.buildings.report', $building)" confirm="Download a PDF report of this building/area and its inspections?" small />
                                             <a href="{{ route("{$routePrefix}.buildings.edit", $building) }}" class="link">Edit</a>
                                             @if (\App\Support\RecordAccess::canTrashBuilding($building, Auth::user()))
                                                 <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.buildings.destroy", $building) }}" data-confirm-form="This moves {{ $building->building_name }} and its inspections to Trash. You can restore it from there, photo included." data-confirm-title="Move to Trash?" data-confirm-button="Move to Trash" data-confirm-tone="danger" data-confirm-focus="cancel">

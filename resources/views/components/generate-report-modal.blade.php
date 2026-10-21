@@ -170,6 +170,7 @@
             <div class="flex flex-col gap-4 border-t border-gray-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-sm text-gray-600">Prints on the ASCOT letterhead. Use the {{ $narrowBy }} above to narrow it.</p>
                 <button type="submit" data-format="pdf" formaction="{{ route('reports.module.pdf', $firstModule) }}" class="btn btn-primary shrink-0">
+                    <x-icon name="download" class="h-5 w-5 shrink-0" />
                     Download PDF
                 </button>
             </div>

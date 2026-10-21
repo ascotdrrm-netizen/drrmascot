@@ -12,7 +12,7 @@
 @endsection
 
 @section('actions')
-    <a href="{{ route('reports.consolidated.pdf', $filters) }}" data-confirm="Download this summary as a PDF?" class="btn btn-secondary">Download PDF</a>
+    <x-download-pdf :href="route('reports.consolidated.pdf', $filters)" confirm="Download this summary as a PDF?" />
 @endsection
 
 @section('content')

@@ -9,7 +9,7 @@
 @endsection
 
 @section('actions')
-    <a href="{{ route('admin.personnel.report') }}" data-confirm="Download a PDF list of these accounts?" class="btn btn-secondary">Download PDF</a>
+    <x-download-pdf :href="route('admin.personnel.report')" confirm="Download a PDF list of these accounts?" />
 @endsection
 
 @section('content')
