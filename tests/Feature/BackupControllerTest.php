@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Models\Backup;
 use App\Models\Campus;
 use App\Models\Personnel;
+use App\Support\Backup\BackupArchive;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\BackupZips;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -72,10 +74,13 @@ class BackupControllerTest extends TestCase
         $zip = new ZipArchive();
         $this->assertTrue($zip->open($path) === true, 'Opening the zip STRUCTURE (no password needed to list entries) should succeed.');
 
-        // One manifest plus one rows file per table; the personnel rows are what we read below.
-        $this->assertNotFalse($zip->locateName('manifest.json'));
-        $entryName = 'data/personnel.jsonl';
-        $this->assertNotFalse($zip->locateName($entryName), 'Expected the personnel table inside the archive.');
+        // Listing the zip shows ONE locked entry and nothing of what it holds:
+        // no manifest, no table names.
+        $this->assertSame(1, $zip->numFiles);
+        $entryName = BackupArchive::INNER;
+        $this->assertSame($entryName, $zip->getNameIndex(0));
+        $this->assertFalse($zip->locateName('manifest.json'));
+        $this->assertFalse($zip->locateName('data/personnel.jsonl'));
 
         // Must genuinely be ZipCrypto (EM_TRAD_PKWARE = 1), not AES-256 (EM_AES_256 =
         // 259) — this is the whole point of this change: universal native-tool support.
@@ -100,19 +105,21 @@ class BackupControllerTest extends TestCase
         $leaked = (string) $wrong->getFromName($entryName);
         $wrong->close();
         @unlink($copy);
-        $this->assertStringNotContainsString('admin@ascot-test.local', $leaked, 'A wrong ZIP password must not reveal the rows.');
+        $this->assertStringNotContainsString('personnel', $leaked, 'A wrong ZIP password must not reveal the contents.');
 
-        // With the correct fixed password: one JSON row per line, readable as is.
+        $this->assertFalse($zip->getFromName($entryName), 'Reading the entry WITHOUT the ZIP password must fail.');
         $zip->setPassword(self::ZIP_PASSWORD);
-        $contents = $zip->getFromName($entryName);
-        $this->assertNotFalse($contents, 'Reading the entry WITH the correct ZIP password must succeed.');
-        $emails = array_column(array_map(fn ($l) => json_decode($l, true), array_filter(explode("\n", $contents))), 'email');
+        $this->assertNotFalse($zip->getFromName($entryName), 'Reading the entry WITH the correct ZIP password must succeed.');
+        $zip->close();
+
+        // Inside: one JSON row per line, readable as is.
+        $entries = BackupZips::entries($path);
+        $emails = array_column(array_map(fn ($l) => json_decode($l, true), array_filter(explode("\n", $entries['data/personnel.jsonl']))), 'email');
         $this->assertContains('admin@ascot-test.local', $emails);
-        $manifest = json_decode($zip->getFromName('manifest.json'), true);
+        $manifest = json_decode($entries['manifest.json'], true);
         $this->assertSame('ascot-drrms-backup', $manifest['format']);
         $this->assertSame(2, $manifest['tables']['personnel']);
 
-        $zip->close();
         unlink($path);
     }
 
@@ -171,15 +178,9 @@ class BackupControllerTest extends TestCase
         $downloadResponse->assertOk();
         $path = $downloadResponse->getFile()->getPathname();
 
-        // Re-encrypt every entry with the old password, as an older backup was written.
-        $source = new ZipArchive();
-        $source->open($path);
-        $source->setPassword(self::ZIP_PASSWORD);
-        $entries = [];
-        for ($i = 0; $i < $source->numFiles; $i++) {
-            $entries[$source->getNameIndex($i)] = $source->getFromIndex($i);
-        }
-        $source->close();
+        // Lay the contents out as an older backup was written: every entry at the
+        // top level, each locked with the old password.
+        $entries = BackupZips::entries($path);
         $oldPath = tempnam(sys_get_temp_dir(), 'test_backup_old_');
         $old = new ZipArchive();
         $old->open($oldPath, ZipArchive::OVERWRITE);
@@ -513,7 +514,7 @@ class BackupControllerTest extends TestCase
         // The stored copy must be the same password-protected format as the download.
         $storedZip = new ZipArchive();
         $storedZip->open(Storage::disk('local')->path($backup->storage_path));
-        $entryName = 'manifest.json';
+        $entryName = BackupArchive::INNER;
         $this->assertNotFalse($storedZip->locateName($entryName));
         $this->assertFalse($storedZip->getFromName($entryName), 'Stored copy must also be password-protected.');
         $storedZip->setPassword(self::ZIP_PASSWORD);
@@ -587,7 +588,7 @@ class BackupControllerTest extends TestCase
         $path = $storedDownload->getFile()->getPathname();
         $zip = new ZipArchive();
         $zip->open($path);
-        $entryName = 'manifest.json';
+        $entryName = BackupArchive::INNER;
         $this->assertNotFalse($zip->locateName($entryName));
 
         // The stored copy must use the same EM_TRAD_PKWARE (ZipCrypto) format as the

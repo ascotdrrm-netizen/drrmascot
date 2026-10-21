@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\BackupZips;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -300,24 +301,18 @@ class BackupSnapshotTest extends TestCase
     /** Replace a table's rows in a copy with $count copies of its first row. */
     protected function setRows(string $path, string $table, int $count): void
     {
-        $zip = new ZipArchive();
-        $zip->open($path);
-        $zip->setPassword(BackupArchive::ZIP_PASSWORD);
-        $first = strtok((string) $zip->getFromName("data/{$table}.jsonl"), "\n");
-        $zip->addFromString("data/{$table}.jsonl", $count ? str_repeat($first . "\n", $count) : '');
-        $zip->setEncryptionName("data/{$table}.jsonl", ZipArchive::EM_TRAD_PKWARE);
-        $zip->close();
+        BackupZips::rewrite($path, function (ZipArchive $zip) use ($table, $count) {
+            $first = strtok((string) $zip->getFromName("data/{$table}.jsonl"), "\n");
+            $zip->addFromString("data/{$table}.jsonl", $count ? str_repeat($first . "\n", $count) : '');
+        });
     }
 
     protected function rewriteManifest(string $path, \Closure $change): void
     {
-        $zip = new ZipArchive();
-        $zip->open($path);
-        $zip->setPassword(BackupArchive::ZIP_PASSWORD);
-        $manifest = $change(json_decode($zip->getFromName('manifest.json'), true));
-        $zip->addFromString('manifest.json', json_encode($manifest));
-        $zip->setEncryptionName('manifest.json', ZipArchive::EM_TRAD_PKWARE);
-        $zip->close();
+        BackupZips::rewrite($path, function (ZipArchive $zip) use ($change) {
+            $manifest = $change(json_decode($zip->getFromName('manifest.json'), true));
+            $zip->addFromString('manifest.json', json_encode($manifest));
+        });
     }
 
     /** Runs $run with the default database pointing at a server that isn't there. */

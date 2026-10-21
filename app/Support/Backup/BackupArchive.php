@@ -8,8 +8,11 @@ use RuntimeException;
 use ZipArchive;
 
 /**
- * An ASCOT-DRRMS backup file: a password-protected .zip that opens with
- * Windows' own "Extract All" (ZipCrypto; see ZIP_PASSWORD), holding
+ * An ASCOT-DRRMS backup file: a .zip holding ONE password-protected entry,
+ * INNER (ZipCrypto, so Windows' own "Extract All" opens it; see ZIP_PASSWORD).
+ * A zip never hides its entry names, so the tables sit inside that one locked
+ * entry: opening the backup shows a single name, and nothing more until the
+ * password is given. INNER is a plain zip holding
  *
  *   manifest.json           what it is, when, from which database, and the
  *                           row count of every table (and the files' sizes)
@@ -17,8 +20,9 @@ use ZipArchive;
  *   files/<disk>/<path>     uploaded record files (Clear All Records' copy only)
  *
  * The same on every database, so a backup taken on Supabase restores into the
- * test database and back. Backups made before the move to Supabase (a .zip
- * with one MySQL .sql file, or a plain .sql) are still read: their INSERT
+ * test database and back. Older backups are still read: those entries locked
+ * one by one at the top level (no INNER), and those made before the move to
+ * Supabase (a .zip with one MySQL .sql file, or a plain .sql), whose INSERT
  * statements become rows the same way (App\Support\Backup\LegacySql).
  */
 class BackupArchive
@@ -41,6 +45,9 @@ class BackupArchive
 
     public const MANIFEST = 'manifest.json';
 
+    /** The one locked entry of a backup zip, holding all of its contents. */
+    public const INNER = 'ascot-drrms-backup.zip';
+
     /**
      * Writes the archive to $absolutePath and returns its manifest.
      *
@@ -52,6 +59,46 @@ class BackupArchive
             throw new RuntimeException("This server's PHP zip extension does not support ZIP encryption.");
         }
 
+        $innerPath = tempnam(sys_get_temp_dir(), 'drrms_backup_');
+        try {
+            $manifest = self::writeContents($innerPath, $files);
+            self::lock($innerPath, $absolutePath);
+        } catch (\Throwable $e) {
+            if (is_file($absolutePath)) {
+                @unlink($absolutePath);
+            }
+            throw $e;
+        } finally {
+            @unlink($innerPath);
+        }
+
+        return $manifest;
+    }
+
+    /** Writes $absolutePath as the outer zip: $innerPath as its one locked entry, INNER. */
+    protected static function lock(string $innerPath, string $absolutePath): void
+    {
+        $zip = new ZipArchive();
+        $open = $zip->open($absolutePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($open !== true) {
+            throw new RuntimeException("Unable to create the backup archive at {$absolutePath} (ZipArchive error code: {$open}).");
+        }
+        self::add($zip, self::INNER, fn () => $zip->addFile($innerPath, self::INNER));
+        $zip->setCompressionName(self::INNER, ZipArchive::CM_STORE); // already compressed
+        $zip->setPassword(self::ZIP_PASSWORD);
+        if (! $zip->close()) {
+            throw new RuntimeException('The backup archive could not be finished: ' . $zip->getStatusString());
+        }
+    }
+
+    /**
+     * Writes the backup's contents (manifest, tables, files) as a plain zip
+     * at $absolutePath, the entry that lock() then protects.
+     *
+     * @param  list<array{0: string, 1: string, 2?: int}>  $files
+     */
+    protected static function writeContents(string $absolutePath, array $files): array
+    {
         $exported = DataSet::exportToFiles();
         $zip = new ZipArchive();
         $open = $zip->open($absolutePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
@@ -71,7 +118,7 @@ class BackupArchive
                 'files' => [],
             ];
             foreach ($exported as $table => [$path, $rows]) {
-                self::add($zip, "data/{$table}.jsonl", fn () => $zip->addFile($path, "data/{$table}.jsonl"));
+                self::put($zip, "data/{$table}.jsonl", fn () => $zip->addFile($path, "data/{$table}.jsonl"));
                 $manifest['tables'][$table] = $rows;
             }
             foreach ($files as $file) {
@@ -80,27 +127,72 @@ class BackupArchive
                 if ($bytes === null) {
                     throw new RuntimeException("Could not read {$path} to add it to the backup.");
                 }
-                self::add($zip, "files/{$disk}/{$path}", fn () => $zip->addFromString("files/{$disk}/{$path}", $bytes));
+                self::put($zip, "files/{$disk}/{$path}", fn () => $zip->addFromString("files/{$disk}/{$path}", $bytes));
                 $manifest['files'][] = ['disk' => $disk, 'path' => $path, 'bytes' => strlen($bytes)];
             }
             $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            self::add($zip, self::MANIFEST, fn () => $zip->addFromString(self::MANIFEST, $json));
+            self::put($zip, self::MANIFEST, fn () => $zip->addFromString(self::MANIFEST, $json));
 
-            $zip->setPassword(self::ZIP_PASSWORD);
             if (! $zip->close()) {
                 throw new RuntimeException('The backup archive could not be finished: ' . $zip->getStatusString());
             }
         } catch (\Throwable $e) {
             @$zip->close();
-            if (is_file($absolutePath)) {
-                @unlink($absolutePath);
-            }
             throw $e;
         } finally {
             self::cleanup($exported);
         }
 
         return $manifest;
+    }
+
+    /**
+     * Opens a backup for reading: the zip holding its entries (INNER, copied
+     * to a temporary file, for a current backup; the file itself, for an older
+     * one), with its password set. Null when it can't be opened or no known
+     * password opens it. The caller closes the zip and deletes the temp file.
+     *
+     * @return array{0: ZipArchive, 1: ?string}|null [zip, temp file to delete]
+     */
+    protected static function openContents(string $absolutePath): ?array
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($absolutePath) !== true) {
+            return null;
+        }
+        if (! self::unlock($zip)) {
+            $zip->close();
+
+            return null;
+        }
+        if ($zip->numFiles !== 1 || $zip->getNameIndex(0) !== self::INNER) {
+            return [$zip, null];
+        }
+
+        $bytes = self::entry($zip, self::INNER);
+        $zip->close();
+        if ($bytes === null) {
+            return null;
+        }
+        $temp = tempnam(sys_get_temp_dir(), 'drrms_restore_');
+        file_put_contents($temp, $bytes);
+        $inner = new ZipArchive();
+        if ($inner->open($temp) !== true) {
+            @unlink($temp);
+
+            return null;
+        }
+
+        return [$inner, $temp];
+    }
+
+    /** Closes what openContents() opened. */
+    protected static function closeContents(ZipArchive $zip, ?string $temp): void
+    {
+        $zip->close();
+        if ($temp !== null) {
+            @unlink($temp);
+        }
     }
 
     /**
@@ -112,15 +204,13 @@ class BackupArchive
      */
     public static function read(string $absolutePath): ?array
     {
-        $zip = new ZipArchive();
-        if ($zip->open($absolutePath) !== true) {
+        $opened = self::openContents($absolutePath);
+        if ($opened === null) {
             return null;
         }
+        [$zip, $temp] = $opened;
 
         try {
-            if (! self::unlock($zip)) {
-                return null;
-            }
             if ($zip->locateName(self::MANIFEST) !== false) {
                 $manifest = json_decode((string) self::entry($zip, self::MANIFEST), true);
                 if (! is_array($manifest) || ($manifest['format'] ?? null) !== self::FORMAT) {
@@ -150,7 +240,7 @@ class BackupArchive
 
             return null;
         } finally {
-            $zip->close();
+            self::closeContents($zip, $temp);
         }
     }
 
@@ -205,8 +295,7 @@ class BackupArchive
 
         if ($files) {
             $sizes = collect($read['manifest']['files'] ?? [])->mapWithKeys(fn ($f) => [$f['disk'] . ':' . $f['path'] => $f['bytes']]);
-            $zip = new ZipArchive();
-            $zip->open($absolutePath);
+            [$zip, $temp] = self::openContents($absolutePath) ?? throw new RuntimeException(basename($absolutePath) . ' could not be opened.');
             try {
                 foreach ($files as [$disk, $path, $bytes]) {
                     $stat = $zip->statName("files/{$disk}/{$path}");
@@ -215,7 +304,7 @@ class BackupArchive
                     }
                 }
             } finally {
-                $zip->close();
+                self::closeContents($zip, $temp);
             }
         }
 
@@ -233,15 +322,11 @@ class BackupArchive
     public static function restoreFiles(string $absolutePath, callable $target): array
     {
         $result = ['restored' => 0, 'refused' => []];
-        $zip = new ZipArchive();
-        if ($zip->open($absolutePath) !== true) {
+        $opened = self::openContents($absolutePath);
+        if ($opened === null) {
             return $result;
         }
-        if (! self::unlock($zip)) {
-            $zip->close();
-
-            return $result;
-        }
+        [$zip, $temp] = $opened;
 
         try {
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -265,7 +350,7 @@ class BackupArchive
                 }
             }
         } finally {
-            $zip->close();
+            self::closeContents($zip, $temp);
         }
 
         return $result;
@@ -274,8 +359,9 @@ class BackupArchive
     /**
      * Sets the password the archive was written with: ZIP_PASSWORD, or one of
      * OLD_ZIP_PASSWORDS for a backup made before it changed. Tried on the
-     * manifest (or, in an old MySQL zip, the first entry); entry()'s CRC check
-     * tells a right password from a wrong one. False when none opens it.
+     * manifest of an older backup, else the first entry (INNER, or an old
+     * MySQL zip's dump); entry()'s CRC check tells a right password from a
+     * wrong one. False when none opens it.
      */
     protected static function unlock(ZipArchive $zip): bool
     {
@@ -321,6 +407,14 @@ class BackupArchive
     {
         if (! $adder() || ! $zip->setEncryptionName($entry, ZipArchive::EM_TRAD_PKWARE)) {
             throw new RuntimeException("Could not add {$entry} to the backup archive with encryption.");
+        }
+    }
+
+    /** Adds an entry to the (unencrypted) contents zip. */
+    protected static function put(ZipArchive $zip, string $entry, callable $adder): void
+    {
+        if (! $adder()) {
+            throw new RuntimeException("Could not add {$entry} to the backup archive.");
         }
     }
 

@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\BackupZips;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -255,16 +256,7 @@ class RecordsRestoreTest extends TestCase
     /** Every entry of a stored backup, read with its password: name => contents. */
     protected function entriesOf(Backup $backup): array
     {
-        $zip = new ZipArchive();
-        $zip->open(Storage::disk('local')->path($backup->storage_path));
-        $zip->setPassword(\App\Support\Backup\BackupArchive::ZIP_PASSWORD);
-        $entries = [];
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $entries[$zip->getNameIndex($i)] = $zip->getFromIndex($i);
-        }
-        $zip->close();
-
-        return $entries;
+        return BackupZips::entries(Storage::disk('local')->path($backup->storage_path));
     }
 
     /** An uploaded .zip holding exactly $entries (name => contents). */

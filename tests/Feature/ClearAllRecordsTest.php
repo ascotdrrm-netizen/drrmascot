@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\BackupZips;
 use Tests\TestCase;
 
 /**
@@ -123,12 +124,7 @@ class ClearAllRecordsTest extends TestCase
             protected function writeArchive(string $absolutePath, array $files): array
             {
                 $manifest = parent::writeArchive($absolutePath, $files);
-                $zip = new \ZipArchive();
-                $zip->open($absolutePath);
-                $zip->addFromString('data/incidents.jsonl', '');
-                $zip->setEncryptionName('data/incidents.jsonl', \ZipArchive::EM_TRAD_PKWARE);
-                $zip->setPassword(\App\Support\Backup\BackupArchive::ZIP_PASSWORD);
-                $zip->close();
+                BackupZips::rewrite($absolutePath, fn (\ZipArchive $zip) => $zip->addFromString('data/incidents.jsonl', ''));
 
                 return $manifest;
             }
@@ -306,13 +302,11 @@ class ClearAllRecordsTest extends TestCase
         $backup = $this->preClearBackups()->sole();
 
         // The pre-clear zip carries every record file under files/<disk>/<path>.
-        $zip = new \ZipArchive();
-        $zip->open(Storage::disk('local')->path($backup->storage_path));
+        $entries = BackupZips::entries(Storage::disk('local')->path($backup->storage_path));
         foreach (array_keys($bytes) as $key) {
             [$disk, $path] = explode(':', $key, 2);
-            $this->assertNotFalse($zip->statName("files/$disk/$path"), "$key is in the zip");
+            $this->assertArrayHasKey("files/$disk/$path", $entries, "$key is in the zip");
         }
-        $zip->close();
 
         $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
             'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD,

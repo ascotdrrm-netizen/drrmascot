@@ -65,9 +65,9 @@
                         <span class="font-mono font-semibold">ASCOTDRRMS2026</span>.</p>
                     <p>Right-click the downloaded file → Extract All (Windows) or double-click it
                         (macOS Archive Utility) and enter that password when prompted — no extra software needed.
-                        This is a fixed, non-secret value built into the app — not a real secret like your Data
-                        Privacy Password — so still store the downloaded file somewhere access-controlled and
-                        delete it when you no longer need it.</p>
+                        Inside is <span class="font-mono">ascot-drrms-backup.zip</span>, which holds the data.
+                        The password is the same for every backup and is built into the app, so still store the
+                        downloaded file somewhere access-controlled and delete it when you no longer need it.</p>
                 </div>
 
                 <form method="POST" action="{{ route('admin.backup.download') }}" data-confirm-form="Download this backup archive?" class="space-y-4">
