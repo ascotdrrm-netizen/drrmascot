@@ -60,7 +60,7 @@
         <div class="px-2 py-1"><x-theme-toggle label /></div>
     </div>
     @auth
-        <form method="POST" action="{{ route('logout') }}" class="mt-6">@csrf<button type="submit" class="btn btn-secondary w-full"><x-icon name="logout" /> Log out</button></form>
+        <form method="POST" action="{{ route('logout') }}" class="mt-6" data-confirm-form="You'll need to sign in again to send reports or an SOS from this phone." data-confirm-title="Log out?" data-confirm-button="Log out" data-confirm-focus="cancel">@csrf<button type="submit" class="btn btn-secondary w-full"><x-icon name="logout" /> Log out</button></form>
     @endauth
     <p class="mt-6 text-center text-xs text-gray-600">Your location is only sent when you press SOS, send a report, or share it in a safety check-in.</p>
 @endsection

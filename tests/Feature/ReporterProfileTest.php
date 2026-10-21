@@ -34,7 +34,10 @@ class ReporterProfileTest extends TestCase
     {
         $this->actingAs($this->reporter)->get(route('app.me'))->assertOk()
             ->assertSee('Edit profile')->assertSee(route('app.me.update'), false)
-            ->assertSee('value="09171234567"', false);
+            ->assertSee('value="09171234567"', false)
+            // Log out asks first, in the app's own dialog.
+            ->assertSee('data-confirm-title="Log out?"', false)
+            ->assertSee('id="confirm-modal"', false);
     }
 
     public function test_a_reporter_changes_their_photo_and_keeps_a_verified_number(): void

@@ -112,6 +112,8 @@
         })();
     </script>
     @stack('scripts')
+    {{-- The confirmation dialog (Log out on the Me screen): see components/confirm-dialog. --}}
+    <x-confirm-dialog />
     <x-toast />
     <x-session-guard />
 </body>
