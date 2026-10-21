@@ -14,7 +14,9 @@ use RuntimeException;
  * The backup's rows (App\Support\Backup\BackupArchive::read(), new format or
  * an old MySQL one) are checked and fixed BEFORE anything changes:
  *   - an account (created_by / submitted_by / uploaded_by) that no longer
- *     exists is set to NULL — the *_by_name text keeps who it was;
+ *     exists is set to NULL — the *_by_name text keeps who it was; so is a
+ *     Reporter's (reporter_id), shown as "Former reporter", the same as when
+ *     the account is deleted;
  *   - a campus or school that no longer exists (or a school now on another
  *     campus) refuses the whole restore, naming what's missing.
  * Then one transaction, foreign keys ON (DataSet::replace): delete children
@@ -36,6 +38,7 @@ class RecordsRestore
         'hazard_inspections' => 'created_by', 'buildings' => 'created_by', 'drills' => 'created_by',
         'drill_attachments' => 'uploaded_by', 'drill_documentations' => 'submitted_by',
         'drill_after_activity_reports' => 'submitted_by',
+        'citizen_reports' => 'reporter_id', 'sos_events' => 'reporter_id',
     ];
 
     /** Tables whose campus_id (NOT NULL) must still exist. */
@@ -82,23 +85,14 @@ class RecordsRestore
         $missingCampus = [];
         $missingSchool = [];
         $movedSchool = [];
-        $missingReporter = [];
         $missingNoticeRecipient = [];
-        $reporters = DB::table('personnel')->pluck('personnel_id')
+        $accounts = DB::table('personnel')->pluck('personnel_id')
             ->map(fn ($id) => (string) $id)->flip();
 
         foreach ($rows['staff_notifications'] as $row) {
-            if (! isset($reporters[(string) $row['personnel_id']])) {
+            if (! isset($accounts[(string) $row['personnel_id']])) {
                 $missingNoticeRecipient[(string) $row['personnel_id']]['staff_notifications'] =
                     ($missingNoticeRecipient[(string) $row['personnel_id']]['staff_notifications'] ?? 0) + 1;
-            }
-        }
-
-        foreach (['citizen_reports', 'sos_events'] as $table) {
-            foreach ($rows[$table] as $row) {
-                if (! isset($reporters[(string) $row['reporter_id']])) {
-                    $missingReporter[(string) $row['reporter_id']][$table] = ($missingReporter[(string) $row['reporter_id']][$table] ?? 0) + 1;
-                }
             }
         }
 
@@ -138,9 +132,6 @@ class RecordsRestore
         }
         foreach ($movedSchool as $id => $n) {
             $problems[] = "This backup has $n " . ($n === 1 ? 'incident' : 'incidents') . " for school id $id on a campus that school no longer belongs to.";
-        }
-        foreach ($missingReporter as $id => $byTable) {
-            $problems[] = "This backup has records for a Reporter account that no longer exists (id $id): " . $describe($byTable) . '.';
         }
         foreach ($missingNoticeRecipient as $id => $byTable) {
             $problems[] = "This backup has notifications for an account that no longer exists (id $id): " . $describe($byTable) . '.';

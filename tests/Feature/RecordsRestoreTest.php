@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\Concerns\BackupZips;
 use Tests\TestCase;
 use ZipArchive;
@@ -111,6 +112,43 @@ class RecordsRestoreTest extends TestCase
         $row = DB::table('incidents')->where('incident_id', $id)->first();
         $this->assertNull($row->created_by);
         $this->assertSame('Coordinator Alpha', $row->created_by_name);
+    }
+
+    /**
+     * Reports and SOS events of a deleted Reporter stay as "Former reporter"
+     * (reporter_id NULL). A backup holding them restores, and so does one whose
+     * Reporter was deleted only after the backup was made.
+     */
+    public function test_reports_and_sos_of_deleted_reporters_restore_as_former_reporter(): void
+    {
+        $gone = $this->reporter('gone-before@ascot-test.local');
+        $reportId = $this->actingAs($gone)->postJson('/api/reporter/reports', ['client_key' => (string) Str::uuid(),
+            'category' => 'flood', 'place' => 'Gym', 'description' => 'Water rising near the gym entrance.'])->assertCreated()->json('id');
+        $gone->delete();
+        $this->assertDatabaseHas('citizen_reports', ['report_id' => $reportId, 'reporter_id' => null]);
+
+        $later = $this->reporter('gone-after@ascot-test.local');
+        $sosId = $this->actingAs($later)->postJson('/api/reporter/sos', ['client_key' => (string) Str::uuid(), 'type' => 'Medical',
+            'latitude' => 15.73, 'longitude' => 121.54])->assertCreated()->json('id');
+
+        $backup = $this->backup();
+        $later->delete();
+        DB::table('sos_events')->delete();
+        DB::table('citizen_reports')->delete();
+
+        $this->restoreStored($backup)->assertSessionHasNoErrors()
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '(1 by accounts that no longer exist, kept under their names)'));
+
+        $this->assertDatabaseHas('citizen_reports', ['report_id' => $reportId, 'reporter_id' => null]);
+        $this->assertDatabaseHas('sos_events', ['sos_id' => $sosId, 'reporter_id' => null]);
+    }
+
+    protected function reporter(string $email): Personnel
+    {
+        $person = $this->person('Reporter Test', 'Reporter', $email);
+        $person->forceFill(['is_approved' => true, 'email_verified_at' => now(), 'validated_by_coordinator_at' => now()])->save();
+
+        return $person;
     }
 
     public function test_a_backup_with_records_for_a_campus_that_no_longer_exists_restores_nothing(): void
