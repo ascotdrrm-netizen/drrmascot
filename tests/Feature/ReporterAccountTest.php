@@ -61,6 +61,29 @@ class ReporterAccountTest extends TestCase
         $this->assertAuthenticatedAs($reporter);
     }
 
+    public function test_reporter_signup_takes_an_optional_middle_name(): void
+    {
+        Notification::fake();
+        $campus = Campus::create(['campus_name' => 'ASCOT Zabali Campus']);
+        $school = School::create(['campus_id' => $campus->campus_id, 'school_name' => 'School of Engineering']);
+        $this->get('/app/register')->assertOk()->assertSee('id="middle_name"', false)->assertSee('Middle name');
+
+        $signUp = fn (string $email, array $name) => $this->post('/app/register', $name + [
+            'reporter_kind' => 'Student', 'id_number' => '2026-1234', 'campus_id' => $campus->campus_id, 'school_id' => $school->school_id,
+            'contact_number' => '09171234567', 'email' => $email,
+            'password' => 'Password123!', 'password_confirmation' => 'Password123!', 'privacy_consent' => '1',
+        ]);
+
+        $signUp('ana@example.test', ['first_name' => 'Ana', 'middle_name' => ' dela  Cruz ', 'last_name' => 'Santos'])->assertSessionHasNoErrors();
+        $this->assertSame('Ana dela Cruz Santos', Personnel::where('email', 'ana@example.test')->value('full_name'));
+
+        $signUp('ben@example.test', ['first_name' => 'Ben', 'middle_name' => '', 'last_name' => 'Reyes'])->assertSessionHasNoErrors();
+        $this->assertSame('Ben Reyes', Personnel::where('email', 'ben@example.test')->value('full_name'));
+
+        $signUp('cid@example.test', ['first_name' => 'Cid', 'middle_name' => 'R3y3s!', 'last_name' => 'Lim'])->assertSessionHasErrors('middle_name');
+        $this->assertFalse(Personnel::where('email', 'cid@example.test')->exists());
+    }
+
     private function person(string $role, int $campus, string $email): Personnel
     {
         return Personnel::create(['campus_id' => $campus, 'full_name' => $role . ' Test',

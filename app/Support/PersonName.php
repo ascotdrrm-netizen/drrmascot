@@ -24,6 +24,16 @@ class PersonName
         return implode(' ', $parts);
     }
 
+    /**
+     * With the whole middle name (Reporter sign-up) instead of an initial.
+     *
+     *   withMiddleName('Ana', ' dela  Cruz ', 'Santos') -> "Ana dela Cruz Santos"
+     */
+    public static function withMiddleName(?string $first, ?string $middle, ?string $last): string
+    {
+        return implode(' ', array_filter([self::clean($first), self::clean($middle), self::clean($last)], fn ($part) => $part !== ''));
+    }
+
     /** "t", "T" or "T." -> "T."; blank -> "". */
     public static function normalizeInitial(?string $initial): string
     {

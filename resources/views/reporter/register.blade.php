@@ -24,8 +24,9 @@
             </fieldset>
 
             <div class="grid grid-cols-2 gap-3">
-                <div><label for="first_name" class="form-label">First name</label><input id="first_name" name="first_name" value="{{ old('first_name') }}" class="form-input" required autocomplete="given-name"></div>
-                <div><label for="last_name" class="form-label">Last name</label><input id="last_name" name="last_name" value="{{ old('last_name') }}" class="form-input" required autocomplete="family-name"></div>
+                <div><label for="first_name" class="form-label">First name</label><input id="first_name" name="first_name" value="{{ old('first_name') }}" class="form-input" required maxlength="100" autocomplete="given-name"></div>
+                <div><label for="middle_name" class="form-label">Middle name <span class="font-normal text-gray-500">(optional)</span></label><input id="middle_name" name="middle_name" value="{{ old('middle_name') }}" class="form-input" maxlength="100" autocomplete="additional-name"></div>
+                <div class="col-span-2"><label for="last_name" class="form-label">Last name</label><input id="last_name" name="last_name" value="{{ old('last_name') }}" class="form-input" required maxlength="100" autocomplete="family-name"></div>
             </div>
             <div><label for="id_number" class="form-label">Student / employee ID</label><input id="id_number" name="id_number" value="{{ old('id_number') }}" class="form-input" required placeholder="e.g. 2023-01842"></div>
 

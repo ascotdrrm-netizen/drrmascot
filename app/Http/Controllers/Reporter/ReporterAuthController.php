@@ -20,6 +20,7 @@ class ReporterAuthController extends Controller
         $data = $request->validate([
             'reporter_kind' => ['required', Rule::in(['Student', 'Staff'])],
             'first_name' => ['required', 'string', 'max:100', new ValidName()],
+            'middle_name' => ['nullable', 'string', 'max:100', new ValidName()],
             'last_name' => ['required', 'string', 'max:100', new ValidName()],
             'id_number' => ['required', 'string', 'max:40'],
             'campus_id' => ['required', 'exists:campuses,campus_id'],
@@ -30,7 +31,7 @@ class ReporterAuthController extends Controller
             'password' => ['required', 'confirmed', new ValidPassword()],
             'privacy_consent' => ['accepted'],
         ]);
-        $name = PersonName::combine($data['first_name'], null, $data['last_name']);
+        $name = PersonName::withMiddleName($data['first_name'], $data['middle_name'] ?? null, $data['last_name']);
         if (mb_strlen($name) > PersonName::MAX_LENGTH) {
             return back()->withErrors(['last_name' => 'The full name is too long.'])->withInput();
         }
