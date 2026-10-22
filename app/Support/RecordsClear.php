@@ -33,6 +33,7 @@ class RecordsClear
         'alerts' => ['SMS & broadcast alert', 'SMS & broadcast alerts', false],
         'damage_reports' => ['damage report', 'damage reports', false],
         'incidents' => ['incident', 'incidents', true],
+        'disaster_advisories' => ['disaster advisory', 'disaster advisories', true], // after incidents: incidents.advisory_id
         'hazard_inspections' => ['hazard inspection', 'hazard inspections', false],
         'buildings' => ['building/area', 'buildings/areas', true],
         'drill_attachments' => ['drill attachment', 'drill attachments', false],
@@ -203,7 +204,7 @@ class RecordsClear
     /** "11 incidents, 17 buildings/areas, …, 8 files (2.5 MB)" in delete-screen order. */
     public static function summary(array $inventory): string
     {
-        $order = ['incidents', 'buildings', 'hazard_inspections', 'drills', 'alerts', 'damage_reports', 'drill_documentations', 'drill_after_activity_reports', 'drill_attachments'];
+        $order = ['incidents', 'buildings', 'hazard_inspections', 'drills', 'alerts', 'disaster_advisories', 'damage_reports', 'drill_documentations', 'drill_after_activity_reports', 'drill_attachments'];
         $parts = array_map(fn ($t) => $inventory['tables'][$t]['count'] . ' ' . $inventory['tables'][$t]['label'], $order);
         $parts[] = $inventory['file_count'] . ' uploaded ' . ($inventory['file_count'] === 1 ? 'file' : 'files') . ' (' . self::size($inventory['file_bytes']) . ')';
 

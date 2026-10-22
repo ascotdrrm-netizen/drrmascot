@@ -64,7 +64,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (['incidents', 'damage_reports', 'alerts', 'buildings', 'hazard_inspections', 'drills', 'drill_documentations', 'drill_after_activity_reports', 'drill_attachments'] as $table)
+                        @foreach (['incidents', 'damage_reports', 'alerts', 'disaster_advisories', 'buildings', 'hazard_inspections', 'drills', 'drill_documentations', 'drill_after_activity_reports', 'drill_attachments'] as $table)
                             @php $row = $inventory['tables'][$table]; @endphp
                             <tr>
                                 <td class="table-td">{{ ucfirst(RecordsClear::TABLES[$table][1]) }}</td>

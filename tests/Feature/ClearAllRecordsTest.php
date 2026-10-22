@@ -27,7 +27,7 @@ class ClearAllRecordsTest extends TestCase
 
     protected const PRIVACY_PASSWORD = 'privacy-secret';
 
-    protected const CLEARED_TABLES = ['staff_notifications', 'broadcast_deliveries', 'broadcasts', 'assignments', 'responders', 'roll_call_responses', 'roll_calls', 'report_events', 'report_photos', 'citizen_reports', 'sos_events', 'campus_statuses', 'alerts', 'damage_reports', 'incidents', 'hazard_inspections', 'buildings', 'drill_attachments', 'drill_documentations', 'drill_after_activity_reports', 'drills'];
+    protected const CLEARED_TABLES = ['staff_notifications', 'broadcast_deliveries', 'broadcasts', 'assignments', 'responders', 'roll_call_responses', 'roll_calls', 'report_events', 'report_photos', 'citizen_reports', 'sos_events', 'campus_statuses', 'alerts', 'damage_reports', 'incidents', 'hazard_inspections', 'buildings', 'drill_attachments', 'drill_documentations', 'drill_after_activity_reports', 'drills', 'disaster_advisories'];
 
     protected Personnel $admin;
 
@@ -62,7 +62,11 @@ class ClearAllRecordsTest extends TestCase
         $b1 = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Gym', 'risk_level' => 'High Risk', 'photo_path' => $photo('records', 'buildings/gym.jpg', 1000)], 'building_id');
         $b2 = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Old Hall', 'risk_level' => 'Minimal Risk', 'photo_path' => 'buildings/already-gone.jpg', 'deleted_at' => now()], 'building_id');
         DB::table('hazard_inspections')->insert(['building_id' => $b1, 'school_id' => $school->school_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'High Risk', 'photo_path' => $photo('records', 'hazard-inspections/exit.jpg', 2000)]);
-        $i1 = DB::table('incidents')->insertGetId(['campus_id' => $c, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-05', 'description' => 'Kitchen fire', 'photo_path' => $photo('records', 'incidents/fire.jpg', 3000)], 'incident_id');
+        $advisory = fn (array $more) => DB::table('disaster_advisories')->insertGetId($more + ['hazard_type' => 'Typhoon', 'headline' => 'Signal No. 1', 'source' => 'PAGASA',
+            'issued_at' => '2026-09-04 08:00:00', 'valid_until' => '2026-09-06 08:00:00', 'instructions' => 'Secure loose objects.'], 'advisory_id');
+        $a1 = $advisory(['campus_id' => null]); // every campus
+        $advisory(['campus_id' => $c, 'deleted_at' => now()]);
+        $i1 = DB::table('incidents')->insertGetId(['campus_id' => $c, 'advisory_id' => $a1, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-05', 'description' => 'Kitchen fire', 'photo_path' => $photo('records', 'incidents/fire.jpg', 3000)], 'incident_id');
         DB::table('incidents')->insert(['campus_id' => $c, 'hazard_type' => 'Flood', 'date_occurred' => '2026-09-06', 'description' => 'Trashed flood', 'deleted_at' => now()]);
         DB::table('alerts')->insert(['incident_id' => $i1, 'message' => 'Evacuate', 'sent_at' => '2026-09-05 10:00:00', 'recipient_count' => 3]);
         DB::table('damage_reports')->insert(['incident_id' => $i1, 'building_id' => $b1, 'damage_level' => 'Minor']);
@@ -236,7 +240,7 @@ class ClearAllRecordsTest extends TestCase
         $this->assertSame($this->admin->personnel_id, $log->personnel_id);
         $this->assertSame('backup', $log->subject_type);
         $this->assertSame($backup->backup_id, $log->subject_id);
-        $this->assertStringContainsString('cleared all records: 12 records and 5 files deleted', $log->description);
+        $this->assertStringContainsString('cleared all records: 14 records and 5 files deleted', $log->description);
         $this->assertStringContainsString(pathinfo($backup->filename, PATHINFO_FILENAME) . '.manifest.json', $log->description);
         $this->assertSame('Records Cleared', $log->action_label);
 
@@ -244,19 +248,20 @@ class ClearAllRecordsTest extends TestCase
         $this->assertSame('completed', $m['status']);
         $this->assertSame('Clear Admin', $m['cleared_by']['name']);
         $this->assertSame(
-            ['staff_notifications' => 0, 'broadcast_deliveries' => 0, 'broadcasts' => 0, 'assignments' => 0, 'responders' => 0, 'roll_call_responses' => 0, 'roll_calls' => 0, 'report_events' => 0, 'report_photos' => 0, 'citizen_reports' => 0, 'sos_events' => 0, 'campus_statuses' => 0, 'alerts' => 1, 'damage_reports' => 1, 'incidents' => 2, 'hazard_inspections' => 1, 'buildings' => 2, 'drill_attachments' => 1, 'drill_documentations' => 1, 'drill_after_activity_reports' => 1, 'drills' => 2],
+            ['staff_notifications' => 0, 'broadcast_deliveries' => 0, 'broadcasts' => 0, 'assignments' => 0, 'responders' => 0, 'roll_call_responses' => 0, 'roll_calls' => 0, 'report_events' => 0, 'report_photos' => 0, 'citizen_reports' => 0, 'sos_events' => 0, 'campus_statuses' => 0, 'alerts' => 1, 'damage_reports' => 1, 'incidents' => 2, 'disaster_advisories' => 2, 'hazard_inspections' => 1, 'buildings' => 2, 'drill_attachments' => 1, 'drill_documentations' => 1, 'drill_after_activity_reports' => 1, 'drills' => 2],
             array_map(fn ($t) => $t['deleted'], $m['tables'])
         );
         $this->assertSame(1, $m['tables']['incidents']['of_which_in_trash']);
         $this->assertSame(1, $m['tables']['buildings']['of_which_in_trash']);
         $this->assertSame(1, $m['tables']['drills']['of_which_in_trash']);
+        $this->assertSame(1, $m['tables']['disaster_advisories']['of_which_in_trash']);
         $this->assertEqualsCanonicalizing(
             ['buildings/gym.jpg', 'hazard-inspections/exit.jpg', 'incidents/fire.jpg', 'buildings/orphan-left-behind.jpg', 'drill-attachments/1/documentation/a.jpg'],
             array_map(fn ($f) => preg_replace('#drill-attachments/\d+/#', 'drill-attachments/1/', $f['path']), $m['files']['deleted'])
         );
         $this->assertSame([['disk' => 'records', 'path' => 'buildings/already-gone.jpg']], $m['files']['missing_before']);
         $this->assertSame([], $m['files']['not_deleted']);
-        $this->assertSame(['totals' => 12, 'files' => 5], ['totals' => $m['totals']['records_deleted'], 'files' => $m['totals']['files_deleted']]);
+        $this->assertSame(['totals' => 14, 'files' => 5], ['totals' => $m['totals']['records_deleted'], 'files' => $m['totals']['files_deleted']]);
     }
 
     public function test_the_screen_names_the_pre_clear_copy_afterwards(): void
@@ -264,7 +269,7 @@ class ClearAllRecordsTest extends TestCase
         $response = $this->followRedirects($this->clear());
 
         $backup = $this->preClearBackups()->sole();
-        $response->assertSee('Records cleared: 12 records and 5 files deleted.')
+        $response->assertSee('Records cleared: 14 records and 5 files deleted.')
             ->assertSee($backup->filename)
             ->assertSee(pathinfo($backup->filename, PATHINFO_FILENAME) . '.manifest.json')
             ->assertSee('pre-clear-');
@@ -310,7 +315,7 @@ class ClearAllRecordsTest extends TestCase
 
         $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
             'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD,
-        ])->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, '12 records') && str_contains($s, '5 uploaded files restored'));
+        ])->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, '14 records') && str_contains($s, '5 uploaded files restored'));
 
         $after = collect(self::CLEARED_TABLES)->mapWithKeys(fn ($t) => [$t => DB::table($t)->orderByRaw('1')->get()->map(fn ($r) => (array) $r)->all()])->all();
         $this->assertSame($before, $after, 'every row back exactly, Trash included');
@@ -372,7 +377,7 @@ class ClearAllRecordsTest extends TestCase
     public function test_the_screen_lists_live_counts_including_trash(): void
     {
         $this->actingAs($this->admin)->get(route('admin.backup.clear-records'))->assertOk()
-            ->assertSee('2 incidents, 2 buildings/areas, 1 hazard inspection, 2 drills, 1 SMS &amp; broadcast alert, 1 damage report', false)
+            ->assertSee('2 incidents, 2 buildings/areas, 1 hazard inspection, 2 drills, 1 SMS &amp; broadcast alert, 2 disaster advisories, 1 damage report', false)
             ->assertSee('5 uploaded files', false)
             ->assertSee('1 file named on a record is already missing from disk')
             ->assertSee('CLEAR ALL RECORDS')

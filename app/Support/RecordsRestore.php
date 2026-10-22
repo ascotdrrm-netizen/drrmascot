@@ -29,7 +29,7 @@ use RuntimeException;
 class RecordsRestore
 {
     /** Added after the first portable backup format; older backups have no rows for them. */
-    public const OPTIONAL_NEW_TABLES = ['broadcasts', 'broadcast_deliveries', 'staff_notifications', 'report_events', 'report_photos', 'citizen_reports', 'sos_events', 'campus_statuses',
+    public const OPTIONAL_NEW_TABLES = ['disaster_advisories', 'broadcasts', 'broadcast_deliveries', 'staff_notifications', 'report_events', 'report_photos', 'citizen_reports', 'sos_events', 'campus_statuses',
         'assignments', 'responders', 'roll_calls', 'roll_call_responses'];
 
     /**
@@ -54,8 +54,8 @@ class RecordsRestore
         return $columns;
     }
 
-    /** Tables whose campus_id (NOT NULL) must still exist. */
-    public const CAMPUS_TABLES = ['incidents', 'buildings', 'drills', 'citizen_reports', 'sos_events', 'campus_statuses', 'staff_notifications',
+    /** Tables whose campus_id must still exist when set (an advisory's is empty for every campus). */
+    public const CAMPUS_TABLES = ['disaster_advisories', 'incidents', 'buildings', 'drills', 'citizen_reports', 'sos_events', 'campus_statuses', 'staff_notifications',
         'roll_calls', 'responders', 'assignments', 'broadcasts'];
 
     /** Tables whose school_id (nullable) must still exist when set. */
@@ -101,7 +101,7 @@ class RecordsRestore
 
         foreach (self::CAMPUS_TABLES as $table) {
             foreach ($rows[$table] as $row) {
-                if (! isset($campuses[(string) $row['campus_id']])) {
+                if ($row['campus_id'] !== null && ! isset($campuses[(string) $row['campus_id']])) {
                     $missingCampus[(string) $row['campus_id']][$table] = ($missingCampus[(string) $row['campus_id']][$table] ?? 0) + 1;
                 }
             }
