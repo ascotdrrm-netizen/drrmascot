@@ -59,10 +59,15 @@ class AuthController extends Controller
             ]);
         }
 
-        if (Auth::user()->role === 'Reporter' && ! Auth::user()->hasVerifiedEmail()) {
+        // Reporters and Coordinators verify their email first. The DRRMO Admin
+        // doesn't, so the office can never be locked out of its own system.
+        if (in_array(Auth::user()->role, ['Reporter', 'Coordinator'], true) && ! Auth::user()->hasVerifiedEmail()) {
+            $message = Auth::user()->role === 'Coordinator'
+                ? 'Please verify your email before signing in. Use the link we emailed you, or request a new one below.'
+                : 'Please verify your email before signing in.';
             Auth::logout();
 
-            throw ValidationException::withMessages(['email' => 'Please verify your email before signing in.']);
+            throw ValidationException::withMessages(['email' => $message]);
         }
 
         // Correct password, but the account's approval stages are incomplete.
@@ -127,16 +132,32 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        // Verifying the email isn't needed to sign in, but campus broadcast
-        // emails only go to verified addresses. A failed send never blocks
-        // registration; My Profile can request another link.
+        // The email must be verified before signing in (login()). A failed
+        // send never blocks registration; the login page can request another link.
         try { $personnel->sendEmailVerificationNotification(); }
         catch (\Throwable $exception) {
             \Illuminate\Support\Facades\Log::warning('Staff verification email could not be sent.', ['personnel_id' => $personnel->getKey()]);
         }
 
         return redirect()->route('login')
-            ->with('status', 'Registration received. Your account is waiting for DRRMO approval; you can sign in once it is approved.');
+            ->with('status', 'Registration received. Verify your email with the link we sent you, then sign in once the DRRMO approves your account.');
+    }
+
+    /** Login page "Resend verification email" for a Coordinator. Says the same whether or not the account exists. */
+    public function resendVerification(Request $request): RedirectResponse
+    {
+        $email = mb_strtolower(trim($request->validate(['email' => ['required', 'email', 'max:100']])['email']));
+        $key = 'verify-email:'.hash('sha256', $email);
+        if (! RateLimiter::tooManyAttempts($key, 1)) {
+            RateLimiter::hit($key, 60);
+            $person = Personnel::where('email', $email)->where('role', 'Coordinator')->whereNull('email_verified_at')->first();
+            if ($person) {
+                try { $person->sendEmailVerificationNotification(); }
+                catch (\Throwable $exception) { \Illuminate\Support\Facades\Log::warning('Staff verification resend failed.', ['personnel_id' => $person->getKey()]); }
+            }
+        }
+
+        return redirect()->route('login')->with('status', 'If an unverified Coordinator account uses that email, a verification link has been requested. Check your inbox and spam folder.');
     }
 
     public function logout(Request $request): RedirectResponse

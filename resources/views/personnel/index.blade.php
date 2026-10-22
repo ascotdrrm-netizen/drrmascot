@@ -30,6 +30,8 @@
                             <p class="text-gray-600">{{ $person->campus->campus_name ?? '—' }} · {{ $person->school->school_name ?? 'no school' }}</p>
                             @if ($person->role === 'Reporter')
                                 <p class="text-gray-600">Reporter · Email {{ $person->hasVerifiedEmail() ? 'verified' : 'unverified' }} · Campus {{ $person->validated_by_coordinator_at ? 'validated' : 'not validated' }}</p>
+                            @elseif ($person->role === 'Coordinator')
+                                <p class="text-gray-600">Coordinator · Email {{ $person->hasVerifiedEmail() ? 'verified' : 'unverified — they can sign in only after verifying it' }}</p>
                             @endif
                         </div>
                         <div class="flex shrink-0 gap-4">
@@ -41,7 +43,7 @@
                             </form>
                             @if ($person->role !== 'Reporter' || ($person->hasVerifiedEmail() && $person->validated_by_coordinator_at))
                                 <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route('admin.personnel.approve', $person) }}"
-                                      data-confirm-form="Approve {{ $person->full_name }} for {{ $person->campus->campus_name ?? 'their campus' }}? They can sign in right away.">
+                                      data-confirm-form="Approve {{ $person->full_name }} for {{ $person->campus->campus_name ?? 'their campus' }}? {{ $person->hasVerifiedEmail() ? 'They can sign in right away.' : 'They can sign in once they verify their email.' }}">
                                     @csrf
                                     <button type="submit" class="btn btn-primary">Approve</button>
                                 </form>

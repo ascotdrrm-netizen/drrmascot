@@ -30,6 +30,7 @@ class PasswordToggleTest extends TestCase
         // Registration requires a school on the chosen campus.
         $this->school = School::create(['campus_id' => $this->campus->campus_id, 'school_name' => 'School of Engineering']);
         $this->coordinator = Personnel::create(['campus_id' => $this->campus->campus_id, 'full_name' => 'Toggle Coordinator', 'role' => 'Coordinator', 'email' => 'toggle-coord@ascot-test.local', 'password_hash' => Hash::make('OldPassword1!')]);
+        $this->coordinator->markEmailAsVerified();
         $this->admin = Personnel::create(['campus_id' => $this->campus->campus_id, 'full_name' => 'Toggle Admin', 'role' => 'DRRMO Admin', 'email' => 'toggle-admin@ascot-test.local', 'password_hash' => Hash::make('OldPassword1!')]);
     }
 

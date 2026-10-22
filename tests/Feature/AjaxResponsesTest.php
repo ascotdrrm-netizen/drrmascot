@@ -21,7 +21,7 @@ class AjaxResponsesTest extends TestCase
             'role' => 'Coordinator',
             'email' => 'coordinator@example.test',
             'password_hash' => Hash::make('password'),
-        ]);
+        ])->markEmailAsVerified();
 
         $headers = ['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'];
         $this->withHeaders($headers)->post('/login', ['email' => 'coordinator@example.test', 'password' => 'wrong'])

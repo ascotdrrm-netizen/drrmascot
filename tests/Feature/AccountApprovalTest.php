@@ -41,7 +41,7 @@ class AccountApprovalTest extends TestCase
     public function test_registering_creates_a_pending_account_and_does_not_sign_in(): void
     {
         $this->register()->assertRedirect(route('login'))
-            ->assertSessionHas('status', fn ($s) => str_contains($s, 'waiting for DRRMO approval'));
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'Verify your email') && str_contains($s, 'once the DRRMO approves your account'));
 
         $this->assertGuest();
         $person = Personnel::where('email', 'new.coord@example.com')->sole();
@@ -53,6 +53,7 @@ class AccountApprovalTest extends TestCase
     public function test_a_pending_account_cannot_sign_in_and_is_told_why(): void
     {
         $this->register();
+        Personnel::where('email', 'new.coord@example.com')->sole()->markEmailAsVerified();
 
         $this->post('/login', ['email' => 'new.coord@example.com', 'password' => self::PASSWORD])
             ->assertSessionHasErrors(['email' => 'Your account is waiting for DRRMO approval.']);
@@ -96,8 +97,55 @@ class AccountApprovalTest extends TestCase
         $this->assertStringContainsString('approved the account of New Coordinator (new.coord@example.com, ASCOT Zabali Campus)', $log->description);
 
         $this->post(route('logout'));
+        $person->markEmailAsVerified();
         $this->post('/login', ['email' => 'new.coord@example.com', 'password' => self::PASSWORD])->assertRedirect('/coordinator/dashboard');
         $this->assertAuthenticatedAs($person->fresh());
+    }
+
+    public function test_an_approved_coordinator_cannot_sign_in_until_their_email_is_verified(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $this->register();
+        $person = Personnel::where('email', 'new.coord@example.com')->sole();
+        \Illuminate\Support\Facades\Notification::assertSentTo($person, \Illuminate\Auth\Notifications\VerifyEmail::class);
+        $this->actingAs($this->admin)->post(route('admin.personnel.approve', $person));
+        $this->post(route('logout'));
+
+        $this->post('/login', ['email' => 'new.coord@example.com', 'password' => self::PASSWORD])
+            ->assertSessionHasErrors(['email' => 'Please verify your email before signing in. Use the link we emailed you, or request a new one below.']);
+        $this->assertGuest();
+        $this->get(route('coordinator.dashboard'))->assertRedirect(route('login'));
+
+        // The emailed link verifies it; then the Coordinator signs in.
+        $link = \Illuminate\Support\Facades\URL::temporarySignedRoute('verification.verify', now()->addHour(),
+            ['id' => $person->personnel_id, 'hash' => sha1($person->email)]);
+        $this->get($link)->assertRedirect(route('login'))->assertSessionHas('status', 'Email verified. You can sign in now.');
+        $this->post('/login', ['email' => 'new.coord@example.com', 'password' => self::PASSWORD])->assertRedirect('/coordinator/dashboard');
+    }
+
+    public function test_the_login_page_resends_a_coordinators_verification_link_without_revealing_accounts(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $this->register();
+        $person = Personnel::where('email', 'new.coord@example.com')->sole();
+        \Illuminate\Support\Facades\Notification::fake(); // forget the registration email
+
+        $this->get(route('login'))->assertOk()->assertSee('Resend verification email');
+        foreach (['new.coord@example.com', 'nobody@example.com'] as $email) {
+            $this->post(route('login.verification.resend'), ['email' => $email])->assertRedirect(route('login'))
+                ->assertSessionHas('status', fn ($s) => str_starts_with($s, 'If an unverified Coordinator account uses that email'));
+        }
+        \Illuminate\Support\Facades\Notification::assertSentToTimes($person, \Illuminate\Auth\Notifications\VerifyEmail::class, 1);
+
+        $this->post(route('login.verification.resend'), ['email' => 'approval-admin@ascot-test.local']);
+        \Illuminate\Support\Facades\Notification::assertNotSentTo($this->admin, \Illuminate\Auth\Notifications\VerifyEmail::class);
+    }
+
+    public function test_the_admin_signs_in_without_a_verified_email(): void
+    {
+        $this->assertNull($this->admin->fresh()->email_verified_at);
+
+        $this->post('/login', ['email' => 'approval-admin@ascot-test.local', 'password' => self::PASSWORD])->assertRedirect('/admin/dashboard');
     }
 
     public function test_rejecting_removes_the_registration_and_is_logged(): void

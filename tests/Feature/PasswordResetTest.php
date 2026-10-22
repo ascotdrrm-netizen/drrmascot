@@ -33,6 +33,7 @@ class PasswordResetTest extends TestCase
             'email' => 'reset-test@ascot-test.local',
             'password_hash' => Hash::make('OldPassword1!'),
         ]);
+        $this->personnel->markEmailAsVerified();
     }
 
     public function test_reset_link_is_sent_for_a_registered_email(): void

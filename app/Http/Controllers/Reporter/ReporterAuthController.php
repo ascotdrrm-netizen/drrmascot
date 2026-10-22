@@ -78,7 +78,9 @@ class ReporterAuthController extends Controller
         }
 
         if ($reporter->role !== 'Reporter') {
-            return redirect()->route('login')->with('status', 'Email verified. You can receive campus broadcast emails once your account is approved.');
+            return redirect()->route('login')->with('status', $reporter->is_approved
+                ? 'Email verified. You can sign in now.'
+                : 'Email verified. You can sign in once the DRRMO approves your account.');
         }
         return redirect()->route('app.login')->with('status', 'Email verified. Your campus coordinator and the DRRMO Admin still need to approve your account.');
     }

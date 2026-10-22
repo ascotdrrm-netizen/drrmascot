@@ -32,6 +32,18 @@
         </button>
     </form>
 
+    <details class="mt-6 rounded-lg border border-gray-200 p-4 text-sm">
+        <summary class="cursor-pointer font-medium text-gray-900">Resend verification email</summary>
+        <form method="POST" action="{{ route('login.verification.resend') }}" class="mt-4 space-y-4">
+            @csrf
+            <div>
+                <label for="verification_email" class="form-label">Account email</label>
+                <input type="email" id="verification_email" name="email" maxlength="100" required autocomplete="email" class="form-input">
+            </div>
+            <button type="submit" class="btn btn-secondary w-full">Request a new verification link</button>
+        </form>
+    </details>
+
     <p class="mt-6 text-center text-sm text-gray-500">
         Don't have an account?
         <a href="{{ url('/register') }}" class="link">Register</a>
