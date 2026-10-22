@@ -215,7 +215,7 @@ class VercelHostingTest extends TestCase
     {
         config(['backup.disk' => 's3', 'backup.max_file_bytes' => 1024, 'privacy.data_privacy_password_hash' => Hash::make('privacy-secret')]);
         Storage::disk('s3')->put('buildings/photo.jpg', random_bytes(4096));
-        DB::table('buildings')->insert(['campus_id' => $this->person->campus_id, 'building_name' => 'Gym', 'risk_level' => 'High', 'photo_path' => 'buildings/photo.jpg']);
+        DB::table('buildings')->insert(['campus_id' => $this->person->campus_id, 'building_name' => 'Gym', 'risk_level' => 'High Risk', 'photo_path' => 'buildings/photo.jpg']);
 
         $this->actingAs($this->person)->from(route('admin.backup.clear-records'))->post(route('admin.backup.clear-records.run'), [
             'data_privacy_password' => 'privacy-secret', 'confirmation' => 'CLEAR ALL RECORDS',

@@ -290,7 +290,7 @@ class SchoolAttributionTest extends TestCase
         $incident = $this->reportIncident($this->engineering, 'Eng incident');
         $this->assertSame($this->engineering->school_id, $incident->school_id);
 
-        $building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Eng Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Eng Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
         $this->actingAs($this->engineering)->post(route('coordinator.buildings.inspections.store', $building), [
             'inspection_date' => '2026-09-21', 'likelihood' => 3, 'impact' => 2, 'findings' => 'Eng inspection',
         ])->assertRedirect();
@@ -376,8 +376,8 @@ class SchoolAttributionTest extends TestCase
     public function test_existing_records_without_a_school_still_display_and_export(): void
     {
         $incident = Incident::create(['campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Flood', 'date_occurred' => '2026-09-10', 'status' => 'Resolved', 'description' => 'Legacy incident']);
-        $building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Hall', 'hazard_type' => 'Flood', 'risk_level' => 'Low']);
-        $inspection = HazardInspection::create(['building_id' => $building->building_id, 'inspection_date' => '2026-09-10', 'risk_level' => 'Low', 'findings' => 'Legacy finding']);
+        $building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Hall', 'hazard_type' => 'Flood', 'risk_level' => 'Minimal Risk']);
+        $inspection = HazardInspection::create(['building_id' => $building->building_id, 'inspection_date' => '2026-09-10', 'risk_level' => 'Minimal Risk', 'findings' => 'Legacy finding']);
         $drill = Drill::forceCreate(['campus_id' => $this->zabali->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-09-10',
             'scheduled_time' => '09:00:00', 'venue' => 'Legacy Venue']);
         (new DrillDocumentation(['date_conducted' => '2026-09-10', 'narrative' => 'Legacy drill.']))->forceFill(['drill_id' => $drill->drill_id])->save();

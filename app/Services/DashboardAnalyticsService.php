@@ -461,14 +461,14 @@ class DashboardAnalyticsService
 
     /**
      * SQL condition for "open high-risk finding" on inspection alias $alias
-     * joined to buildings as `b`: rated High or Very High, building not deleted, and no
+     * joined to buildings as `b`: rated High or Critical Risk, building not deleted, and no
      * later inspection of the same building — by anyone, so a re-inspection a
      * colleague recorded still closes a coordinator's finding (only whether
      * one exists is used, never its contents).
      */
     protected function openFindingSql(string $alias): string
     {
-        return "{$alias}.risk_level IN ('High', 'Very High') AND b.deleted_at IS NULL AND NOT EXISTS (
+        return "{$alias}.risk_level IN ('" . implode("', '", RiskMatrix::HIGH_LEVELS) . "') AND b.deleted_at IS NULL AND NOT EXISTS (
             SELECT 1 FROM hazard_inspections later
             WHERE later.building_id = {$alias}.building_id
               AND (later.inspection_date > {$alias}.inspection_date

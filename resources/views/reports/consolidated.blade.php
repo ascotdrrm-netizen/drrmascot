@@ -93,16 +93,16 @@
                 </div>
                 @php
                     $riskBadgeClasses = [
-                        'Low' => 'bg-green-100 text-green-700',
-                        'Moderate' => 'bg-amber-100 text-amber-700',
-                        'High' => 'bg-orange-100 text-orange-800',
-                        'Very High' => 'bg-red-100 text-red-700',
+                        'Minimal Risk' => 'bg-green-100 text-green-700',
+                        'Moderate Risk' => 'bg-amber-100 text-amber-700',
+                        'High Risk' => 'bg-orange-100 text-orange-800',
+                        'Critical Risk' => 'bg-red-100 text-red-700',
                     ];
                 @endphp
                 <div class="flex flex-wrap gap-4">
                     @foreach ($report['hazard_auditor']['by_risk_level'] as $level => $count)
                         <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold leading-none {{ $riskBadgeClasses[$level] ?? 'bg-gray-100 text-gray-700' }}">
-                            {{ $level }}: {{ $count }}
+                            {{ \App\Support\RiskMatrix::EMOJI[$level] ?? '' }} {{ $level }}: {{ $count }}
                         </span>
                     @endforeach
                 </div>

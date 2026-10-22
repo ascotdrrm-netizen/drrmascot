@@ -45,11 +45,11 @@ class TrashedParentsTest extends TestCase
         $this->admin = Personnel::create(['campus_id' => $this->campus->campus_id, 'full_name' => 'Trash Admin', 'role' => 'DRRMO Admin', 'email' => 'trash-admin@ascot-test.local', 'password_hash' => Hash::make('password')]);
 
         $c = $this->campus->campus_id;
-        $this->trashedBuilding = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Old Gym', 'risk_level' => 'High'], 'building_id');
-        $this->liveBuilding = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Library', 'risk_level' => 'Low'], 'building_id');
+        $this->trashedBuilding = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Old Gym', 'risk_level' => 'High Risk'], 'building_id');
+        $this->liveBuilding = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Library', 'risk_level' => 'Minimal Risk'], 'building_id');
         DB::table('hazard_inspections')->insert([
-            ['building_id' => $this->trashedBuilding, 'inspection_date' => '2026-09-10', 'risk_level' => 'High', 'findings' => 'Cracked beam'],
-            ['building_id' => $this->liveBuilding, 'inspection_date' => '2026-09-11', 'risk_level' => 'Low', 'findings' => 'Fine'],
+            ['building_id' => $this->trashedBuilding, 'inspection_date' => '2026-09-10', 'risk_level' => 'High Risk', 'findings' => 'Cracked beam'],
+            ['building_id' => $this->liveBuilding, 'inspection_date' => '2026-09-11', 'risk_level' => 'Minimal Risk', 'findings' => 'Fine'],
         ]);
     }
 

@@ -77,7 +77,7 @@ class AuditFixesTest extends TestCase
     {
         $building = $this->building($this->alpha, 'buildings/gym.jpg');
         Storage::disk('records')->put('hazard-inspections/exit.jpg', 'X');
-        DB::table('hazard_inspections')->insert(['building_id' => $building->building_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'Low', 'photo_path' => 'hazard-inspections/exit.jpg']);
+        DB::table('hazard_inspections')->insert(['building_id' => $building->building_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'Minimal Risk', 'photo_path' => 'hazard-inspections/exit.jpg']);
         Storage::disk('records')->put('incidents/fire.jpg', 'PHOTO');
         $incident = Incident::create(['campus_id' => $this->campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-05', 'status' => 'Active', 'photo_path' => 'incidents/fire.jpg']);
 
@@ -207,7 +207,7 @@ class AuditFixesTest extends TestCase
         }
         static $n = 0;
         $n++;
-        $id = DB::table('buildings')->insertGetId(['campus_id' => $this->campus->campus_id, 'building_name' => "Building $n", 'risk_level' => 'Low', 'photo_path' => $photo, 'created_by' => $by?->personnel_id, 'created_by_name' => $by?->full_name], 'building_id');
+        $id = DB::table('buildings')->insertGetId(['campus_id' => $this->campus->campus_id, 'building_name' => "Building $n", 'risk_level' => 'Minimal Risk', 'photo_path' => $photo, 'created_by' => $by?->personnel_id, 'created_by_name' => $by?->full_name], 'building_id');
 
         return Building::withTrashed()->find($id);
     }

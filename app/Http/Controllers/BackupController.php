@@ -504,6 +504,8 @@ class BackupController extends Controller
      */
     protected function performRestore(array $read, string $sourceLabel, string $mode = 'records', ?string $zipPath = null): RedirectResponse
     {
+        $read['rows'] = \App\Support\RiskMatrix::normaliseRows($read['rows']);
+
         if ($mode === 'records') {
             try {
                 $rows = \App\Support\RecordsRestore::fromRows($read['rows']);

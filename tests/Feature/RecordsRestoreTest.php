@@ -172,7 +172,7 @@ class RecordsRestoreTest extends TestCase
     {
         $this->incident($this->zabali, 'Zabali record');
         $this->incident($this->bazal, 'Bazal record');
-        DB::table('buildings')->insert(['campus_id' => $this->bazal->campus_id, 'building_name' => 'Bazal Library', 'risk_level' => 'Low']);
+        DB::table('buildings')->insert(['campus_id' => $this->bazal->campus_id, 'building_name' => 'Bazal Library', 'risk_level' => 'Minimal Risk']);
         $backup = $this->backup();
 
         $this->bazal->delete(); // cascades its own records

@@ -110,7 +110,7 @@ class AppPreviewController extends Controller
      */
     protected function liveHazardAreas(): array
     {
-        $levels = array_merge(array_slice(RiskMatrix::LEVELS, 1), ['Medium']);
+        $levels = array_slice(RiskMatrix::LEVELS, 1);
 
         return Building::where('campus_id', Auth::user()->campus_id)->whereIn('risk_level', $levels)
             ->withMax('hazardInspections as inspected', 'inspection_date')

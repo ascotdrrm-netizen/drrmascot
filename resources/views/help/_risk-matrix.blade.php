@@ -28,5 +28,5 @@
             </div>
         @endforeach
     </dl>
-    <p class="mt-2 text-xs leading-5 text-gray-600">Example: a crack that is likely to worsen (4) and could make the building unsafe (4) scores 16 — High. Basis: the likelihood × consequence matrix of ISO 31000, as used in DRRM risk assessment.</p>
+    <p class="mt-2 text-xs leading-5 text-gray-600">Example: a crack that is likely to worsen (4) and could make the building unsafe (4) scores 16 — High Risk. Basis: the likelihood × consequence matrix of ISO 31000, as used in DRRM risk assessment.</p>
 </div>

@@ -86,7 +86,7 @@ class PerPersonVisibilityTest extends TestCase
 
         // A building recorded by Alpha — it belongs to the campus.
         $this->actingAs($this->coordA)->post(route('coordinator.buildings.store'), [
-            'building_name' => 'Shared Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High',
+            'building_name' => 'Shared Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High Risk',
         ])->assertRedirect();
         $this->sharedBuilding = Building::where('building_name', 'Shared Gym')->firstOrFail();
 
@@ -94,8 +94,8 @@ class PerPersonVisibilityTest extends TestCase
         $this->incidentB = $this->reportIncident($this->coordB, 'Bravo incident');
 
         // Both inspect the same (shared) building.
-        $this->inspectionA = $this->inspect($this->coordA, 'Alpha finding', 'High', '2026-09-21');
-        $this->inspectionB = $this->inspect($this->coordB, 'Bravo finding', 'Moderate', '2026-09-20');
+        $this->inspectionA = $this->inspect($this->coordA, 'Alpha finding', 'High Risk', '2026-09-21');
+        $this->inspectionB = $this->inspect($this->coordB, 'Bravo finding', 'Moderate Risk', '2026-09-20');
 
         $this->actingAs($this->coordA)->post(route('coordinator.incidents.damage-reports.store', $this->incidentA), [
             'building_id' => $this->sharedBuilding->building_id, 'damage_level' => 'Minor', 'casualty_count' => 0,
@@ -128,7 +128,7 @@ class PerPersonVisibilityTest extends TestCase
     protected function inspect(Personnel $as, string $findings, string $risk, string $date): HazardInspection
     {
         // A 5×5 matrix rating that lands on $risk.
-        [$likelihood, $impact] = ['Low' => [1, 2], 'Moderate' => [3, 2], 'High' => [4, 4], 'Very High' => [5, 5]][$risk];
+        [$likelihood, $impact] = ['Minimal Risk' => [1, 2], 'Moderate Risk' => [3, 2], 'High Risk' => [4, 4], 'Critical Risk' => [5, 5]][$risk];
         $this->actingAs($as)->post(route('coordinator.buildings.inspections.store', $this->sharedBuilding), [
             'inspection_date' => $date, 'likelihood' => $likelihood, 'impact' => $impact, 'findings' => $findings,
         ])->assertRedirect();
@@ -282,7 +282,7 @@ class PerPersonVisibilityTest extends TestCase
         $this->assertSame('Active', $this->incidentA->fresh()->status);
         $this->assertNotNull(Incident::find($i->incident_id));
         $this->assertSame(1, $i->damageReports()->count());
-        $this->assertSame('High', $this->inspectionA->fresh()->risk_level);
+        $this->assertSame('High Risk', $this->inspectionA->fresh()->risk_level);
         // Their own records still open fine.
         $this->actingAs($this->coordA)->get(route('coordinator.incidents.show', $i))->assertOk()->assertSee('Alpha alert');
         $this->actingAs($this->coordB)->get(route('coordinator.incidents.show', $this->incidentB))->assertOk();
@@ -300,7 +300,7 @@ class PerPersonVisibilityTest extends TestCase
         }
 
         // ...and every one of them can inspect it, adding to their own list only.
-        $newbieInspection = $this->inspect($this->newbie, 'Newbie finding', 'Low', '2026-09-22');
+        $newbieInspection = $this->inspect($this->newbie, 'Newbie finding', 'Minimal Risk', '2026-09-22');
         $this->assertSame($this->newbie->personnel_id, $newbieInspection->created_by);
         $this->actingAs($this->coordA)->get(route('coordinator.buildings.show', $this->sharedBuilding))->assertDontSee('Newbie finding');
 

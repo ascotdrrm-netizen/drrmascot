@@ -106,7 +106,7 @@ class AppSealsTest extends TestCase
     {
         $incident = Incident::forceCreate(['campus_id' => $this->admin->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->admin->personnel_id]);
         $incident->delete();
-        $building = Building::create(['campus_id' => $this->admin->campus_id, 'building_name' => 'Old Annex', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $building = Building::create(['campus_id' => $this->admin->campus_id, 'building_name' => 'Old Annex', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
         $building->delete();
         $drill = Drill::forceCreate(['campus_id' => $this->admin->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-09-20', 'scheduled_time' => '09:00:00', 'venue' => 'Gym', 'created_by' => $this->admin->personnel_id]);
         $drill->delete();

@@ -31,7 +31,7 @@ class PresentationDemoSeeder extends Seeder
             $by = ['created_by' => $actor->getKey(), 'created_by_name' => $actor->full_name];
             $building = Building::firstOrCreate(['campus_id' => $campus->getKey(), 'building_name' => 'Gymnasium entrance (demo)'], $by + [
                 'description' => '[DEMO] Covered gymnasium used for PE classes and campus assemblies. Main entrance faces the concrete walkway; a side entrance provides alternate access.',
-                'hazard_type' => 'Flood', 'risk_level' => 'High', 'latitude' => 15.7905, 'longitude' => 121.4751,
+                'hazard_type' => 'Flood', 'risk_level' => 'High Risk', 'latitude' => 15.7905, 'longitude' => 121.4751,
             ]);
             $incident = Incident::firstOrCreate(['campus_id' => $campus->getKey(), 'photo_path' => $photo], $by + [
                 'school_id' => School::attributedTo($actor, (int) $campus->getKey()), 'hazard_type' => 'Flood', 'status' => 'Under Response', 'date_occurred' => today(),

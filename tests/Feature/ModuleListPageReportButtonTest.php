@@ -44,7 +44,7 @@ class ModuleListPageReportButtonTest extends TestCase
             'password_hash' => Hash::make('password'),
         ]);
 
-        $this->building = Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $this->building = Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
         // Reported by the coordinator, so both roles can open it (per-person visibility).
         $this->incident = Incident::forceCreate(['campus_id' => $campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-08-01', 'status' => 'Active', 'created_by' => $this->coordinator->personnel_id]);
     }

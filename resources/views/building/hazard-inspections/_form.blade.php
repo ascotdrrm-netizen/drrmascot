@@ -22,12 +22,12 @@
             $matrix = \App\Support\RiskMatrix::class;
             $likelihood = (int) old('likelihood', $inspection->likelihood ?? 0);
             $impact = (int) old('impact', $inspection->impact ?? 0);
-            $cell = ['Low' => 'bg-green-100 text-green-900', 'Moderate' => 'bg-amber-100 text-amber-900', 'High' => 'bg-orange-100 text-orange-800', 'Very High' => 'bg-red-100 text-red-900'];
+            $cell = ['Minimal Risk' => 'bg-green-100 text-green-900', 'Moderate Risk' => 'bg-amber-100 text-amber-900', 'High Risk' => 'bg-orange-100 text-orange-800', 'Critical Risk' => 'bg-red-100 text-red-900'];
         @endphp
         <fieldset class="rounded-lg border border-gray-200 p-4" data-risk-matrix
-                  x-data="{ l: {{ $likelihood }}, i: {{ $impact }}, bands: @js($matrix::BANDS),
+                  x-data="{ l: {{ $likelihood }}, i: {{ $impact }}, bands: @js($matrix::BANDS), emoji: @js($matrix::EMOJI),
                             get score() { return this.l * this.i },
-                            get level() { for (const [name, max] of Object.entries(this.bands)) { if (this.score <= max) return name } return '' } }">
+                            get level() { for (const [name, max] of Object.entries(this.bands)) { if (this.score <= max) return this.emoji[name] + ' ' + name } return '' } }">
             <legend class="px-1 text-sm font-semibold text-gray-900">Risk rating (5×5 matrix)</legend>
             <p class="form-help mt-0">{{ config('glossary.risk_level') }}</p>
             @if ($isEdit && ! $inspection->likelihood && $inspection->risk_level)
@@ -89,12 +89,12 @@
                     <p class="text-gray-600">Result</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-900" x-show="l && i" @if (! ($likelihood && $impact)) style="display:none" @endif>
                         <span x-text="score">{{ $likelihood * $impact ?: '' }}</span>
-                        <span class="text-base font-medium" x-text="level">{{ $likelihood && $impact ? $matrix::rate($likelihood, $impact) : '' }}</span>
+                        <span class="text-base font-medium" x-text="level">{{ $likelihood && $impact ? $matrix::EMOJI[$matrix::rate($likelihood, $impact)] . ' ' . $matrix::rate($likelihood, $impact) : '' }}</span>
                     </p>
                     <p class="mt-1 text-gray-600" x-show="! (l && i)" @if ($likelihood && $impact) style="display:none" @endif>Choose both to see the level.</p>
                     <ul class="mt-3 space-y-1 text-xs text-gray-600">
                         @foreach ($matrix::LEVELS as $level)
-                            <li><span class="inline-block h-3 w-3 rounded-sm align-middle {{ $cell[$level] }}"></span> {{ $level }} {{ $matrix::range($level) }}</li>
+                            <li><span aria-hidden="true">{{ $matrix::EMOJI[$level] }}</span> {{ $level }} {{ $matrix::range($level) }}</li>
                         @endforeach
                     </ul>
                 </div>

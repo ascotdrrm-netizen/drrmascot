@@ -543,7 +543,7 @@ class TrashPurgeTest extends TestCase
             Storage::disk('records')->put($photo, 'PHOTO');
         }
 
-        return Building::forceCreate(['campus_id' => $this->campus->campus_id, 'building_name' => $name, 'risk_level' => 'Low', 'photo_path' => $photo, 'created_by' => $this->admin->personnel_id]);
+        return Building::forceCreate(['campus_id' => $this->campus->campus_id, 'building_name' => $name, 'risk_level' => 'Minimal Risk', 'photo_path' => $photo, 'created_by' => $this->admin->personnel_id]);
     }
 
     protected function inspection(Building $building, ?string $photo = null): void
@@ -551,7 +551,7 @@ class TrashPurgeTest extends TestCase
         if ($photo) {
             Storage::disk('records')->put($photo, 'PHOTO');
         }
-        DB::table('hazard_inspections')->insert(['building_id' => $building->building_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'Low', 'photo_path' => $photo]);
+        DB::table('hazard_inspections')->insert(['building_id' => $building->building_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'Minimal Risk', 'photo_path' => $photo]);
     }
 
     protected function incident(string $hazard, ?string $photo = null, ?DisasterAdvisory $advisory = null): Incident

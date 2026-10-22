@@ -202,13 +202,13 @@ class ConsolidatedReportControllerTest extends TestCase
         $building = Building::create([
             'campus_id' => $this->zabali->campus_id,
             'building_name' => 'Gym',
-            'risk_level' => 'High',
+            'risk_level' => 'High Risk',
         ]);
 
         HazardInspection::create([
             'building_id' => $building->building_id,
             'inspection_date' => '2026-08-01',
-            'risk_level' => 'High',
+            'risk_level' => 'High Risk',
         ]);
 
         // Scheduled for the end of June (previous quarter) but held, and
@@ -241,7 +241,7 @@ class ConsolidatedReportControllerTest extends TestCase
         $response->assertViewHas('report', function (array $report) {
             return $report['hazard_auditor']['inspections_conducted'] === 1
                 && $report['hazard_auditor']['buildings_inspected'] === 1
-                && $report['hazard_auditor']['by_risk_level']['High'] === 1
+                && $report['hazard_auditor']['by_risk_level']['High Risk'] === 1
                 && $report['drills']['total'] === 1
                 && $report['drills']['scheduled'] === 0
                 && $report['drills']['total_participants'] === 40

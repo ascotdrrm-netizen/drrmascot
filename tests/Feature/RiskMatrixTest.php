@@ -40,16 +40,38 @@ class RiskMatrixTest extends TestCase
 
     public function test_bands_meet_at_their_edges(): void
     {
-        $this->assertSame('Low', RiskMatrix::level(1));
-        $this->assertSame('Low', RiskMatrix::level(4));
-        $this->assertSame('Moderate', RiskMatrix::level(5));
-        $this->assertSame('Moderate', RiskMatrix::level(9));
-        $this->assertSame('High', RiskMatrix::level(10));
-        $this->assertSame('High', RiskMatrix::level(16));
-        $this->assertSame('Very High', RiskMatrix::level(17));
-        $this->assertSame('Very High', RiskMatrix::level(25));
-        $this->assertSame('High', RiskMatrix::rate(4, 4));
-        $this->assertSame('5–9', RiskMatrix::range('Moderate'));
+        $this->assertSame('Minimal Risk', RiskMatrix::level(1));
+        $this->assertSame('Minimal Risk', RiskMatrix::level(4));
+        $this->assertSame('Moderate Risk', RiskMatrix::level(5));
+        $this->assertSame('Moderate Risk', RiskMatrix::level(9));
+        $this->assertSame('High Risk', RiskMatrix::level(10));
+        $this->assertSame('High Risk', RiskMatrix::level(16));
+        $this->assertSame('Critical Risk', RiskMatrix::level(17));
+        $this->assertSame('Critical Risk', RiskMatrix::level(25));
+        $this->assertSame('High Risk', RiskMatrix::rate(4, 4));
+        $this->assertSame('5–9', RiskMatrix::range('Moderate Risk'));
+    }
+
+    public function test_earlier_names_are_read_under_the_current_ones(): void
+    {
+        $this->assertSame(['Minimal Risk', 'Moderate Risk', 'Moderate Risk', 'High Risk', 'Critical Risk', null],
+            array_map([RiskMatrix::class, 'normalise'], ['Low', 'Medium', 'Moderate', 'High', 'Very High', null]));
+
+        // A backup made before the rename restores under the new names.
+        $rows = RiskMatrix::normaliseRows(['buildings' => [['risk_level' => 'Very High'], ['risk_level' => null]],
+            'hazard_inspections' => [['risk_level' => 'Low']], 'incidents' => [['status' => 'Active']]]);
+        $this->assertSame([['risk_level' => 'Critical Risk'], ['risk_level' => null]], $rows['buildings']);
+        $this->assertSame([['risk_level' => 'Minimal Risk']], $rows['hazard_inspections']);
+        $this->assertSame([['status' => 'Active']], $rows['incidents']);
+    }
+
+    public function test_the_form_and_badges_show_each_level_with_its_colour(): void
+    {
+        $this->building->update(['risk_level' => 'Critical Risk']);
+        $this->actingAs($this->coord)->get(route('coordinator.buildings.show', $this->building))->assertOk()
+            ->assertSee('🔴</span>Critical Risk', false);
+        $this->get(route('coordinator.buildings.inspections.create', $this->building))->assertOk()
+            ->assertSee('🟢</span> Minimal Risk 1–4', false)->assertSee('🔴</span> Critical Risk 17–25', false);
     }
 
     public function test_factors_outside_one_to_five_are_refused(): void
@@ -61,11 +83,11 @@ class RiskMatrixTest extends TestCase
     public function test_an_inspection_computes_its_score_and_level_and_ignores_a_posted_level(): void
     {
         $this->actingAs($this->coord)->post(route('coordinator.buildings.inspections.store', $this->building), [
-            'inspection_date' => '2026-10-19', 'likelihood' => 4, 'impact' => 5, 'findings' => 'Cracked column', 'risk_level' => 'Low',
+            'inspection_date' => '2026-10-19', 'likelihood' => 4, 'impact' => 5, 'findings' => 'Cracked column', 'risk_level' => 'Minimal Risk',
         ])->assertRedirect();
 
         $inspection = HazardInspection::firstOrFail();
-        $this->assertSame([4, 5, 20, 'Very High'], [$inspection->likelihood, $inspection->impact, $inspection->risk_score, $inspection->risk_level]);
+        $this->assertSame([4, 5, 20, 'Critical Risk'], [$inspection->likelihood, $inspection->impact, $inspection->risk_score, $inspection->risk_level]);
         $this->assertSame('Likely (4) × Major (4) = 16', (new HazardInspection)->rate(4, 4)->risk_breakdown);
     }
 
@@ -86,15 +108,15 @@ class RiskMatrixTest extends TestCase
         ])->assertRedirect();
 
         $post('2026-10-10', 4, 4);
-        $this->assertSame('High', $this->building->fresh()->risk_level);
+        $this->assertSame('High Risk', $this->building->fresh()->risk_level);
         $post('2026-10-01', 5, 5); // older: does not change the latest
-        $this->assertSame('High', $this->building->fresh()->risk_level);
+        $this->assertSame('High Risk', $this->building->fresh()->risk_level);
         $post('2026-10-18', 1, 2); // repaired
-        $this->assertSame('Low', $this->building->fresh()->risk_level);
+        $this->assertSame('Minimal Risk', $this->building->fresh()->risk_level);
 
         $latest = HazardInspection::where('inspection_date', '2026-10-18')->firstOrFail();
         $this->actingAs($this->coord)->delete(route('coordinator.buildings.inspections.destroy', [$this->building, $latest]))->assertRedirect();
-        $this->assertSame('High', $this->building->fresh()->risk_level, 'deleting the latest falls back to the one before');
+        $this->assertSame('High Risk', $this->building->fresh()->risk_level, 'deleting the latest falls back to the one before');
     }
 
     public function test_the_forms_show_the_matrix_and_the_building_form_has_no_level_picker(): void
@@ -121,7 +143,7 @@ class RiskMatrixTest extends TestCase
         $this->actingAs($this->coord)->post(route('coordinator.buildings.inspections.store', $this->building), [
             'inspection_date' => '2026-10-10', 'likelihood' => 5, 'impact' => 5,
         ])->assertRedirect();
-        $this->assertSame('Very High', $this->building->fresh()->risk_level);
+        $this->assertSame('Critical Risk', $this->building->fresh()->risk_level);
 
         $only = HazardInspection::firstOrFail();
         $this->actingAs($this->coord)->delete(route('coordinator.buildings.inspections.destroy', [$this->building, $only]))->assertRedirect();

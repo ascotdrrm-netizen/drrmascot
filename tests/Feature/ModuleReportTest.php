@@ -55,7 +55,7 @@ class ModuleReportTest extends TestCase
             'campus_id' => $this->zabali->campus_id,
             'building_name' => 'Zabali Gym',
             'hazard_type' => 'Fire',
-            'risk_level' => 'High',
+            'risk_level' => 'High Risk',
         ]);
         $bazalBuilding = Building::create([
             'campus_id' => $this->bazal->campus_id,
@@ -64,7 +64,7 @@ class ModuleReportTest extends TestCase
             'risk_level' => 'Medium',
         ]);
 
-        HazardInspection::create(['building_id' => $zabaliBuilding->building_id, 'inspection_date' => '2026-08-01', 'findings' => 'Zabali finding', 'risk_level' => 'High']);
+        HazardInspection::create(['building_id' => $zabaliBuilding->building_id, 'inspection_date' => '2026-08-01', 'findings' => 'Zabali finding', 'risk_level' => 'High Risk']);
         HazardInspection::create(['building_id' => $bazalBuilding->building_id, 'inspection_date' => '2026-08-02', 'findings' => 'Bazal finding', 'risk_level' => 'Medium']);
 
         $zabaliIncident = Incident::create(['campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-08-05', 'status' => 'Resolved', 'description' => 'Zabali incident description']);
@@ -81,7 +81,7 @@ class ModuleReportTest extends TestCase
         Alert::create(['incident_id' => $zabaliIncident->incident_id, 'message' => 'Zabali alert message', 'sent_at' => '2026-08-05 10:00:00', 'recipient_count' => 30, 'delivery_status' => 'Sent']);
 
         // Out-of-period rows for every module, for the exclusion test.
-        HazardInspection::create(['building_id' => $zabaliBuilding->building_id, 'inspection_date' => '2026-01-15', 'findings' => 'Out of period finding', 'risk_level' => 'High']);
+        HazardInspection::create(['building_id' => $zabaliBuilding->building_id, 'inspection_date' => '2026-01-15', 'findings' => 'Out of period finding', 'risk_level' => 'High Risk']);
         Incident::create(['campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Earthquake', 'date_occurred' => '2026-01-05', 'status' => 'Resolved', 'description' => 'Out of period incident description']);
         Drill::forceCreate(['campus_id' => $this->zabali->campus_id, 'drill_type' => 'Evacuation', 'scheduled_date' => '2026-01-20', 'scheduled_time' => '09:00:00', 'venue' => 'Out-Of-Period Venue']);
     }

@@ -63,13 +63,13 @@ class DashboardAnalyticsTest extends TestCase
 
         // Inspections. Gym's High is its latest -> open. Library's High was
         // superseded by a later Low -> not open. Bazal's High -> open (other campus).
-        $gym = Building::create(['campus_id' => $z, 'building_name' => 'Zabali Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High']);
-        $lib = Building::create(['campus_id' => $z, 'building_name' => 'Zabali Library', 'hazard_type' => 'Flood', 'risk_level' => 'Low']);
-        $bzl = Building::create(['campus_id' => $b, 'building_name' => 'Bazal Hall', 'hazard_type' => 'Fire', 'risk_level' => 'High']);
-        HazardInspection::forceCreate(['building_id' => $gym->building_id, 'inspection_date' => '2026-09-10', 'risk_level' => 'High'] + $mine);
-        HazardInspection::forceCreate(['building_id' => $lib->building_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'High'] + $mine);
-        HazardInspection::forceCreate(['building_id' => $lib->building_id, 'inspection_date' => '2026-09-15', 'risk_level' => 'Low'] + $mine);
-        HazardInspection::create(['building_id' => $bzl->building_id, 'inspection_date' => '2026-09-12', 'risk_level' => 'High']);
+        $gym = Building::create(['campus_id' => $z, 'building_name' => 'Zabali Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High Risk']);
+        $lib = Building::create(['campus_id' => $z, 'building_name' => 'Zabali Library', 'hazard_type' => 'Flood', 'risk_level' => 'Minimal Risk']);
+        $bzl = Building::create(['campus_id' => $b, 'building_name' => 'Bazal Hall', 'hazard_type' => 'Fire', 'risk_level' => 'High Risk']);
+        HazardInspection::forceCreate(['building_id' => $gym->building_id, 'inspection_date' => '2026-09-10', 'risk_level' => 'High Risk'] + $mine);
+        HazardInspection::forceCreate(['building_id' => $lib->building_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'High Risk'] + $mine);
+        HazardInspection::forceCreate(['building_id' => $lib->building_id, 'inspection_date' => '2026-09-15', 'risk_level' => 'Minimal Risk'] + $mine);
+        HazardInspection::create(['building_id' => $bzl->building_id, 'inspection_date' => '2026-09-12', 'risk_level' => 'High Risk']);
 
         // Drills: one held (documented) in range, one scheduled in the future, one held at Bazal.
         // "Conducted" = documented, dated by the documentation's date held.

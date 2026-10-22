@@ -53,7 +53,7 @@ class ArchiveTest extends TestCase
     {
         $this->deletedIncident($this->zabali, $this->admin, 'Flood');
         $this->deletedIncident($this->bazal, $this->admin, 'Fire');
-        Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Gym', 'risk_level' => 'Low', 'created_by' => $this->admin->personnel_id])->delete();
+        Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Gym', 'risk_level' => 'Minimal Risk', 'created_by' => $this->admin->personnel_id])->delete();
         DisasterAdvisory::forceCreate(['hazard_type' => 'Typhoon', 'headline' => 'Old typhoon warning', 'source' => 'PAGASA', 'issued_at' => now()->subDays(3),
             'valid_until' => now()->subDay(), 'status' => 'Passed', 'instructions' => 'Stay safe.', 'created_by' => $this->admin->personnel_id])->delete();
 

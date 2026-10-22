@@ -33,7 +33,7 @@ class MapPickerTest extends TestCase
 
         $this->zabali = Campus::create(['campus_name' => 'ASCOT Zabali Campus']);
         $this->coordinator = Personnel::create(['campus_id' => $this->zabali->campus_id, 'full_name' => 'Picker Coordinator', 'role' => 'Coordinator', 'email' => 'picker-coord@ascot-test.local', 'password_hash' => Hash::make('password')]);
-        $this->building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Picker Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $this->building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Picker Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
     }
 
     /** Every form that includes the location fields: create and edit. */
@@ -192,7 +192,7 @@ class MapPickerTest extends TestCase
     protected function assertSavesTypedCoordinates(string $name): void
     {
         $this->actingAs($this->coordinator)->post(route('coordinator.buildings.store'), [
-            'building_name' => $name, 'hazard_type' => 'Fire', 'risk_level' => 'Low',
+            'building_name' => $name, 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk',
             'latitude' => '15.7440842', 'longitude' => '121.5773613',
         ])->assertSessionHasNoErrors()->assertRedirect();
 
@@ -201,7 +201,7 @@ class MapPickerTest extends TestCase
         $this->assertEqualsWithDelta(121.5773613, (float) $building->longitude, 0.0000001);
 
         $this->actingAs($this->coordinator)->put(route('coordinator.buildings.update', $building), [
-            'building_name' => $name, 'hazard_type' => 'Fire', 'risk_level' => 'Low',
+            'building_name' => $name, 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk',
             'latitude' => '16.2836', 'longitude' => '122.1236',
         ])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertEqualsWithDelta(16.2836, (float) $building->fresh()->latitude, 0.0000001);

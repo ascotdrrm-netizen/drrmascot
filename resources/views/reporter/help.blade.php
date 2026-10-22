@@ -33,8 +33,8 @@
             'A number on the Alerts tab means you have new notices.',
         ]],
         ['id' => 'map', 'icon' => 'map', 'title' => 'Map and hazardous areas', 'steps' => [
-            'Map shows your campus and the areas the DRRM Office rated Moderate risk or higher, with a coloured pin.',
-            'Moderate: take care. High: limit your use of the area. Very High: keep away until it is made safe.',
+            'Map shows your campus and the areas the DRRM Office rated Moderate Risk or higher, with a coloured pin.',
+            '🟡 Moderate Risk: take care. 🟠 High Risk: limit your use of the area. 🔴 Critical Risk: keep away until it is made safe.',
             'Tap Show where I am to see your own position.',
         ]],
         ['id' => 'hotlines', 'icon' => 'call', 'title' => 'Emergency hotlines', 'steps' => [

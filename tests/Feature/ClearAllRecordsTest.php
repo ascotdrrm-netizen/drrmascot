@@ -59,9 +59,9 @@ class ClearAllRecordsTest extends TestCase
         // Records of every kind, some in Trash, with files on both disks.
         $c = $campus->campus_id;
         $photo = fn (string $disk, string $path, int $bytes) => Storage::disk($disk)->put($path, str_repeat('x', $bytes)) ? $path : null;
-        $b1 = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Gym', 'risk_level' => 'High', 'photo_path' => $photo('records', 'buildings/gym.jpg', 1000)], 'building_id');
-        $b2 = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Old Hall', 'risk_level' => 'Low', 'photo_path' => 'buildings/already-gone.jpg', 'deleted_at' => now()], 'building_id');
-        DB::table('hazard_inspections')->insert(['building_id' => $b1, 'school_id' => $school->school_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'High', 'photo_path' => $photo('records', 'hazard-inspections/exit.jpg', 2000)]);
+        $b1 = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Gym', 'risk_level' => 'High Risk', 'photo_path' => $photo('records', 'buildings/gym.jpg', 1000)], 'building_id');
+        $b2 = DB::table('buildings')->insertGetId(['campus_id' => $c, 'building_name' => 'Old Hall', 'risk_level' => 'Minimal Risk', 'photo_path' => 'buildings/already-gone.jpg', 'deleted_at' => now()], 'building_id');
+        DB::table('hazard_inspections')->insert(['building_id' => $b1, 'school_id' => $school->school_id, 'inspection_date' => '2026-09-01', 'risk_level' => 'High Risk', 'photo_path' => $photo('records', 'hazard-inspections/exit.jpg', 2000)]);
         $i1 = DB::table('incidents')->insertGetId(['campus_id' => $c, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-05', 'description' => 'Kitchen fire', 'photo_path' => $photo('records', 'incidents/fire.jpg', 3000)], 'incident_id');
         DB::table('incidents')->insert(['campus_id' => $c, 'hazard_type' => 'Flood', 'date_occurred' => '2026-09-06', 'description' => 'Trashed flood', 'deleted_at' => now()]);
         DB::table('alerts')->insert(['incident_id' => $i1, 'message' => 'Evacuate', 'sent_at' => '2026-09-05 10:00:00', 'recipient_count' => 3]);

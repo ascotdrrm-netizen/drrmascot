@@ -55,8 +55,8 @@ class FilterBarListsTest extends TestCase
 
     public function test_buildings_admin_gets_one_campus_control_that_submits_on_change(): void
     {
-        Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Low']);
-        Building::forceCreate(['campus_id' => $this->bazal->campus_id, 'building_name' => 'Barn', 'risk_level' => 'Low']);
+        Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Minimal Risk']);
+        Building::forceCreate(['campus_id' => $this->bazal->campus_id, 'building_name' => 'Barn', 'risk_level' => 'Minimal Risk']);
 
         [$x, $r] = $this->page($this->admin, route('admin.buildings.index'));
         $this->assertCount(2, $r->viewData('buildings'));
@@ -80,8 +80,8 @@ class FilterBarListsTest extends TestCase
 
     public function test_buildings_coordinator_gets_no_controls_just_the_summary_and_the_switch(): void
     {
-        Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Low']);
-        Building::forceCreate(['campus_id' => $this->bazal->campus_id, 'building_name' => 'Barn', 'risk_level' => 'Low']);
+        Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Minimal Risk']);
+        Building::forceCreate(['campus_id' => $this->bazal->campus_id, 'building_name' => 'Barn', 'risk_level' => 'Minimal Risk']);
 
         foreach ([[], ['campus_id' => $this->bazal->campus_id]] as $query) {
             [$x, $r] = $this->page($this->alpha, route('coordinator.buildings.index', $query));

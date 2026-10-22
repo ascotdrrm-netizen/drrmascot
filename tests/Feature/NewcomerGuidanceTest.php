@@ -94,7 +94,7 @@ class NewcomerGuidanceTest extends TestCase
 
     public function test_each_empty_list_explains_what_belongs_there(): void
     {
-        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Empty Hall', 'risk_level' => 'Low']);
+        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Empty Hall', 'risk_level' => 'Minimal Risk']);
         $other = Campus::create(['campus_name' => 'ASCOT Bazal Campus']);
 
         foreach ($this->roles() as $prefix => [$user]) {
@@ -137,8 +137,8 @@ class NewcomerGuidanceTest extends TestCase
     {
         // A colleague's records exist; this coordinator just can't see them.
         $colleague = Personnel::create(['campus_id' => $this->campus->campus_id, 'full_name' => 'Colleague', 'role' => 'Coordinator', 'email' => 'colleague@ascot-test.local', 'password_hash' => Hash::make('password')]);
-        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Shared Hall', 'risk_level' => 'Low']);
-        $building->hazardInspections()->forceCreate(['inspection_date' => '2026-09-01', 'risk_level' => 'High', 'created_by' => $colleague->personnel_id]);
+        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Shared Hall', 'risk_level' => 'Minimal Risk']);
+        $building->hazardInspections()->forceCreate(['inspection_date' => '2026-09-01', 'risk_level' => 'High Risk', 'created_by' => $colleague->personnel_id]);
         Incident::forceCreate(['campus_id' => $this->campus->campus_id, 'hazard_type' => 'Flood', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $colleague->personnel_id]);
 
         $this->actingAs($this->coordinator)->get(route('coordinator.buildings.show', $building))
@@ -175,8 +175,8 @@ class NewcomerGuidanceTest extends TestCase
 
     public function test_delete_confirmations_say_whether_it_can_be_undone(): void
     {
-        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Low']);
-        $building->hazardInspections()->forceCreate(['inspection_date' => '2026-09-01', 'risk_level' => 'Low', 'created_by' => $this->admin->personnel_id]);
+        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Minimal Risk']);
+        $building->hazardInspections()->forceCreate(['inspection_date' => '2026-09-01', 'risk_level' => 'Minimal Risk', 'created_by' => $this->admin->personnel_id]);
         $incident = Incident::forceCreate(['campus_id' => $this->campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->admin->personnel_id]);
         $incident->damageReports()->create(['building_id' => $building->building_id, 'damage_level' => 'Minor', 'casualty_count' => 0]);
         $drill = Drill::create(['campus_id' => $this->campus->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-10-15', 'scheduled_time' => '09:00', 'venue' => 'Gym']);
@@ -213,7 +213,7 @@ class NewcomerGuidanceTest extends TestCase
 
     public function test_terms_are_explained_where_they_appear(): void
     {
-        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Low']);
+        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Minimal Risk']);
         $incident = Incident::forceCreate(['campus_id' => $this->campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->coordinator->personnel_id]);
 
         $this->actingAs($this->coordinator)->get(route('coordinator.incidents.create'))

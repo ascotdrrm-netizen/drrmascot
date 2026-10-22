@@ -8,13 +8,15 @@
     $canonical = [
         // Danger
         'Active' => 'bg-red-50 text-red-800 ring-red-600/20',
-        'Very High' => 'bg-red-50 text-red-800 ring-red-600/20', // risk level (App\Support\RiskMatrix)
+        'Critical Risk' => 'bg-red-50 text-red-800 ring-red-600/20', // risk level (App\Support\RiskMatrix)
+        'High Risk' => 'bg-orange-50 text-orange-800 ring-orange-600/25',
         'High' => 'bg-orange-50 text-orange-800 ring-orange-600/25',
         'Total' => 'bg-red-50 text-red-800 ring-red-600/20',
         'Failed' => 'bg-red-50 text-red-800 ring-red-600/20',
         'In effect' => 'bg-red-50 text-red-800 ring-red-600/20', // an advisory's stored "Active"
         // Warning
         'Under Response' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
+        'Moderate Risk' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
         'Moderate' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
         'Medium' => 'bg-amber-50 text-amber-800 ring-amber-600/25', // a pre-matrix risk level
         'Major' => 'bg-amber-50 text-amber-800 ring-amber-600/25',
@@ -22,6 +24,7 @@
         'Expired' => 'bg-amber-50 text-amber-800 ring-amber-600/25', // an advisory past its valid-until time
         // OK
         'Resolved' => 'bg-green-50 text-green-800 ring-green-600/20',
+        'Minimal Risk' => 'bg-green-50 text-green-800 ring-green-600/20',
         'Low' => 'bg-green-50 text-green-800 ring-green-600/20',
         'Minor' => 'bg-green-50 text-green-800 ring-green-600/20',
         'Sent' => 'bg-green-50 text-green-800 ring-green-600/20',
@@ -40,5 +43,5 @@
 @endphp
 
 <span @if ($tip) title="{{ $tip }}" @endif {{ $attributes->merge(['class' => "inline-flex items-center whitespace-nowrap rounded-full px-2 py-1 text-xs leading-none font-semibold ring-1 ring-inset {$classes}"]) }}>
-    {{ $value }}
+    @isset(\App\Support\RiskMatrix::EMOJI[$value])<span class="mr-1" aria-hidden="true">{{ \App\Support\RiskMatrix::EMOJI[$value] }}</span>@endisset{{ $value }}
 </span>

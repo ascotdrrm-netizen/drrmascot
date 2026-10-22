@@ -54,8 +54,8 @@ class PdfLetterheadTest extends TestCase
             'email' => 'letterhead-admin@ascot-test.local', 'password_hash' => Hash::make('password'),
         ]);
 
-        $building = Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Zabali Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High']);
-        $inspection = HazardInspection::create(['building_id' => $building->building_id, 'inspection_date' => '2026-08-01', 'findings' => 'Blocked exit beside the stage.', 'risk_level' => 'High']);
+        $building = Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Zabali Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High Risk']);
+        $inspection = HazardInspection::create(['building_id' => $building->building_id, 'inspection_date' => '2026-08-01', 'findings' => 'Blocked exit beside the stage.', 'risk_level' => 'High Risk']);
         $incident = Incident::create(['campus_id' => $campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-08-05', 'status' => 'Resolved', 'description' => 'Kitchen fire, contained.']);
         $advisory = DisasterAdvisory::forceCreate(['hazard_type' => 'Typhoon', 'headline' => 'Typhoon Egay over Aurora', 'measurements' => ['storm_name' => 'Egay', 'wind_signal' => '2', 'max_winds' => '120'], 'source' => 'PAGASA', 'issued_at' => '2026-09-25 08:00:00', 'expected_at' => '2026-09-25 18:00:00', 'valid_until' => '2026-09-26 08:00:00', 'status' => 'Active', 'instructions' => 'Classes are suspended. Stay indoors and follow your building warden.', 'campus_id' => $campus->campus_id]);
         $alert = Alert::create(['incident_id' => $incident->incident_id, 'message' => 'Evacuate the canteen now.', 'sent_at' => '2026-08-05 10:00:00', 'recipient_count' => 30, 'delivery_status' => 'Sent']);

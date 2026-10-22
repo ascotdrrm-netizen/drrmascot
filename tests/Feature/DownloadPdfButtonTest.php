@@ -27,7 +27,7 @@ class DownloadPdfButtonTest extends TestCase
         $incident = Incident::create(['campus_id' => $campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-10-21',
             'status' => 'Active', 'description' => 'Fire']);
         Alert::create(['incident_id' => $incident->incident_id, 'message' => 'Evacuate', 'sent_at' => now(), 'recipient_count' => 6, 'delivery_status' => 'Sent']);
-        Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High']);
+        Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'High Risk']);
 
         $pages = [
             route('admin.incidents.show', $incident) => 2,   // the record + its alert row

@@ -44,7 +44,7 @@ class ResponsiveLayoutTest extends TestCase
             'password_hash' => Hash::make('password'),
         ]);
 
-        Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        Building::create(['campus_id' => $campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
         // The coordinator's own records, so every page opens for both roles (per-person visibility).
         $own = $this->coordinator->personnel_id;
         Incident::forceCreate(['campus_id' => $campus->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-08-01', 'status' => 'Active', 'created_by' => $own]);

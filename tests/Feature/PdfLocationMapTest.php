@@ -73,9 +73,9 @@ class PdfLocationMapTest extends TestCase
     {
         Http::fake(['tile.openstreetmap.org/*' => Http::response($this->tile())]);
         $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire',
-            'risk_level' => 'High', 'latitude' => 15.7378551, 'longitude' => 121.5493429]);
+            'risk_level' => 'High Risk', 'latitude' => 15.7378551, 'longitude' => 121.5493429]);
         $inspection = HazardInspection::create(['building_id' => $building->building_id, 'inspection_date' => '2026-10-21',
-            'findings' => 'Cracked wall', 'risk_level' => 'High', 'latitude' => 15.7379, 'longitude' => 121.5494]);
+            'findings' => 'Cracked wall', 'risk_level' => 'High Risk', 'latitude' => 15.7379, 'longitude' => 121.5494]);
 
         $this->assertStringContainsString('data-location-map',
             $this->capturePdf($this->admin, 'reports.records.building', route('admin.buildings.report', $building))['html']);

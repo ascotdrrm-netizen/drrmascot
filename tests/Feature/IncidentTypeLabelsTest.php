@@ -102,7 +102,7 @@ class IncidentTypeLabelsTest extends TestCase
 
     public function test_a_buildings_hazard_type_keeps_its_name(): void
     {
-        $building = Building::forceCreate(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $building = Building::forceCreate(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
 
         foreach ([route('admin.buildings.index'), route('admin.buildings.show', $building), route('admin.buildings.edit', $building)] as $url) {
             $this->actingAs($this->admin)->get($url)->assertOk()->assertSee('Hazard type');

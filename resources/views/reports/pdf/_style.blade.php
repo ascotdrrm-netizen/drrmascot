@@ -85,10 +85,10 @@ table.data tfoot td { font-weight: bold; background-color: #eef3ef; }
 /* Status / risk labels: readable in black & white — the word is always
    printed; weight and border style (not colour alone) distinguish levels. */
 .tag { font-size: 7pt; font-weight: bold; text-transform: uppercase; letter-spacing: .3px; padding: 0 3px; border: .5px solid #7b8794; white-space: nowrap; }
-.tag-very-high { border: 2px double #1f2933; }
-.tag-high, .tag-active, .tag-total, .tag-failed { border: 1.2px solid #1f2933; }
-.tag-moderate, .tag-medium, .tag-under-response, .tag-major, .tag-partial { border: .75px dashed #3e4c59; }
-.tag-low, .tag-resolved, .tag-minor, .tag-sent { font-weight: normal; }
+.tag-critical-risk, .tag-very-high { border: 2px double #1f2933; }
+.tag-high-risk, .tag-high, .tag-active, .tag-total, .tag-failed { border: 1.2px solid #1f2933; }
+.tag-moderate-risk, .tag-moderate, .tag-medium, .tag-under-response, .tag-major, .tag-partial { border: .75px dashed #3e4c59; }
+.tag-minimal-risk, .tag-low, .tag-resolved, .tag-minor, .tag-sent { font-weight: normal; }
 .tag-returned { border: 1.2px solid #1f2933; }
 .tag-submitted, .tag-acknowledged { border: .75px dashed #3e4c59; }
 .tag-scheduled, .tag-completed { font-weight: normal; }

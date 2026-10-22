@@ -38,14 +38,14 @@ class LocationMapTest extends TestCase
         $this->casiguran = Campus::create(['campus_name' => 'ASCOT Casiguran Campus']);
         $this->admin = Personnel::create(['campus_id' => $this->zabali->campus_id, 'full_name' => 'Map Admin', 'role' => 'DRRMO Admin', 'email' => 'map-admin@ascot-test.local', 'password_hash' => Hash::make('password')]);
         $this->coordinator = Personnel::create(['campus_id' => $this->zabali->campus_id, 'full_name' => 'Map Coordinator', 'role' => 'Coordinator', 'email' => 'map-coord@ascot-test.local', 'password_hash' => Hash::make('password')]);
-        $this->building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Map Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $this->building = Building::create(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Map Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
     }
 
     /** [store route, payload without coordinates, model class, how to find the saved record] per form. */
     protected function forms(): array
     {
         return [
-            'building' => [route('coordinator.buildings.store'), ['building_name' => 'Pinned Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low'], fn () => Building::where('building_name', 'Pinned Hall')->first()],
+            'building' => [route('coordinator.buildings.store'), ['building_name' => 'Pinned Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk'], fn () => Building::where('building_name', 'Pinned Hall')->first()],
             'inspection' => [route('coordinator.buildings.inspections.store', $this->building), ['inspection_date' => '2026-09-20', 'likelihood' => 1, 'impact' => 2, 'findings' => 'Pinned inspection'], fn () => HazardInspection::where('findings', 'Pinned inspection')->first()],
             'incident' => [route('coordinator.incidents.store'), ['hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'description' => 'Pinned incident'], fn () => Incident::where('description', 'Pinned incident')->first()],
         ];
@@ -97,11 +97,11 @@ class LocationMapTest extends TestCase
 
     public function test_edit_forms_update_coordinates(): void
     {
-        $inspection = HazardInspection::forceCreate(['building_id' => $this->building->building_id, 'inspection_date' => '2026-09-20', 'risk_level' => 'Low', 'created_by' => $this->coordinator->personnel_id]);
+        $inspection = HazardInspection::forceCreate(['building_id' => $this->building->building_id, 'inspection_date' => '2026-09-20', 'risk_level' => 'Minimal Risk', 'created_by' => $this->coordinator->personnel_id]);
         $incident = Incident::forceCreate(['campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->coordinator->personnel_id]);
         $coords = ['latitude' => '15.7376192', 'longitude' => '121.5494202'];
 
-        $this->actingAs($this->coordinator)->put(route('coordinator.buildings.update', $this->building), ['building_name' => 'Map Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low'] + $coords)->assertSessionHasNoErrors();
+        $this->actingAs($this->coordinator)->put(route('coordinator.buildings.update', $this->building), ['building_name' => 'Map Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk'] + $coords)->assertSessionHasNoErrors();
         $this->actingAs($this->coordinator)->put(route('coordinator.buildings.inspections.update', [$this->building, $inspection]), ['inspection_date' => '2026-09-20', 'likelihood' => 1, 'impact' => 2] + $coords)->assertSessionHasNoErrors();
         $this->actingAs($this->coordinator)->put(route('coordinator.incidents.update', $incident), ['hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active'] + $coords)->assertSessionHasNoErrors();
 
@@ -113,7 +113,7 @@ class LocationMapTest extends TestCase
 
     public function test_the_map_renders_on_every_form_with_coordinates(): void
     {
-        $inspection = HazardInspection::forceCreate(['building_id' => $this->building->building_id, 'inspection_date' => '2026-09-20', 'risk_level' => 'Low', 'latitude' => 15.7376192, 'longitude' => 121.5494202, 'created_by' => $this->coordinator->personnel_id]);
+        $inspection = HazardInspection::forceCreate(['building_id' => $this->building->building_id, 'inspection_date' => '2026-09-20', 'risk_level' => 'Minimal Risk', 'latitude' => 15.7376192, 'longitude' => 121.5494202, 'created_by' => $this->coordinator->personnel_id]);
         $incident = Incident::forceCreate(['campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->coordinator->personnel_id]);
 
         $pages = [
@@ -158,7 +158,7 @@ class LocationMapTest extends TestCase
         $this->assertSame(config('campus_map.centres.Casiguran'), $c['centres'][$this->casiguran->campus_id]);
 
         // An inspection: its building's campus, whoever is signed in.
-        $casiguranBuilding = Building::create(['campus_id' => $this->casiguran->campus_id, 'building_name' => 'Cas Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Low']);
+        $casiguranBuilding = Building::create(['campus_id' => $this->casiguran->campus_id, 'building_name' => 'Cas Hall', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
         $c = $config($this->actingAs($this->admin)->get(route('admin.buildings.inspections.create', $casiguranBuilding))->getContent());
         $this->assertSame($this->casiguran->campus_id, $c['campusId']);
     }

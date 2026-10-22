@@ -7,7 +7,7 @@ namespace App\Support;
  * panel, round 2: replaces the hand-picked Low / Medium / High).
  *
  *   risk score = likelihood (1–5) × impact (1–5)       → 1 to 25
- *   risk level = Low 1–4 · Moderate 5–9 · High 10–16 · Very High 17–25
+ *   risk level = Minimal Risk 1–4 · Moderate Risk 5–9 · High Risk 10–16 · Critical Risk 17–25
  *
  * The inspector rates the two factors; the score and level are always
  * computed here, never typed in. The form, the badges, the dashboard, the
@@ -40,20 +40,26 @@ final class RiskMatrix
     ];
 
     /** Highest score of each level, lowest level first. */
-    public const BANDS = ['Low' => 4, 'Moderate' => 9, 'High' => 16, 'Very High' => 25];
+    public const BANDS = ['Minimal Risk' => 4, 'Moderate Risk' => 9, 'High Risk' => 16, 'Critical Risk' => 25];
 
     /** Levels, lowest first. */
-    public const LEVELS = ['Low', 'Moderate', 'High', 'Very High'];
+    public const LEVELS = ['Minimal Risk', 'Moderate Risk', 'High Risk', 'Critical Risk'];
 
     /** Levels counted as "high risk" on the dashboard and in reports. */
-    public const HIGH_LEVELS = ['High', 'Very High'];
+    public const HIGH_LEVELS = ['High Risk', 'Critical Risk'];
+
+    /** Shown before a level on screen. PDFs print the word alone: their fonts have no emoji. */
+    public const EMOJI = ['Minimal Risk' => '🟢', 'Moderate Risk' => '🟡', 'High Risk' => '🟠', 'Critical Risk' => '🔴'];
+
+    /** Earlier names: hand-picked Low / Medium / High, then the matrix's Low … Very High. */
+    public const OLD_NAMES = ['Low' => 'Minimal Risk', 'Medium' => 'Moderate Risk', 'Moderate' => 'Moderate Risk', 'High' => 'High Risk', 'Very High' => 'Critical Risk'];
 
     /** Fill colour per level, for charts and map markers (light, dark). */
     public const COLOURS = [
-        'Low' => ['#16a34a', '#4ade80'],
-        'Moderate' => ['#eab308', '#facc15'],
-        'High' => ['#ea580c', '#fb923c'],
-        'Very High' => ['#dc2626', '#f87171'],
+        'Minimal Risk' => ['#16a34a', '#4ade80'],
+        'Moderate Risk' => ['#eab308', '#facc15'],
+        'High Risk' => ['#ea580c', '#fb923c'],
+        'Critical Risk' => ['#dc2626', '#f87171'],
     ];
 
     public static function score(int $likelihood, int $impact): int
@@ -73,7 +79,7 @@ final class RiskMatrix
             }
         }
 
-        return 'Very High';
+        return 'Critical Risk';
     }
 
     /** Level for a likelihood and impact pair. */
@@ -96,9 +102,23 @@ final class RiskMatrix
         return '';
     }
 
-    /** Older records were rated Low / Medium / High by hand; Medium is now Moderate. */
+    /** A level under any earlier name, under its current one. */
     public static function normalise(?string $level): ?string
     {
-        return $level === 'Medium' ? 'Moderate' : $level;
+        return self::OLD_NAMES[$level] ?? $level;
+    }
+
+    /** A backup's rows with every risk level under its current name (a backup can predate a rename). */
+    public static function normaliseRows(array $rows): array
+    {
+        foreach (['buildings', 'hazard_inspections'] as $table) {
+            foreach ($rows[$table] ?? [] as $i => $row) {
+                if (isset($row['risk_level'])) {
+                    $rows[$table][$i]['risk_level'] = self::normalise($row['risk_level']);
+                }
+            }
+        }
+
+        return $rows;
     }
 }

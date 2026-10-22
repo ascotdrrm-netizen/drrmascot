@@ -123,7 +123,7 @@ class DuplicateControlsTest extends TestCase
 
     public function test_incident_page_has_one_add_damage_report_action_with_or_without_reports(): void
     {
-        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Low']);
+        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'Minimal Risk']);
 
         foreach ($this->roles() as [$user, $prefix]) {
             // Reported by the viewing user, so a coordinator can open it (per-person visibility).
@@ -167,7 +167,7 @@ class DuplicateControlsTest extends TestCase
 
     public function test_building_page_has_one_add_inspection_action_when_empty(): void
     {
-        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Library', 'risk_level' => 'Low']);
+        $building = Building::create(['campus_id' => $this->campus->campus_id, 'building_name' => 'Library', 'risk_level' => 'Minimal Risk']);
 
         foreach ($this->roles() as [$user, $prefix]) {
             $html = $this->actingAs($user)->get(route("$prefix.buildings.show", $building))->assertOk()->getContent();
