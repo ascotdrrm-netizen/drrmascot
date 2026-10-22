@@ -91,6 +91,16 @@
             <p class="text-sm leading-6 text-gray-600">Description / objectives</p>
             <p class="whitespace-pre-line break-words text-sm text-gray-900">{{ $drill->description ?: '—' }}</p>
         </div>
+        @if ($otherCampuses->isNotEmpty())
+            <div class="mt-4 border-t border-gray-100 pt-4" data-other-campuses>
+                <p class="text-sm leading-6 text-gray-600">Same drill at other campuses (each documents its own)</p>
+                <ul class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    @foreach ($otherCampuses as $other)
+                        <li><a href="{{ route("{$routePrefix}.drills.show", $other) }}" class="link">{{ $other->campus->campus_name ?? 'Unknown campus' }}</a></li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         @unless ($canManage)
             @php $byCoordinator = $drill->created_by_name && optional($drill->creator)->role === 'Coordinator'; @endphp
             <p class="caption mt-4">Only {{ $byCoordinator ? $drill->created_by_name . ' (who scheduled it) or the DRRMO' : 'the DRRMO' }} can change or delete this drill’s schedule.</p>

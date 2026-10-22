@@ -130,8 +130,8 @@
                         <div class="space-y-1">
                             @foreach ($dayGroups->take($limit) as $group)
                                 @php $drill = $group->first(); $many = $group->count() > 1; @endphp
-                                {{-- One campus: its drill. Several: the day's list, one row per campus. --}}
-                                <a href="{{ $many ? $link(['view' => 'list', 'date' => $key, 'month' => null]) : route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}" @if ($many) data-drill-group="{{ $group->count() }}" @endif
+                                {{-- Always the drill itself; for several campuses, the first, which links the others. --}}
+                                <a href="{{ route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}" @if ($many) data-drill-group="{{ $group->count() }}" @endif
                                    title="{{ $drill->drill_type }} — {{ $pillText($drill) }}{{ $isAdmin ? ' (' . $group->map(fn ($d) => $d->campus->campus_name ?? '')->join(', ') . ')' : '' }}"
                                    class="block min-w-0 rounded-md border px-2 py-1 text-xs leading-4 hover:brightness-95 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-line {{ $drill->typeColours()['pill'] }}">
                                     <span class="block truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
@@ -161,7 +161,7 @@
                         @foreach ($groups($dayDrills) as $group)
                             @php $drill = $group->first(); $many = $group->count() > 1; @endphp
                             <li>
-                                <a href="{{ $many ? $link(['view' => 'list', 'date' => $key, 'month' => null]) : route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}" @if ($many) data-drill-group="{{ $group->count() }}" @endif
+                                <a href="{{ route("{$routePrefix}.drills.show", $drill) }}" data-drill-pill="{{ $drill->typeGroup() }}" @if ($many) data-drill-group="{{ $group->count() }}" @endif
                                    class="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border px-4 py-2 text-sm {{ $drill->typeColours()['pill'] }}">
                                     <span class="truncate font-semibold uppercase">{{ $drill->drill_type }}</span>
                                     <span class="truncate text-xs uppercase">{{ $pillText($drill) }}{{ $isAdmin ? ' · ' . ($many ? $group->count() . ' campuses: ' . $group->map($shortCampus)->join(', ') : ($drill->campus->campus_name ?? '')) : '' }}</span>

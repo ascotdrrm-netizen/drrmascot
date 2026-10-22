@@ -202,8 +202,16 @@ class AdminFeedbackFixesTest extends TestCase
             'drill_type' => 'Earthquake', 'scheduled_date' => '2026-10-28', 'scheduled_time' => '09:00', 'venue' => 'Covered Court'])->assertRedirect();
         $this->assertSame(2, Drill::count());
 
+        [$first, $second] = Drill::orderBy('drill_id')->get()->all();
         $this->get(route('admin.drills.index', ['month' => '2026-10']))->assertOk()
-            ->assertSee('data-drill-group="2"', false)->assertSee('2 campuses');
+            ->assertSee('data-drill-group="2"', false)->assertSee('2 campuses')
+            // The pill opens the drill itself, not the day's list.
+            ->assertSee('href="' . route('admin.drills.show', $first) . '" data-drill-pill', false)
+            ->assertDontSee(e(route('admin.drills.index', ['view' => 'list', 'date' => '2026-10-28'])), false);
+        // Its page links the other campus's copy, and back.
+        $this->get(route('admin.drills.show', $first))->assertOk()
+            ->assertSee('data-other-campuses', false)->assertSee(route('admin.drills.show', $second), false);
+        $this->get(route('admin.drills.show', $second))->assertOk()->assertSee(route('admin.drills.show', $first), false);
         // One campus picked: its own drill, no grouping.
         $this->get(route('admin.drills.index', ['month' => '2026-10', 'campus_id' => $bazal->getKey()]))->assertOk()
             ->assertDontSee('data-drill-group', false);

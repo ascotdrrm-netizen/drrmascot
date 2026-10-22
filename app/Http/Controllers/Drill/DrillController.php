@@ -107,7 +107,24 @@ class DrillController extends Controller
             'canManage' => RecordAccess::canManageDrill($drill, Auth::user()),
             'documentationFiles' => $drill->attachments->where('section', 'documentation')->values(),
             'afterActivityFiles' => $drill->attachments->where('section', 'after_activity')->values(),
+            // The Admin's calendar shows these as one pill, which opens this page.
+            'otherCampuses' => RecordAccess::isAdmin(Auth::user()) ? $this->sameDrillElsewhere($drill) : collect(),
         ]);
+    }
+
+    /** The same drill at other campuses: same type, date, time and venue (the calendar's grouping). */
+    protected function sameDrillElsewhere(Drill $drill): \Illuminate\Support\Collection
+    {
+        $key = fn (Drill $d) => $d->scheduled_time?->format('H:i') . '|' . mb_strtolower(trim($d->venue));
+
+        return Drill::with('campus:campus_id,campus_name')
+            ->where('drill_type', $drill->drill_type)
+            ->whereDate('scheduled_date', $drill->scheduled_date->toDateString())
+            ->whereKeyNot($drill->getKey())
+            ->get()
+            ->filter(fn (Drill $d) => $key($d) === $key($drill))
+            ->sortBy(fn (Drill $d) => $d->campus->campus_name ?? '')
+            ->values();
     }
 
     // =============================== Schedule =================================
