@@ -27,7 +27,6 @@ The app does not use Supabase Auth, Firebase or Vercel.
 - [ ] Brevo and TextBee accounts are made with the **owners' own email** (not the developer's). If they were made with another email, change the login email in each account's settings, or make new accounts and replace the keys in Part 4.
 - [ ] Give the owners, in person or in a private message, never in a group chat:
   - the GitHub, Render and Supabase sign-in details, if the developer was holding them
-  - `storage/app/private/demo-accounts.txt` (demo account passwords), if they want the demo accounts
 
 ---
 
@@ -118,9 +117,7 @@ and Clear records will ask for that password.
 
 1. Sign in as the current DRRMO Admin. Go to **Personnel** and create the real Admin account(s) for the DRRM Office, or confirm they exist.
 2. Sign in with the new Admin account, then deactivate or delete any account that should no longer have access, including test accounts.
-3. **Demo accounts** (`demo.*@drrms.test`) exist only for testing.
-   - Remove `DEMO_ACCOUNTS_PASSWORD` from Render if it is set.
-   - Delete the demo accounts in **Personnel** when testing is over.
+3. There are no demo accounts: they were removed for good (October 2026). `DEMO_ACCOUNTS_PASSWORD` is no longer used; remove it from Render if it is still set.
 4. Every Admin and Coordinator puts a real mobile number in **My Profile** so SOS texts reach them.
 
 ---
@@ -158,7 +155,7 @@ More detail is in [`RENDER_SUPABASE.md`](RENDER_SUPABASE.md) (hosting) and [`PLA
 On the developer's PC:
 - [ ] Sign out of GitHub in the browser and run `gh auth logout` if the GitHub CLI was used.
 - [ ] Remove the saved GitHub login: Windows **Credential Manager** → Windows Credentials → delete entries for `git:https://github.com`.
-- [ ] Delete `.env.render` (it holds live secrets) and `storage/app/private/demo-accounts.txt`.
+- [ ] Delete `.env.render` (it holds live secrets).
 - [ ] Sign out of Render, Supabase, Brevo and TextBee in the browser.
 - [ ] Delete any local copy of a live backup file.
 

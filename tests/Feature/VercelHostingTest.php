@@ -273,94 +273,36 @@ class VercelHostingTest extends TestCase
         $this->get('/register')->assertOk()->assertSee('ASCOT Bazal Campus');
     }
 
-    public function test_demo_accounts_get_random_passwords_and_can_sign_in_once_created(): void
+    public function test_the_demo_accounts_are_deleted_once_and_never_made_again(): void
     {
-        // Use the real campus name, as on a fresh live database.
-        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
-        // A throwaway storage folder: the real storage/app/private/demo-accounts.txt
-        // holds the owner's live demo password and must never be touched by tests.
-        $this->app->useStoragePath($storage = sys_get_temp_dir().'/drrms-demo-test-'.Str::random(8));
-        mkdir($storage.'/app/private', 0777, true);
-        $file = storage_path('app/private/demo-accounts.txt');
-        $this->artisan('app:create-demo-accounts')->expectsConfirmation('Create demo accounts on the testing database?', 'yes')
-            ->expectsOutputToContain('demo.reporter@drrms.test')->assertSuccessful();
+        $campusId = $this->person->campus_id;
+        $make = fn (string $email, string $role) => Personnel::create(['campus_id' => $campusId, 'full_name' => $email, 'email' => $email, 'role' => $role, 'password_hash' => 'x']);
+        $make('demo.admin@drrms.test', 'DRRMO Admin');
+        $make('demo.zabali@drrms.test', 'Coordinator');
+        $reporter = $make('demo.reporter@drrms.test', 'Reporter');
+        $incident = \App\Models\Incident\Incident::forceCreate(['campus_id' => $campusId, 'hazard_type' => 'Fire', 'date_occurred' => '2026-10-20',
+            'status' => 'Active', 'created_by' => $reporter->personnel_id, 'created_by_name' => 'Demo Reporter']);
+        \Illuminate\Support\Facades\DB::table('system_secrets')->insert(['key' => 'demo_account_created:demo.zabali@drrms.test', 'value' => 'x']);
 
-        $reporter = Personnel::where('email', 'demo.reporter@drrms.test')->firstOrFail();
-        $this->assertTrue($reporter->is_approved);
-        $this->assertNotNull($reporter->email_verified_at);
-        $this->assertNotNull($reporter->validated_by_coordinator_at);
-        $this->assertNotNull($reporter->school_id);
-        $this->assertSame(3, Personnel::where('role', 'Coordinator')->where('email', 'like', 'demo.%')->count());
-        preg_match('/demo\.reporter@drrms\.test\t(\S+)/', file_get_contents($file), $match);
-        $this->assertFalse(Hash::check('changeme123', $reporter->password_hash));
-        $this->post('/login', ['email' => 'demo.reporter@drrms.test', 'password' => $match[1]])->assertRedirect('/app');
+        (require database_path('migrations/2026_10_22_000001_delete_demo_accounts.php'))->up();
 
-        $this->artisan('app:create-demo-accounts')->expectsConfirmation('Create demo accounts on the testing database?', 'yes')
-            ->expectsOutputToContain('Nothing changed')->assertSuccessful();
-        @unlink($file);
-        @rmdir($storage.'/app/private'); @rmdir($storage.'/app'); @rmdir($storage);
+        $this->assertSame(0, Personnel::where('email', 'like', 'demo.%@drrms.test')->count());
+        $this->assertTrue(Personnel::whereKey($this->person->personnel_id)->exists(), 'real accounts stay');
+        $this->assertSame('Demo Reporter', $incident->fresh()->created_by_name, 'their records stay, under their names');
+        $this->assertNull($incident->fresh()->created_by);
+        $this->assertDatabaseMissing('system_secrets', ['key' => 'demo_account_created:demo.zabali@drrms.test']);
+        // Nothing makes them again: the command and its start-up step are gone.
+        $this->assertArrayNotHasKey('app:create-demo-accounts', \Illuminate\Support\Facades\Artisan::all());
+        $this->assertStringNotContainsString('demo', file_get_contents(base_path('docker/start.sh')));
     }
 
-    public function test_host_start_up_creates_demo_accounts_with_the_dashboard_password(): void
+    public function test_demo_admin_stays_while_it_is_the_only_admin(): void
     {
-        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
-        config(['hosting.demo_accounts_password' => 'weak']);
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertFailed();
-        $this->assertDatabaseMissing('personnel', ['email' => 'demo.admin@drrms.test']);
+        $this->person->update(['role' => 'Coordinator']);
+        Personnel::create(['campus_id' => $this->person->campus_id, 'full_name' => 'Demo Admin', 'email' => 'demo.admin@drrms.test', 'role' => 'DRRMO Admin', 'password_hash' => 'x']);
 
-        config(['hosting.demo_accounts_password' => 'Chosen#Pass2026']);
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])
-            ->expectsOutputToContain('demo.admin@drrms.test')->doesntExpectOutputToContain('Chosen#Pass2026')->assertSuccessful();
-        auth()->logout();
-        $this->post('/login', ['email' => 'demo.admin@drrms.test', 'password' => 'Chosen#Pass2026'])->assertRedirect('/admin/dashboard');
-        $this->post('/logout');
-        $this->post('/app/login', ['email' => 'demo.reporter@drrms.test', 'password' => 'Chosen#Pass2026'])->assertRedirect('/app');
-        $this->post('/logout');
+        (require database_path('migrations/2026_10_22_000001_delete_demo_accounts.php'))->up();
 
-        // A lost password is replaced by changing it in the dashboard.
-        config(['hosting.demo_accounts_password' => 'Replaced#Pass2027']);
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->expectsOutputToContain('demo.admin@drrms.test')->assertSuccessful();
-        $this->post('/login', ['email' => 'demo.admin@drrms.test', 'password' => 'Replaced#Pass2027'])->assertRedirect('/admin/dashboard');
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->expectsOutputToContain('Nothing changed')->assertSuccessful();
-    }
-
-    public function test_a_deleted_demo_account_stays_deleted_through_every_start_up(): void
-    {
-        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
-        config(['hosting.demo_accounts_password' => 'Chosen#Pass2026']);
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
-        $this->assertSame(5, Personnel::where('email', 'like', 'demo.%@drrms.test')->count());
-
-        // The Admin deletes two of them from User Management.
-        $this->actingAs($this->person);
-        foreach (['demo.bazal@drrms.test', 'demo.admin@drrms.test'] as $email) {
-            $this->delete(route('admin.personnel.destroy', Personnel::where('email', $email)->firstOrFail()))->assertRedirect();
-        }
-
-        // Every deploy and every wake runs start-up again: they don't come back.
-        foreach (range(1, 2) as $start) {
-            $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
-        }
-        $this->assertDatabaseMissing('personnel', ['email' => 'demo.bazal@drrms.test']);
-        $this->assertDatabaseMissing('personnel', ['email' => 'demo.admin@drrms.test']);
-        $this->assertSame(3, Personnel::where('email', 'like', 'demo.%@drrms.test')->count(), 'the others are kept');
-
-        // The memory of them is outside every backup.
-        $this->assertContains('system_secrets', \App\Support\Backup\DataSet::EXCLUDED_TABLES);
-    }
-
-    public function test_demo_accounts_made_before_this_change_are_remembered_at_the_next_start_up(): void
-    {
-        // An account an earlier start-up made, before anything was remembered.
-        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
-        config(['hosting.demo_accounts_password' => 'Chosen#Pass2026']);
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
-        \Illuminate\Support\Facades\DB::table('system_secrets')->where('key', 'like', 'demo_account_created:%')->delete();
-
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
-        Personnel::where('email', 'demo.casiguran@drrms.test')->firstOrFail()->delete();
-        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
-
-        $this->assertDatabaseMissing('personnel', ['email' => 'demo.casiguran@drrms.test']);
+        $this->assertDatabaseHas('personnel', ['email' => 'demo.admin@drrms.test']);
     }
 }

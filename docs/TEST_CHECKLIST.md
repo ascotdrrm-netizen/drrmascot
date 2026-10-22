@@ -11,7 +11,7 @@ How to use: do each step, compare with **Expected**, tick **✅ Pass** or **❌ 
 | # | Check | Done |
 |---|---|---|
 | 0.1 | Open the site **5 minutes early**. The free plan sleeps after 15 minutes idle; the first load takes about 1 minute. | ☐ |
-| 0.2 | Demo accounts and their password: `C:\DRRM\DEMO-ACCOUNTS.txt` (same password for all five). | ☐ |
+| 0.2 | One test account per role below, made by the Admin in User Management (there are no demo accounts). | ☐ |
 | 0.3 | Brevo email set in Render (`MAIL_MAILER=brevo`, `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`). Without it, sections 1.5, 1.6 and 1.9 will fail. | ☐ |
 | 0.4 | Devices ready: 1 Android phone (Chrome), 1 iPhone (Safari) if available, 1 laptop (Chrome or Edge). | ☐ |
 | 0.5 | Know the limits of the demo: SMS is **simulated** (nothing is sent), push notifications are **not built yet**, the server **sleeps** when idle. | ☐ |
@@ -20,11 +20,11 @@ How to use: do each step, compare with **Expected**, tick **✅ Pass** or **❌ 
 
 | Role | Email | Login page |
 |---|---|---|
-| DRRMO Admin | `demo.admin@drrms.test` | /login |
-| Coordinator (Zabali) | `demo.zabali@drrms.test` | /login |
-| Coordinator (Bazal) | `demo.bazal@drrms.test` | /login |
-| Coordinator (Casiguran) | `demo.casiguran@drrms.test` | /login |
-| Reporter (Zabali) | `demo.reporter@drrms.test` | /app/login |
+| DRRMO Admin | an Admin account | /login |
+| Coordinator (Zabali) | a Zabali coordinator account | /login |
+| Coordinator (Bazal) | a Bazal coordinator account | /login |
+| Coordinator (Casiguran) | a Casiguran coordinator account | /login |
+| Reporter (Zabali) | a Zabali reporter account | /app/login |
 | New Reporter | your own real email (created in 1.3) | /app/register |
 
 ---
@@ -48,7 +48,7 @@ How to use: do each step, compare with **Expected**, tick **✅ Pass** or **❌ 
 
 ---
 
-## 2. Reporter — phone app (`demo.reporter@drrms.test`)
+## 2. Reporter — phone app (Zabali reporter)
 
 **Install and basics**
 
@@ -90,7 +90,7 @@ How to use: do each step, compare with **Expected**, tick **✅ Pass** or **❌ 
 
 ---
 
-## 3. Coordinator (`demo.zabali@drrms.test`)
+## 3. Coordinator (Zabali coordinator)
 
 | # | Steps | Expected | ✅ | ❌ |
 |---|---|---|---|---|
@@ -115,7 +115,7 @@ How to use: do each step, compare with **Expected**, tick **✅ Pass** or **❌ 
 
 ---
 
-## 4. DRRMO Admin (`demo.admin@drrms.test`)
+## 4. DRRMO Admin
 
 | # | Steps | Expected | ✅ | ❌ |
 |---|---|---|---|---|
@@ -192,7 +192,7 @@ How to use: do each step, compare with **Expected**, tick **✅ Pass** or **❌ 
 
 ```
 Checklist #:      (e.g. 2.13)
-Account / role:   (e.g. demo.reporter@drrms.test)
+Account / role:   (e.g. Zabali reporter)
 Device / browser: (e.g. Samsung A15, Chrome)
 Steps:            1. … 2. … 3. …
 Expected:         …

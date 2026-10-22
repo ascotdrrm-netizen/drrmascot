@@ -19,13 +19,6 @@ if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     as_app php artisan app:ensure-campuses
 fi
 
-# Demo accounts, only while DEMO_ACCOUNTS_PASSWORD is set in the dashboard.
-# Each is made once: one the Admin deleted is never made again.
-# A weak password is reported in the log; the site still starts.
-if [ -n "${DEMO_ACCOUNTS_PASSWORD:-}" ]; then
-    as_app php artisan app:create-demo-accounts --from-env || true
-fi
-
 # Restarted if they exit (memory limit, --max-time, a crash).
 ( while true; do as_app php artisan queue:work --sleep=5 --tries=3 --max-time=3600 --memory=128; sleep 5; done ) &
 ( while true; do as_app php artisan schedule:work; sleep 5; done ) &
