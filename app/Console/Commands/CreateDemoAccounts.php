@@ -53,6 +53,7 @@ class CreateDemoAccounts extends Command
             $created = [];
             foreach (self::ACCOUNTS as $email => [$name, $role, $campusName]) {
                 if ($existing = Personnel::where('email', $email)->first()) {
+                    self::remember($email);
                     // --from-env keeps the demo accounts on the dashboard's
                     // password, so changing it there is how a lost one is replaced.
                     if ($shared !== null && ! Hash::check($shared, $existing->password_hash)) {
@@ -63,6 +64,12 @@ class CreateDemoAccounts extends Command
 
                     continue;
                 }
+                // Start-up runs on every deploy and every wake: an account it
+                // made before and that is gone now was deleted on purpose, and
+                // stays deleted. (Run by hand, the command still recreates it.)
+                if ($shared !== null && self::wasCreated($email)) {
+                    continue;
+                }
                 $campus = Campus::where('campus_name', 'ASCOT '.$campusName.' Campus')->firstOrFail();
                 $password = $shared ?? self::password();
                 $person = new Personnel(['campus_id' => $campus->getKey(), 'full_name' => $name, 'role' => $role, 'email' => $email,
@@ -70,6 +77,7 @@ class CreateDemoAccounts extends Command
                     'password_hash' => Hash::make($password)]);
                 $person->forceFill(['is_approved' => true, 'approved_at' => now(), 'email_verified_at' => now(),
                     'validated_by_coordinator_at' => $role === 'Reporter' ? now() : null])->save();
+                self::remember($email);
                 $created[] = [$role, $campusName, $email, $password];
             }
 
@@ -94,6 +102,27 @@ class CreateDemoAccounts extends Command
         $this->info('Saved to '.$file.' (not in git). Delete these accounts before real use.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Which demo accounts have existed, in system_secrets: backups, restores
+     * and Clear All Records never touch that table, so a deleted demo account
+     * can't come back through any of them either.
+     */
+    private static function remember(string $email): void
+    {
+        DB::table('system_secrets')->insertOrIgnore(['key' => self::markerKey($email), 'value' => now()->toIso8601String(),
+            'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    private static function wasCreated(string $email): bool
+    {
+        return DB::table('system_secrets')->where('key', self::markerKey($email))->exists();
+    }
+
+    private static function markerKey(string $email): string
+    {
+        return 'demo_account_created:'.$email;
     }
 
     private static function password(): string

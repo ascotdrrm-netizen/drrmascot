@@ -323,4 +323,44 @@ class VercelHostingTest extends TestCase
         $this->post('/login', ['email' => 'demo.admin@drrms.test', 'password' => 'Replaced#Pass2027'])->assertRedirect('/admin/dashboard');
         $this->artisan('app:create-demo-accounts', ['--from-env' => true])->expectsOutputToContain('Nothing changed')->assertSuccessful();
     }
+
+    public function test_a_deleted_demo_account_stays_deleted_through_every_start_up(): void
+    {
+        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
+        config(['hosting.demo_accounts_password' => 'Chosen#Pass2026']);
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
+        $this->assertSame(5, Personnel::where('email', 'like', 'demo.%@drrms.test')->count());
+
+        // The Admin deletes two of them from User Management.
+        $this->actingAs($this->person);
+        foreach (['demo.bazal@drrms.test', 'demo.admin@drrms.test'] as $email) {
+            $this->delete(route('admin.personnel.destroy', Personnel::where('email', $email)->firstOrFail()))->assertRedirect();
+        }
+
+        // Every deploy and every wake runs start-up again: they don't come back.
+        foreach (range(1, 2) as $start) {
+            $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
+        }
+        $this->assertDatabaseMissing('personnel', ['email' => 'demo.bazal@drrms.test']);
+        $this->assertDatabaseMissing('personnel', ['email' => 'demo.admin@drrms.test']);
+        $this->assertSame(3, Personnel::where('email', 'like', 'demo.%@drrms.test')->count(), 'the others are kept');
+
+        // The memory of them is outside every backup.
+        $this->assertContains('system_secrets', \App\Support\Backup\DataSet::EXCLUDED_TABLES);
+    }
+
+    public function test_demo_accounts_made_before_this_change_are_remembered_at_the_next_start_up(): void
+    {
+        // An account an earlier start-up made, before anything was remembered.
+        $this->person->campus->update(['campus_name' => 'ASCOT Zabali Campus']);
+        config(['hosting.demo_accounts_password' => 'Chosen#Pass2026']);
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
+        \Illuminate\Support\Facades\DB::table('system_secrets')->where('key', 'like', 'demo_account_created:%')->delete();
+
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
+        Personnel::where('email', 'demo.casiguran@drrms.test')->firstOrFail()->delete();
+        $this->artisan('app:create-demo-accounts', ['--from-env' => true])->assertSuccessful();
+
+        $this->assertDatabaseMissing('personnel', ['email' => 'demo.casiguran@drrms.test']);
+    }
 }
