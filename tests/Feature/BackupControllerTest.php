@@ -96,24 +96,35 @@ class BackupControllerTest extends TestCase
 
         // Inside, with the password: one JSON row per line, readable as is.
         $entries = BackupZips::entries($path);
-        $emails = array_column(array_map(fn ($l) => json_decode($l, true), array_filter(explode("\n", $entries['data/personnel.jsonl']))), 'email');
-        $this->assertContains('admin@ascot-test.local', $emails);
+        $names = array_column(array_map(fn ($l) => json_decode($l, true), array_filter(explode("\n", $entries['data/campuses.jsonl']))), 'campus_name');
+        $this->assertContains('ASCOT Test Campus', $names);
         $manifest = json_decode($entries['manifest.json'], true);
         $this->assertSame('ascot-drrms-backup', $manifest['format']);
-        $this->assertSame(2, $manifest['tables']['personnel']);
+        $this->assertSame(1, $manifest['tables']['campuses']);
+
+        // User accounts are never in a backup: no table, no emails, no password hashes.
+        $this->assertArrayNotHasKey('personnel', $manifest['tables']);
+        $this->assertArrayNotHasKey('data/personnel.jsonl', $entries);
+        $this->assertStringNotContainsString('admin@ascot-test.local', implode("\n", $entries));
+        $this->assertStringNotContainsString($this->admin->password_hash, implode("\n", $entries));
 
         unlink($path);
     }
 
+    /** A record that exists only in the backup proves a restore wrote it back. */
+    protected function markerBuilding(string $name): \App\Models\Building\Building
+    {
+        return \App\Models\Building\Building::forceCreate(['campus_id' => $this->campus->campus_id, 'building_name' => $name, 'risk_level' => 'Minimal Risk']);
+    }
+
+    protected function markerExists(string $name): bool
+    {
+        return \App\Models\Building\Building::where('building_name', $name)->exists();
+    }
+
     public function test_sql_round_trips_through_restore(): void
     {
-        $marker = Personnel::create([
-            'campus_id' => $this->campus->campus_id,
-            'full_name' => 'Marker Coordinator',
-            'role' => 'Coordinator',
-            'email' => 'marker@ascot-test.local',
-            'password_hash' => Hash::make('password'),
-        ]);
+        $marker = $this->markerBuilding('Marker Gym');
 
         $downloadResponse = $this->actingAs($this->admin)->post(route('admin.backup.download'), [
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -124,14 +135,17 @@ class BackupControllerTest extends TestCase
         unlink($path);
 
         // Mutate the DB: remove the marker row directly (not through the app),
-        // simulating data loss that a restore should repair.
-        Personnel::where('personnel_id', $marker->personnel_id)->delete();
-        $this->assertFalse(Personnel::where('email', 'marker@ascot-test.local')->exists());
+        // simulating data loss that a restore should repair. An account added
+        // since the backup must survive it.
+        $marker->forceDelete();
+        $this->assertFalse($this->markerExists('Marker Gym'));
+        $later = Personnel::create(['campus_id' => $this->campus->campus_id, 'full_name' => 'Added Later', 'role' => 'Coordinator',
+            'email' => 'later@ascot-test.local', 'password_hash' => Hash::make('password')]);
 
         $zipFile = UploadedFile::fake()->createWithContent('ascot-drrms-backup.7z', $zipBytes);
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
+            'mode' => 'everything',
             'backup_file' => $zipFile,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -140,7 +154,8 @@ class BackupControllerTest extends TestCase
         $restoreResponse->assertRedirect(route('admin.backup.index'));
         $restoreResponse->assertSessionHasNoErrors();
 
-        $this->assertTrue(Personnel::where('email', 'marker@ascot-test.local')->exists());
+        $this->assertTrue($this->markerExists('Marker Gym'));
+        $this->assertTrue(Personnel::whereKey($later->personnel_id)->exists(), 'a restore never removes an account');
     }
 
     /**
@@ -166,13 +181,7 @@ class BackupControllerTest extends TestCase
     /** A backup zipped with the password used before ASCOTDRRMS2026 still restores. */
     public function test_backup_made_with_the_old_zip_password_still_restores(): void
     {
-        $marker = Personnel::create([
-            'campus_id' => $this->campus->campus_id,
-            'full_name' => 'Old Password Marker',
-            'role' => 'Coordinator',
-            'email' => 'oldzip@ascot-test.local',
-            'password_hash' => Hash::make('password'),
-        ]);
+        $marker = $this->markerBuilding('Old Password Marker');
 
         $downloadResponse = $this->actingAs($this->admin)->post(route('admin.backup.download'), [
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -195,7 +204,7 @@ class BackupControllerTest extends TestCase
         $zipBytes = file_get_contents($oldPath);
         unlink($oldPath);
 
-        Personnel::where('personnel_id', $marker->personnel_id)->delete();
+        $marker->forceDelete();
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
             'mode' => 'everything',
@@ -206,7 +215,7 @@ class BackupControllerTest extends TestCase
 
         $restoreResponse->assertRedirect(route('admin.backup.index'));
         $restoreResponse->assertSessionHasNoErrors();
-        $this->assertTrue(Personnel::where('email', 'oldzip@ascot-test.local')->exists());
+        $this->assertTrue($this->markerExists('Old Password Marker'));
     }
 
     /**
@@ -214,22 +223,31 @@ class BackupControllerTest extends TestCase
      * backticks, backslash escapes) still restores: its INSERT values are read
      * as rows, never run.
      */
+    /** The record tables every real dump declares (with CREATE TABLE), even when empty. */
+    protected function recordTablesSql(): string
+    {
+        $tables = array_diff(array_keys(\App\Support\RecordsClear::TABLES), \App\Support\RecordsRestore::OPTIONAL_NEW_TABLES);
+
+        return implode('', array_map(fn ($t) => "CREATE TABLE `{$t}` (`id` int);\n", $tables));
+    }
+
     public function test_an_old_plain_mysql_sql_upload_still_restores(): void
     {
         $campusId = $this->campus->campus_id;
         $admin = $this->admin;
         $sql = "-- ASCOT-DRRMS database backup\nSET FOREIGN_KEY_CHECKS=0;\n"
+            . $this->recordTablesSql()
             . "INSERT INTO `campuses` (`campus_id`, `campus_name`, `address`) VALUES ({$campusId}, 'ASCOT Test Campus', NULL);\n"
             . "INSERT INTO `personnel` (`personnel_id`, `campus_id`, `full_name`, `role`, `email`, `password_hash`, `is_approved`) VALUES "
             . "({$admin->personnel_id}, {$campusId}, 'Test Admin', 'DRRMO Admin', 'admin@ascot-test.local', '{$admin->password_hash}', 1),"
             . "(950, {$campusId}, 'Plain SQL O\\'Brien', 'Coordinator', 'plainsql@ascot-test.local', 'dummy-hash', 1);\n"
+            . "INSERT INTO `buildings` (`building_id`, `campus_id`, `building_name`, `risk_level`) VALUES (950, {$campusId}, 'Plain SQL O\\'Brien Hall', 'Minimal Risk');\n"
             . "SET FOREIGN_KEY_CHECKS=1;\n";
-        $this->assertFalse(Personnel::where('email', 'plainsql@ascot-test.local')->exists());
 
         $sqlFile = UploadedFile::fake()->createWithContent('ascot-drrms-backup.sql', $sql);
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
+            'mode' => 'everything',
             'backup_file' => $sqlFile,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -238,10 +256,12 @@ class BackupControllerTest extends TestCase
         $restoreResponse->assertRedirect(route('admin.backup.index'));
         $restoreResponse->assertSessionHasNoErrors();
 
-        $this->assertSame("Plain SQL O'Brien", Personnel::where('email', 'plainsql@ascot-test.local')->value('full_name'));
-        $this->assertFalse(Personnel::whereKey($this->coordinator->personnel_id)->exists(), 'everything: the table holds exactly the backup');
-        // The id counter moved past the restored ids: a new account doesn't collide.
-        $this->assertGreaterThan(950, Personnel::create(['campus_id' => $campusId, 'full_name' => 'After', 'role' => 'Coordinator', 'email' => 'after@ascot-test.local', 'password_hash' => 'x'])->personnel_id);
+        $this->assertTrue($this->markerExists("Plain SQL O'Brien Hall"));
+        // The old dump's accounts are ignored: none added, none removed.
+        $this->assertFalse(Personnel::where('email', 'plainsql@ascot-test.local')->exists(), 'a restore never adds an account');
+        $this->assertTrue(Personnel::whereKey($this->coordinator->personnel_id)->exists(), 'a restore never removes an account');
+        // The id counter moved past the restored ids: a new record doesn't collide.
+        $this->assertGreaterThan(950, $this->markerBuilding('After')->building_id);
     }
 
     public function test_old_format_sql_enc_zip_is_rejected_and_leaves_database_untouched(): void
@@ -283,23 +303,17 @@ class BackupControllerTest extends TestCase
 
     public function test_old_aes256_encrypted_zip_still_restores_for_backward_compatibility(): void
     {
-        // A row that exists BEFORE the restore, under a DIFFERENT email than the one
+        // A row that exists BEFORE the restore, under a DIFFERENT name than the one
         // the restored dump will insert — proves the dump's content genuinely replaced
         // the table rather than the "after" assertion just seeing pre-existing data.
-        Personnel::create([
-            'campus_id' => $this->campus->campus_id,
-            'full_name' => 'Pre-Restore Coordinator',
-            'role' => 'Coordinator',
-            'email' => 'aes256premarker@ascot-test.local',
-            'password_hash' => Hash::make('password'),
-        ]);
+        $this->markerBuilding('Pre-Restore Hall');
 
         // Simulates a backup produced by the PREVIOUS version of this app, which used
         // EM_AES_256 instead of EM_TRAD_PKWARE. New backups are never written this way
         // anymore, but PHP's ZipArchive reads AES-256 entries transparently regardless
         // of which method the app is currently WRITING with, so this must still restore.
-        // A complete, valid row (not a partial INSERT) — applyRestore() replaces the
-        // ENTIRE personnel table with exactly what the dump contains, and the table's
+        // A complete, valid row (not a partial INSERT) — the restore replaces the
+        // ENTIRE buildings table with exactly what the dump contains, and the table's
         // NOT NULL columns would reject an incomplete row.
         // No leading "-- comment\n" line here (unlike other synthetic dumps in this file):
         // applyRestore() splits on ";" with no statement-boundary awareness of comments, so
@@ -310,16 +324,17 @@ class BackupControllerTest extends TestCase
         // Foreign keys stay on during a restore now, so the campus the row
         // points at is in the dump too (as it is in every real backup).
         $campusId = $this->campus->campus_id;
-        $sql = "INSERT INTO `campuses` (`campus_id`, `campus_name`) VALUES ({$campusId}, 'ASCOT Test Campus');\n"
-            . "INSERT INTO `personnel` (`personnel_id`, `campus_id`, `full_name`, `role`, `email`, `password_hash`) VALUES "
-            . "(999, {$campusId}, 'AES256 Restored Person', 'Coordinator', 'aes256compat@ascot-test.local', 'dummy-hash');\n";
+        $sql = $this->recordTablesSql()
+            . "INSERT INTO `campuses` (`campus_id`, `campus_name`) VALUES ({$campusId}, 'ASCOT Test Campus');\n"
+            . "INSERT INTO `buildings` (`building_id`, `campus_id`, `building_name`, `risk_level`) VALUES "
+            . "(999, {$campusId}, 'AES256 Restored Hall', 'Minimal Risk');\n";
         $oldAesZip = UploadedFile::fake()->createWithContent(
             'ascot-drrms-backup.zip',
             $this->buildZipBytes($sql, 'backup.sql', self::ZIP_PASSWORD, ZipArchive::EM_AES_256)
         );
 
-        $this->assertTrue(Personnel::where('email', 'aes256premarker@ascot-test.local')->exists());
-        $this->assertFalse(Personnel::where('email', 'aes256compat@ascot-test.local')->exists());
+        $this->assertTrue($this->markerExists('Pre-Restore Hall'));
+        $this->assertFalse($this->markerExists('AES256 Restored Hall'));
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
             'mode' => 'everything', // the full restore, exactly as before records-only existed
@@ -333,8 +348,8 @@ class BackupControllerTest extends TestCase
 
         // The dump's content replaced the table: the AES-256 zip's row is now present,
         // and the pre-existing marker (not part of the dump) is gone.
-        $this->assertTrue(Personnel::where('email', 'aes256compat@ascot-test.local')->exists());
-        $this->assertFalse(Personnel::where('email', 'aes256premarker@ascot-test.local')->exists());
+        $this->assertTrue($this->markerExists('AES256 Restored Hall'));
+        $this->assertFalse($this->markerExists('Pre-Restore Hall'));
     }
 
     public function test_zip_with_wrong_password_is_rejected_and_leaves_database_untouched(): void
@@ -527,13 +542,7 @@ class BackupControllerTest extends TestCase
 
     public function test_restore_from_a_stored_backup_requires_the_same_gates_and_succeeds(): void
     {
-        $marker = Personnel::create([
-            'campus_id' => $this->campus->campus_id,
-            'full_name' => 'Stored Restore Marker',
-            'role' => 'Coordinator',
-            'email' => 'storedmarker@ascot-test.local',
-            'password_hash' => Hash::make('password'),
-        ]);
+        $marker = $this->markerBuilding('Stored Restore Marker');
 
         $downloadResponse = $this->actingAs($this->admin)->post(route('admin.backup.download'), [
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -558,8 +567,8 @@ class BackupControllerTest extends TestCase
         $wrongPassword->assertSessionHasErrors(['data_privacy_password']);
 
         // Mutate the DB, then restore from the stored backup with both gates correct.
-        Personnel::where('personnel_id', $marker->personnel_id)->delete();
-        $this->assertFalse(Personnel::where('email', 'storedmarker@ascot-test.local')->exists());
+        $marker->forceDelete();
+        $this->assertFalse($this->markerExists('Stored Restore Marker'));
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
             'mode' => 'everything', // the full restore, exactly as before records-only existed
@@ -569,7 +578,7 @@ class BackupControllerTest extends TestCase
         $restoreResponse->assertRedirect(route('admin.backup.index'));
         $restoreResponse->assertSessionHasNoErrors();
 
-        $this->assertTrue(Personnel::where('email', 'storedmarker@ascot-test.local')->exists());
+        $this->assertTrue($this->markerExists('Stored Restore Marker'));
     }
 
     public function test_downloading_a_stored_backup_returns_the_same_password_protected_format(): void

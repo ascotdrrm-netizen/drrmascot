@@ -76,9 +76,10 @@ class BackupSnapshotTest extends TestCase
         $this->assertSame('JPEGDATA', file_get_contents($this->dir . '/files/private/drill-attachments/7/documentation/photo.jpg'));
         $this->assertSame('FIREPHOTO', file_get_contents($this->dir . '/files/public/incidents/fire.jpg'));
 
-        // It is an ordinary backup: it opens and holds the rows.
+        // It is an ordinary backup: it opens and holds the rows — never the accounts.
         $read = BackupArchive::read($file);
-        $this->assertSame('snap-admin@ascot-test.local', $read['rows']['personnel'][0]['email']);
+        $this->assertSame('ASCOT Zabali Campus', $read['rows']['campuses'][0]['campus_name']);
+        $this->assertArrayNotHasKey('personnel', $read['rows']);
     }
 
     public function test_an_unreadable_copy_is_rejected_and_kept_aside(): void
@@ -97,7 +98,7 @@ class BackupSnapshotTest extends TestCase
     {
         $this->bend(function (string $path) {
             $this->rewriteManifest($path, function (array $manifest) {
-                unset($manifest['tables']['personnel']);
+                unset($manifest['tables']['campuses']);
 
                 return $manifest;
             });

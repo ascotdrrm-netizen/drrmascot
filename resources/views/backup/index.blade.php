@@ -54,9 +54,10 @@
             <x-card class="{{ $dataPrivacyPasswordConfigured ? '' : 'opacity-50' }}">
                 <h2 class="card-title mb-4">Download Backup</h2>
                 <p class="mb-4 text-sm text-gray-600">
-                    Makes a complete copy of all ASCOT-DRRMS data (campuses, personnel, buildings/areas,
-                    incidents, drills, and related records) with their photos and attachments — not Laravel's
-                    internal system tables. Restoring it brings the photos back too. A copy is also
+                    Makes a copy of the ASCOT-DRRMS data (campuses, buildings/areas, incidents, drills, and
+                    related records) with their photos and attachments — not Laravel's internal system tables.
+                    User accounts are not included: they stay in the database and User Management, and no
+                    restore adds, removes or changes them. Restoring it brings the photos back too. A copy is also
                     saved on the server (see Stored Backups) so you can come back to it later without keeping the
                     download yourself.
                 </p>

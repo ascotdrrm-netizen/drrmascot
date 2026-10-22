@@ -1,7 +1,8 @@
 {{--
     What a restore replaces. Shared by the upload Restore form and each stored
     backup's Restore. "records" is the default and matches Clear All Records;
-    "everything" is the full-database restore, for recovering a damaged database.
+    "everything" adds the activity log, settings and hotlines. Neither touches
+    user accounts (no backup holds them), campuses or schools.
     $prefix: unique id prefix. $compact: the narrow Stored Backups panel.
 --}}
 @php $compact = $compact ?? false; @endphp
@@ -29,10 +30,11 @@
         <span class="text-sm">
             <span class="block font-medium text-gray-900">Everything in the backup</span>
             @unless ($compact)
-                <span class="mt-1 block text-gray-700">For recovering a damaged database.</span>
-                <span class="mt-1 block font-medium text-red-700">Also replaces accounts and passwords: anyone added since the backup is gone and changed passwords revert. Campuses, schools and the activity log are replaced too.</span>
+                <span class="mt-1 block text-gray-700">Every record, as above, plus the activity log, settings and emergency hotlines.</span>
+                <span class="mt-1 block font-medium text-red-700">Activity log entries made since the backup are gone.</span>
+                <span class="mt-1 block text-gray-600">User accounts, campuses and schools stay as they are: a backup never holds accounts, and no restore adds, removes or changes them.</span>
             @else
-                <span class="mt-1 block text-xs font-medium text-red-700">Also replaces accounts and passwords; anyone added since is gone.</span>
+                <span class="mt-1 block text-xs font-medium text-red-700">Also replaces the activity log, settings and hotlines. Accounts stay.</span>
             @endunless
         </span>
     </label>

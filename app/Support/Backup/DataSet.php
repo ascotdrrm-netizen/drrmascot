@@ -29,6 +29,9 @@ class DataSet
         'failed_jobs', 'sessions', 'users', 'backups', 'sqlite_sequence', 'phone_verifications',
         // The Data Privacy Password's hash: never in a backup, never replaced by a restore.
         'system_secrets',
+        // User accounts: never in a backup, never added, removed or replaced by
+        // a restore — they stay in the database and User Management.
+        'personnel',
     ];
 
     /** @var array<string, list<array{column: string, table: string}>> */

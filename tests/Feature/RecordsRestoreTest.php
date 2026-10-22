@@ -255,18 +255,25 @@ class RecordsRestoreTest extends TestCase
 
     // ================================ everything ==============================
 
-    public function test_everything_still_replaces_accounts_and_the_log_exactly_as_before(): void
+    public function test_everything_winds_back_the_log_but_never_touches_accounts_campuses_or_schools(): void
     {
         $this->incident($this->zabali, 'In the backup');
         $backup = $this->backup();
         $later = $this->person('Added Later', 'Coordinator', 'later@ascot-test.local');
+        $renamed = $this->admin->full_name;
+        $this->admin->forceFill(['full_name' => 'Renamed Admin'])->save();
+        $newCampus = \App\Models\Campus::create(['campus_name' => 'Campus Added Later']);
         ActivityLog::create(['personnel_id' => $this->admin->personnel_id, 'action' => 'login', 'description' => 'After the backup']);
 
         $this->restoreStored($backup, 'everything')->assertSessionHasNoErrors()
-            ->assertSessionHas('status', "Database restored successfully from {$backup->filename}. Trash retention is paused until someone resumes it.");
+            ->assertSessionHas('status', fn ($s) => str_starts_with($s, "Restored from {$backup->filename}: ") && str_contains($s, 'Accounts, campuses and schools were left as they were.'));
 
-        $this->assertFalse(Personnel::whereKey($later->personnel_id)->exists(), 'accounts are replaced');
+        $this->assertTrue(Personnel::whereKey($later->personnel_id)->exists(), 'an account added since is kept');
+        $this->assertSame('Renamed Admin', $this->admin->fresh()->full_name, 'an account is not wound back');
+        $this->assertNotSame($renamed, $this->admin->fresh()->full_name);
+        $this->assertTrue(\App\Models\Campus::whereKey($newCampus->campus_id)->exists(), 'campuses are kept with their accounts');
         $this->assertFalse(ActivityLog::where('description', 'After the backup')->exists(), 'the log is wound back');
+        $this->assertSame(['In the backup'], DB::table('incidents')->pluck('description')->all());
     }
 
     // ============================== files/ directory ==========================

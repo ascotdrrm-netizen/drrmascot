@@ -26,7 +26,8 @@ use Throwable;
  * Backup & Restore (DRRMO Admin only).
  *
  * A backup is an App\Support\Backup\BackupArchive: a password-protected zip
- * of every app table as plain rows, the same on any database (Supabase in
+ * of every app table as plain rows — never the user accounts, which no backup,
+ * restore or clear adds, removes or changes — the same on any database (Supabase in
  * use, SQLite in the tests). Restore reads it — or an old MySQL backup from
  * before the move to Supabase — and writes the rows back through
  * App\Support\Backup\DataSet, all or nothing, with foreign keys on.
@@ -498,7 +499,8 @@ class BackupController extends Controller
      *
      * $mode "records" (the default) replaces only the record tables, after
      * checking every campus/school they point at still exists (App\Support\
-     * RecordsRestore); "everything" replaces every app table. In both, a zip
+     * RecordsRestore); "everything" also the activity log, settings and
+     * hotlines. Neither touches accounts, campuses or schools. In both, a zip
      * with a files/ directory (every backup since October 2026) also gets its
      * record files written back.
      *
@@ -508,29 +510,18 @@ class BackupController extends Controller
     {
         $read['rows'] = \App\Support\RiskMatrix::normaliseRows($read['rows']);
 
-        if ($mode === 'records') {
-            try {
-                $rows = \App\Support\RecordsRestore::fromRows($read['rows']);
-            } catch (RuntimeException $e) {
-                return back()->withErrors(['backup_file' => 'Nothing was restored. ' . $e->getMessage()]);
-            }
-            $problems = \App\Support\RecordsRestore::problems($rows);
-            if ($problems) {
-                return back()->withErrors(['backup_file' => 'Nothing was restored. ' . implode(' ', $problems)]);
-            }
-        } else {
-            $tables = DataSet::tables();
-            $rows = array_intersect_key($read['rows'], array_flip($tables));
-            $unknown = DataSet::unknownColumns($rows);
-            if ($unknown) {
-                return back()->withErrors(['backup_file' => 'Nothing was restored. This backup has columns the database no longer has (' . implode(', ', $unknown) . ').']);
-            }
+        try {
+            $rows = \App\Support\RecordsRestore::fromRows($read['rows'], everything: $mode === 'everything');
+        } catch (RuntimeException $e) {
+            return back()->withErrors(['backup_file' => 'Nothing was restored. ' . $e->getMessage()]);
+        }
+        $problems = \App\Support\RecordsRestore::problems($rows);
+        if ($problems) {
+            return back()->withErrors(['backup_file' => 'Nothing was restored. ' . implode(' ', $problems)]);
         }
 
         try {
-            $result = $mode === 'records'
-                ? \App\Support\RecordsRestore::apply($rows)
-                : ['tables' => DataSet::replace($rows, $tables)];
+            $result = \App\Support\RecordsRestore::apply($rows);
         } catch (Throwable $e) {
             Log::error('Database restore failed', [
                 'user_id' => Auth::id(),
@@ -565,11 +556,11 @@ class BackupController extends Controller
             'at' => now()->toDateTimeString(),
         ]);
 
-        $message = $mode === 'records'
-            ? sprintf('Records restored from %s: %d records%s. Accounts, campuses, schools and the activity log were left as they were.',
-                $sourceLabel, array_sum($result['tables']),
-                $result['accounts_cleared'] ? sprintf(' (%d by accounts that no longer exist, kept under their names)', $result['accounts_cleared']) : '')
-            : "Database restored successfully from {$sourceLabel}.";
+        $message = sprintf($mode === 'records'
+                ? 'Records restored from %s: %d records%s. Accounts, campuses, schools and the activity log were left as they were.'
+                : 'Restored from %s: %d rows%s. Accounts, campuses and schools were left as they were.',
+            $sourceLabel, array_sum($result['tables']),
+            $result['accounts_cleared'] ? sprintf(' (%d by accounts that no longer exist, kept under their names)', $result['accounts_cleared']) : '');
         if ($result['notifications_skipped'] ?? 0) {
             $n = $result['notifications_skipped'];
             $message .= " {$n} staff " . ($n === 1 ? 'notification' : 'notifications') . ' for accounts that no longer exist were left out.';

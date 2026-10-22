@@ -12,6 +12,11 @@ use RuntimeException;
  * clears (RecordsClear::TABLES, Trash included) with a backup's rows, and
  * leaves accounts, campuses, schools, the activity log and backups alone.
  *
+ * Restore → "Everything": the same, plus every other table the backup holds
+ * (the activity log, settings, hotlines) — except accounts, which a restore
+ * never touches (a backup doesn't hold them: DataSet::EXCLUDED_TABLES), and
+ * the campuses and schools those accounts belong to (KEPT_TABLES).
+ *
  * The backup's rows (App\Support\Backup\BackupArchive::read(), new format or
  * an old MySQL one) are checked and fixed BEFORE anything changes:
  *   - an account (created_by / submitted_by / uploaded_by) that no longer
@@ -40,10 +45,10 @@ class RecordsRestore
      *
      * @return array<string, list<string>> table => columns
      */
-    public static function accountColumns(): array
+    public static function accountColumns(?array $tables = null): array
     {
         $columns = [];
-        foreach (array_keys(RecordsClear::TABLES) as $table) {
+        foreach ($tables ?? array_keys(RecordsClear::TABLES) as $table) {
             foreach (Schema::getForeignKeys($table) as $key) {
                 if ($key['foreign_table'] === 'personnel' && $table !== 'staff_notifications') {
                     $columns[$table] = array_merge($columns[$table] ?? [], $key['columns']);
@@ -53,6 +58,13 @@ class RecordsRestore
 
         return $columns;
     }
+
+    /**
+     * Never replaced, even by "Everything": accounts belong to a campus and a
+     * school, and deleting a campus deletes its accounts (personnel.campus_id
+     * cascades).
+     */
+    public const KEPT_TABLES = ['campuses', 'schools'];
 
     /** Tables whose campus_id must still exist when set (an advisory's is empty for every campus). */
     public const CAMPUS_TABLES = ['disaster_advisories', 'incidents', 'buildings', 'drills', 'citizen_reports', 'sos_events', 'campus_statuses', 'staff_notifications',
@@ -67,10 +79,13 @@ class RecordsRestore
      * "restore" nothing over every current record), and one from an older
      * version with columns that no longer exist.
      *
+     * $everything adds every other table the backup holds, except
+     * KEPT_TABLES (and accounts, which no backup holds).
+     *
      * @param  array<string, list<array<string, mixed>>>  $backupRows  table => rows
      * @return array<string, list<array<string, mixed>>>
      */
-    public static function fromRows(array $backupRows): array
+    public static function fromRows(array $backupRows, bool $everything = false): array
     {
         $absent = array_diff(array_keys(RecordsClear::TABLES), array_keys($backupRows), self::OPTIONAL_NEW_TABLES);
         if ($absent) {
@@ -78,9 +93,13 @@ class RecordsRestore
         }
 
         $rows = array_intersect_key($backupRows, RecordsClear::TABLES) + array_fill_keys(array_keys(RecordsClear::TABLES), []);
+        if ($everything) {
+            // Only what the backup holds: an older backup without, say, hotlines leaves them as they are.
+            $rows += array_intersect_key($backupRows, array_flip(array_diff(DataSet::tables(), self::KEPT_TABLES)));
+        }
         $unknown = DataSet::unknownColumns($rows);
         if ($unknown) {
-            throw new RuntimeException('This backup is from an older version of ASCOT-DRRMS: it has columns that no longer exist (' . implode(', ', $unknown) . '). Use "Everything in the backup" only if you mean to replace the whole database, or restore a newer backup.');
+            throw new RuntimeException('This backup is from an older version of ASCOT-DRRMS: it has columns that no longer exist (' . implode(', ', $unknown) . '). Restore a newer backup.');
         }
 
         return $rows;
@@ -140,7 +159,7 @@ class RecordsRestore
     }
 
     /**
-     * Replace the record tables with $rows, all or nothing. Returns the counts
+     * Replace the tables in $rows (from fromRows()) with them, all or nothing. Returns the counts
      * restored per table, how many account references were set to NULL, and
      * how many notifications were left out with their account.
      *
@@ -153,7 +172,7 @@ class RecordsRestore
         $rows['staff_notifications'] = array_values(array_filter($rows['staff_notifications'],
             fn ($row) => isset($accounts[(string) $row['personnel_id']])));
         $cleared = 0;
-        foreach (self::accountColumns() as $table => $columns) {
+        foreach (self::accountColumns(array_keys($rows)) as $table => $columns) {
             foreach ($rows[$table] as $i => $row) {
                 foreach ($columns as $column) {
                     if (($row[$column] ?? null) !== null && ! isset($accounts[(string) $row[$column]])) {
@@ -164,7 +183,7 @@ class RecordsRestore
             }
         }
 
-        DataSet::replace($rows, array_keys(RecordsClear::TABLES));
+        DataSet::replace($rows, array_keys($rows));
 
         return ['tables' => array_map('count', $rows), 'accounts_cleared' => $cleared,
             'notifications_skipped' => $notifications - count($rows['staff_notifications'])];
