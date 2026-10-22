@@ -19,7 +19,8 @@ class Assignment extends Model
 
     public function responder()
     {
-        return $this->belongsTo(Responder::class, 'responder_id', 'responder_id');
+        // A responder in the Archive still did this assignment.
+        return $this->belongsTo(Responder::class, 'responder_id', 'responder_id')->withTrashed();
     }
 
     public function report()

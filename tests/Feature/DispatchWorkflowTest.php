@@ -84,4 +84,41 @@ class DispatchWorkflowTest extends TestCase
         $this->assertSame('Responding', $sos->fresh()->status);
         $this->patchJson('/api/command/responders/'.$this->responder->getKey(), ['is_on_duty' => true, 'is_active' => false])->assertUnprocessable();
     }
+
+    public function test_deleting_a_responder_moves_them_to_the_archive_and_keeps_their_assignments(): void
+    {
+        $report = $this->report();
+        $this->actingAs($this->coordinator);
+        $id = $this->postJson('/api/command/assignments', ['target' => 'report:'.$report->getKey(), 'responder_id' => $this->responder->getKey()])->assertOk()->json('id');
+        $url = '/api/command/responders/'.$this->responder->getKey();
+
+        // Not while they are out on a case.
+        $this->deleteJson($url)->assertUnprocessable()->assertJsonValidationErrors('responder');
+        $this->patchJson("/api/command/assignments/{$id}", ['status' => 'On scene'])->assertOk();
+        $this->patchJson("/api/command/assignments/{$id}", ['status' => 'Completed'])->assertOk();
+
+        $this->get(route('coordinator.dispatch.index'))->assertOk()->assertSee('Delete responder?');
+        $this->deleteJson($url)->assertOk();
+        $this->assertSoftDeleted('responders', ['responder_id' => $this->responder->getKey()]);
+        $this->assertDatabaseHas('activity_logs', ['subject_type' => 'responder', 'subject_id' => $this->responder->getKey(), 'action' => 'deleted']);
+
+        // Off the cards and the assign list; their finished assignment stays, under their name.
+        $page = $this->get(route('coordinator.dispatch.index'))->assertOk();
+        $this->assertSame(0, $page->viewData('responders')->count());
+        $page->assertSee('Clinic Responder → Report #'.$report->getKey());
+        $this->postJson('/api/command/assignments', ['target' => 'report:'.$this->report()->getKey(), 'responder_id' => $this->responder->getKey()])->assertNotFound();
+
+        // Another campus's coordinator can neither delete nor restore them.
+        $other = Campus::create(['campus_name' => 'ASCOT Bazal Campus']);
+        $foreign = Responder::create(['campus_id' => $other->getKey(), 'full_name' => 'Other Responder', 'team' => 'Security', 'contact_number' => '09171234567']);
+        $this->deleteJson('/api/command/responders/'.$foreign->getKey())->assertNotFound();
+        $foreign->delete();
+        $this->post(route('coordinator.responders.restore', $foreign->getKey()))->assertNotFound();
+
+        // Restored from the Archive, they can be dispatched again.
+        $this->get(route('coordinator.archive.index'))->assertOk()->assertSee('Clinic Responder · Clinic')->assertDontSee('Other Responder');
+        $this->post(route('coordinator.responders.restore', $this->responder->getKey()))->assertRedirect();
+        $this->assertNotSoftDeleted('responders', ['responder_id' => $this->responder->getKey()]);
+        $this->postJson('/api/command/assignments', ['target' => 'report:'.$this->report()->getKey(), 'responder_id' => $this->responder->getKey()])->assertOk();
+    }
 }

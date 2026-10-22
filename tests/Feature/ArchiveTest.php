@@ -128,6 +128,34 @@ class ArchiveTest extends TestCase
             'subject_id' => $sos->sos_id, 'personnel_id' => $this->admin->personnel_id]);
     }
 
+    public function test_the_admin_can_delete_a_responder_permanently_with_their_assignments(): void
+    {
+        $responder = \App\Models\Responder::create(['campus_id' => $this->zabali->campus_id, 'full_name' => 'Former Guard', 'team' => 'Security', 'contact_number' => '09171234567']);
+        $sos = \App\Models\Reporter\SosEvent::create(['campus_id' => $this->zabali->campus_id, 'reporter_id' => $this->coordinator->personnel_id,
+            'client_key' => (string) \Illuminate\Support\Str::uuid(), 'type' => 'Medical', 'status' => 'Resolved']);
+        $assignment = \App\Models\Assignment::create(['campus_id' => $this->zabali->campus_id, 'responder_id' => $responder->getKey(), 'sos_id' => $sos->sos_id,
+            'assigned_by' => $this->admin->personnel_id, 'assigned_at' => now(), 'status' => 'Completed']);
+        $responder->delete();
+        $url = route('admin.archive.destroy', ['responders', $responder->getKey()]);
+
+        $this->actingAs($this->coordinator)->get(route('coordinator.archive.index', ['type' => 'responders']))->assertOk()
+            ->assertSee('Former Guard · Security')->assertDontSee('Delete permanently');
+        $this->delete($url)->assertForbidden();
+
+        // The scheduled run leaves it, however old.
+        $this->travel(400)->days();
+        \App\Support\TrashPurge::run(false, fn () => null);
+        $this->assertTrue(\App\Models\Responder::onlyTrashed()->whereKey($responder->getKey())->exists());
+
+        $this->actingAs($this->admin)->from(route('admin.archive.index'))->delete($url)
+            ->assertRedirect(route('admin.archive.index'))->assertSessionHas('status', 'Permanently deleted Responder \'Former Guard\' (in Trash since ' . $responder->deleted_at->format('M j, Y') . '): 1 dispatch assignment.');
+        $this->assertNull(\App\Models\Responder::withTrashed()->find($responder->getKey()));
+        $this->assertNull(\App\Models\Assignment::find($assignment->assignment_id));
+        $this->assertNotNull($sos->fresh(), 'the SOS it answered stays');
+        $this->assertDatabaseHas('activity_logs', ['action' => 'permanently_deleted', 'subject_type' => 'responder',
+            'subject_id' => $responder->getKey(), 'personnel_id' => $this->admin->personnel_id]);
+    }
+
     public function test_a_building_damage_reports_point_at_is_kept(): void
     {
         $building = Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Gym', 'risk_level' => 'Minimal Risk', 'created_by' => $this->admin->personnel_id]);

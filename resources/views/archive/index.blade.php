@@ -86,7 +86,7 @@
                             </td>
                         </tr>
                     @empty
-                        <x-empty-state :colspan="5 + ($retentionRunning ? 1 : 0)" icon="trash" message="Nothing in the archive." hint="Deleted buildings, incidents, drills, advisories and SOS alerts come here, and can be restored from here." />
+                        <x-empty-state :colspan="5 + ($retentionRunning ? 1 : 0)" icon="trash" message="Nothing in the archive." hint="Deleted buildings, incidents, drills, advisories, SOS alerts and responders come here, and can be restored from here." />
                     @endforelse
                 </tbody>
             </table>

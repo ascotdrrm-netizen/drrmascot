@@ -62,6 +62,9 @@ class NewcomerGuidanceTest extends TestCase
                 $this->assertStringContainsString('data-help-section="' . $section . '"', $html, "$prefix: $section");
             }
             $this->assertStringContainsString('data-help-risk-matrix', $html);
+            // Dispatch is walked through from start to end, with a sample scenario.
+            $this->assertStringContainsString('From start to end', $html);
+            $this->assertStringContainsString('data-dispatch-scenario', $html);
             // Every status is explained.
             foreach (['Under Response', 'Resolved', 'Minor', 'Major', 'Total', 'Partial', 'Not assigned', 'After Activity Report'] as $term) {
                 $this->assertStringContainsString($term, $html, "$prefix: $term");

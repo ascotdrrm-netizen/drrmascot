@@ -11,6 +11,7 @@ use App\Models\Incident\DamageReport;
 use App\Models\Incident\Incident;
 use App\Models\Personnel;
 use App\Models\Reporter\SosEvent;
+use App\Models\Responder;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -52,10 +53,11 @@ class TrashPurge
     public const MODELS = [Building::class, Incident::class, Drill::class, DisasterAdvisory::class];
 
     /**
-     * What purge() accepts: the retention models, plus SOS alerts, which only
-     * the Admin deletes permanently (from the Archive) — never the run.
+     * What purge() accepts: the retention models, plus SOS alerts and
+     * responders, which only the Admin deletes permanently (from the
+     * Archive) — never the run.
      */
-    public const PURGEABLE = [...self::MODELS, SosEvent::class];
+    public const PURGEABLE = [...self::MODELS, SosEvent::class, Responder::class];
 
     /** Held for the length of a real (not dry) run, so two runs never overlap. */
     public const LOCK = 'trash:purge';
@@ -120,6 +122,7 @@ class TrashPurge
             ], \App\Support\Files::diskName(), $record->storedFiles(), 0],
             $record instanceof DisasterAdvisory => [[], null, [], Incident::withTrashed()->where('advisory_id', $record->advisory_id)->count()],
             $record instanceof SosEvent => [['dispatch assignment' => \App\Models\Assignment::where('sos_id', $record->sos_id)->count()], null, [], 0],
+            $record instanceof Responder => [['dispatch assignment' => $record->assignments()->count()], null, [], 0],
         };
 
         $missing = $disk ? count(array_filter($files, fn ($path) => ! Storage::disk($disk)->exists($path))) : 0;
@@ -180,8 +183,13 @@ class TrashPurge
 
             $description = self::describe($fresh, self::contents($fresh));
 
+            // assignments.responder_id restricts deletes, so a responder's go first.
+            if ($fresh instanceof Responder) {
+                $fresh->assignments()->delete();
+            }
+
             // Its own entry below, not a second "deleted" that reads like a trashing.
-            // (An SOS logs its actions by hand, so it has nothing to switch off.)
+            // (An SOS or a responder logs its actions by hand, so it has nothing to switch off.)
             method_exists($fresh, 'withoutActivityLog')
                 ? $fresh::withoutActivityLog(fn () => $fresh->forceDelete())
                 : $fresh->forceDelete();
@@ -190,8 +198,12 @@ class TrashPurge
                 'personnel_id' => $by?->getKey(),
                 'actor_name' => $by ? null : ActivityLog::SYSTEM_ACTOR,
                 'action' => 'permanently_deleted',
-                // The SOS Console's own entries say 'sos'.
-                'subject_type' => $fresh instanceof SosEvent ? 'sos' : class_basename($fresh),
+                // The SOS Console's and Dispatch's own entries say 'sos' and 'responder'.
+                'subject_type' => match (true) {
+                    $fresh instanceof SosEvent => 'sos',
+                    $fresh instanceof Responder => 'responder',
+                    default => class_basename($fresh),
+                },
                 'subject_id' => $fresh->getKey(),
                 'description' => mb_substr('Permanently deleted ' . $description, 0, 255),
                 'ip_address' => $by ? request()?->ip() : null,

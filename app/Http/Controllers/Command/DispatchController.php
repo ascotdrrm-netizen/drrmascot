@@ -95,6 +95,32 @@ class DispatchController extends Controller
         return response()->json(['message' => 'Duty status updated.']);
     }
 
+    /** Into the Archive: off Dispatch and the assign list, with their past assignments kept. */
+    public function destroyResponder(Request $request, Responder $responder)
+    {
+        $this->campus($request, (int) $responder->campus_id);
+        DB::transaction(function () use ($responder) {
+            $locked = Responder::whereKey($responder->getKey())->lockForUpdate()->firstOrFail();
+            if ($locked->activeAssignment()->exists()) {
+                throw ValidationException::withMessages(['responder' => 'Complete or cancel the active assignment before deleting this responder.']);
+            }
+            $locked->delete();
+        });
+        $this->log($request, 'responder', $responder->getKey(), 'deleted', 'deleted responder '.$responder->full_name);
+
+        return response()->json(['message' => 'Responder moved to the Archive. You can restore them from there.']);
+    }
+
+    public function restoreResponder(Request $request, int $responder)
+    {
+        $responder = Responder::onlyTrashed()->findOrFail($responder);
+        $this->campus($request, (int) $responder->campus_id);
+        $responder->restore();
+        $this->log($request, 'responder', $responder->getKey(), 'restored', 'restored responder '.$responder->full_name);
+
+        return back()->with('status', $responder->full_name.' restored to Dispatch.');
+    }
+
     public function assign(Request $request)
     {
         if (is_string($request->input('target')) && preg_match('/^(report|sos):([0-9]+)$/', $request->input('target'), $parts)) {

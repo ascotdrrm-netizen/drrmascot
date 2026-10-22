@@ -85,6 +85,12 @@
                             @csrf @method('PATCH')<input type="hidden" name="is_on_duty" value="{{ $responder->is_on_duty ? 0 : 1 }}">
                             <button type="submit" class="btn btn-secondary btn-sm">{{ $responder->is_on_duty ? 'Mark off duty' : 'Mark on duty' }}</button>
                         </form>
+                        <form method="POST" action="{{ route('api.command.responders.destroy', $responder) }}" data-ajax data-ajax-refresh="#dispatch-board,#dispatch-options"
+                              data-confirm-form="This moves {{ $responder->full_name }} to the Archive and off the assign list. Their past assignments stay on record. You can restore them from the Archive."
+                              data-confirm-title="Delete responder?" data-confirm-button="Delete" data-confirm-tone="danger" data-confirm-focus="cancel">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
                     </div>
                     <details class="mt-3">
                         <summary class="link cursor-pointer text-sm">Edit details</summary>

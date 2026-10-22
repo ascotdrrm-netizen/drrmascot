@@ -317,7 +317,7 @@
                 <h2 class="{{ $h2 }}">Deleting and Trash</h2>
                 <p class="{{ $p }} mt-4">{{ config('glossary.trash') }}</p>
                 <ul class="{{ $list }} mt-4">
-                    <li><span class="{{ $strong }}">Go to Trash (can be restored):</span> buildings/areas with their inspections, incidents with their damage reports and alerts, disaster advisories, and drills with their documentation, After Activity Report and files. Photos stay with them and come back on restore.</li>
+                    <li><span class="{{ $strong }}">Go to Trash (can be restored):</span> buildings/areas with their inspections, incidents with their damage reports and alerts, disaster advisories, drills with their documentation, After Activity Report and files, SOS alerts, and Dispatch responders (their past assignments stay on record). Photos stay with them and come back on restore.</li>
                     <li><span class="{{ $strong }}">Deleted permanently (cannot be undone):</span> a single inspection, damage report or drill attachment{{ $isAdmin ? ', and user accounts' : '' }}.</li>
                     <li>Every delete asks you to confirm first and says which of the two it is. A <span class="{{ $strong }}">View Trash</span> button appears on a list page when something of yours is in Trash.</li>
                 </ul>

@@ -43,16 +43,54 @@
 <x-card class="scroll-mt-24" id="dispatch" data-help-section="dispatch">
     <h2 class="{{ $h2 }}">Dispatch</h2>
     <p class="{{ $p }} mt-4">Assigns campus responders (clinic, security, maintenance, the response team) to open reports and SOS, and records when they arrive and finish. Open: {!! $go('dispatch.index', 'Dispatch') !!}.</p>
+
+    <h3 class="card-title mt-6">Before an emergency (set up once)</h3>
     <ol class="{{ $steps }}">
-        <li>First time only: under <span class="{{ $strong }}">Add a campus responder</span>, enter each responder's name, team and contact number. Mark who is on duty.</li>
-        <li>Under <span class="{{ $strong }}">Assign a responder</span>, pick the report or SOS and an available responder, add a note, and press <span class="{{ $strong }}">Assign responder</span>. Then call the responder to confirm.</li>
-        <li>When the responder reaches the place, mark the assignment <span class="{{ $strong }}">On scene</span>.</li>
-        <li>When they finish, mark it <span class="{{ $strong }}">Completed</span>; this frees the responder. Then close the report or SOS itself in the Reports Inbox or SOS Console.</li>
+        <li>Under <span class="{{ $strong }}">Add a campus responder</span>, enter each responder's name, position, team or office, usual post and contact number.</li>
+        <li>At the start of each shift, use <span class="{{ $strong }}">Mark on duty</span> / <span class="{{ $strong }}">Mark off duty</span> on each responder's card. Only responders who are on duty and not busy can be assigned.</li>
+        <li>Fix a wrong name or number under <span class="{{ $strong }}">Edit details</span>. When someone leaves the team, press <span class="{{ $strong }}">Delete</span> on their card: they move to the {!! $go('archive.index', 'Archive') !!}, where they can be restored, and their past assignments stay on record. A responder on an active assignment can't be deleted until it is completed or cancelled.</li>
+    </ol>
+
+    <h3 class="card-title mt-6">From start to end</h3>
+    <ol class="{{ $steps }}">
+        <li><span class="{{ $strong }}">The case comes in.</span> An SOS appears in the {!! $go('command.sos', 'SOS Console') !!} and staff are emailed (and texted when SMS is set up). A hazard report appears in the {!! $go('command.inbox', 'Reports Inbox') !!}. Both start as <span class="{{ $strong }}">New</span>.</li>
+        <li><span class="{{ $strong }}">Check it.</span> Acknowledge the SOS, or open the report and Verify it. Call the person on the number shown and use the map link if they shared their location. If it is a false alarm or a duplicate, Reject it and stop here.</li>
+        <li><span class="{{ $strong }}">Pick a responder.</span> In Dispatch, under <span class="{{ $strong }}">Assign a responder</span>, choose the case under <em>Report or SOS</em>, then the nearest suitable responder. Busy and off-duty responders are greyed out. Write what to do and where to go under <em>Dispatch instructions</em>, then press <span class="{{ $strong }}">Assign responder</span>.</li>
+        <li><span class="{{ $strong }}">The case changes to Responding.</span> If it was still New, dispatching also acknowledges the SOS or verifies the report, and that is recorded on it. The reporter's phone shows <em>Help is coming</em> (SOS) or <em>Responding</em> (report).</li>
+        <li><span class="{{ $strong }}">Call the responder.</span> The system does not notify responders, so phone them on the number on their card and read out the instructions.</li>
+        <li><span class="{{ $strong }}">Mark on scene</span> on the assignment when the responder says they have arrived. That moment is their arrival time and counts toward <em>Average dispatch-to-arrival</em>.</li>
+        <li><span class="{{ $strong }}">Need more help?</span> Assign a second responder to the same case the same way. For anything campus responders can't handle, call outside help from the SOS Console's <span class="{{ $strong }}">Escalate</span> list (BFP, PNP, MDRRMO, hospital).</li>
+        <li><span class="{{ $strong }}">Mark completed</span> when the responder's work is done. The responder is available again for the next case.</li>
+        <li><span class="{{ $strong }}">Close the case.</span> Resolve the SOS in the SOS Console, or the report in the Reports Inbox. The reporter's phone shows the response as completed. An SOS also stops its clock, which shows how long it was open. Any assignment still open on the case is cancelled.</li>
+        <li><span class="{{ $strong }}">Afterwards:</span> if there was damage or someone was hurt, record it as an Incident for damage reports and the consolidated report. Every step above is in the Activity Log.</li>
     </ol>
     <ul class="{{ $list }} mt-4">
+        <li>If a responder can't go, use <span class="{{ $strong }}">Cancel assignment</span> and assign someone else.</li>
         <li>A responder busy on one assignment can't be given another until it is completed or cancelled.</li>
-        <li>Closing a report or SOS cancels any assignment still open on it.</li>
+        <li>Responders can only be sent to cases on their own campus.</li>
+        <li>Completing an assignment does not close the case, and closing the case cancels any assignment still open on it.</li>
     </ul>
+
+    <h3 class="card-title mt-6">Sample scenario: a student hurt on the stairs</h3>
+    <p class="{{ $p }} mt-2">A student slips on the stairs of the Main Building and can't walk. The campus clinic nurse and a security guard are on duty.</p>
+    <dl class="mt-4 divide-y divide-gray-100 text-sm leading-6" data-dispatch-scenario>
+        @foreach ([
+            '2:10 PM' => 'The student presses SOS in the phone app, picks Medical and shares their location. SOS #15 appears in the SOS Console as New. Staff get an email, and a text if SMS is set up.',
+            '2:11 PM' => 'The coordinator presses Acknowledge. The student\'s phone changes to "SOS acknowledged". The coordinator calls the student, who says they twisted an ankle on the 2nd-floor stairs.',
+            '2:12 PM' => 'In Dispatch, the coordinator picks "SOS #15 · Medical" and the campus nurse (Clinic, on duty), writes "Main Building, 2nd-floor stairs. Bring a splint and a wheelchair." and presses Assign responder. SOS #15 changes to Responding, the student\'s phone shows "Help is coming", and the nurse\'s card shows "Assigned".',
+            '2:13 PM' => 'The coordinator calls the nurse and reads out the instructions. A second pair of hands is needed, so the security guard is assigned to SOS #15 too.',
+            '2:17 PM' => 'The nurse calls back from the stairs. The coordinator marks the nurse\'s assignment On scene, which records a 5-minute dispatch-to-arrival time. The guard arrives a minute later and is marked On scene too.',
+            '2:35 PM' => 'The student is brought to the clinic and is safe. The coordinator marks both assignments Completed, so the nurse and the guard are available again.',
+            '2:36 PM' => 'The coordinator resolves SOS #15 in the SOS Console. The student\'s phone shows "Response completed", open for 26 minutes.',
+            'Later' => 'The coordinator records an Incident for the fall, with a damage report for the Main Building stairs (1 casualty), so it appears in the consolidated report.',
+        ] as $time => $what)
+            <div class="flex flex-col gap-x-4 py-3 sm:flex-row">
+                <dt class="{{ $strong }} sm:w-20 sm:shrink-0">{{ $time }}</dt>
+                <dd class="text-gray-700">{{ $what }}</dd>
+            </div>
+        @endforeach
+    </dl>
+    <p class="{{ $p }} mt-4">A hazard report goes the same way: Verify it in the Reports Inbox (or let dispatching verify it), assign a responder in Dispatch (for example maintenance for exposed wiring), mark On scene and Completed, then Resolve it in the Reports Inbox.</p>
 </x-card>
 
 <x-card class="scroll-mt-24" id="rollcall" data-help-section="rollcall">
@@ -104,7 +142,7 @@
 
 <x-card class="scroll-mt-24" id="archive" data-help-section="archive">
     <h2 class="{{ $h2 }}">Archive</h2>
-    <p class="{{ $p }} mt-4">Everything deleted, from every module, in one list: buildings, incidents, advisories and drills. Open: {!! $go('archive.index', 'Archive') !!}.</p>
+    <p class="{{ $p }} mt-4">Everything deleted, from every module, in one list: buildings, incidents, advisories, drills, SOS alerts and Dispatch responders. Open: {!! $go('archive.index', 'Archive') !!}.</p>
     <ul class="{{ $list }} mt-4">
         <li><span class="{{ $strong }}">Restore</span> brings a record back exactly as it was, with its photos and attachments.</li>
         <li>Each list's own <span class="{{ $strong }}">View Trash</span> shows the same records for that module. See <a class="link" href="#trash">Deleting and Trash</a>.</li>

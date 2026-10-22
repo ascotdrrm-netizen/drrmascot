@@ -148,6 +148,7 @@ $hotlineRoutes = function () {
     Route::post('/roll-calls/{rollCall}/close', [\App\Http\Controllers\Command\RollCallController::class, 'close'])->name('roll-calls.close');
     Route::get('/roll-calls/{rollCall}/export', [\App\Http\Controllers\Command\RollCallController::class, 'export'])->name('roll-calls.export');
     Route::get('/dispatch', [\App\Http\Controllers\Command\DispatchController::class, 'index'])->name('dispatch.index');
+    Route::post('/dispatch/trash/responders/{responder}/restore', [\App\Http\Controllers\Command\DispatchController::class, 'restoreResponder'])->whereNumber('responder')->name('responders.restore');
 };
 
 Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes, $hotlineRoutes) {
@@ -176,6 +177,7 @@ Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes,
         Route::post('/responders', [\App\Http\Controllers\Command\DispatchController::class, 'storeResponder'])->name('responders.store');
         Route::patch('/responders/{responder}', [\App\Http\Controllers\Command\DispatchController::class, 'updateResponder'])->name('responders.update');
         Route::put('/responders/{responder}', [\App\Http\Controllers\Command\DispatchController::class, 'updateResponderDetails'])->name('responders.details');
+        Route::delete('/responders/{responder}', [\App\Http\Controllers\Command\DispatchController::class, 'destroyResponder'])->name('responders.destroy');
         Route::post('/assignments', [\App\Http\Controllers\Command\DispatchController::class, 'assign'])->name('assignments.store');
         Route::patch('/assignments/{assignment}', [\App\Http\Controllers\Command\DispatchController::class, 'updateAssignment'])->name('assignments.update');
         Route::get('/notifications', [\App\Http\Controllers\Command\StaffNotificationController::class, 'summary'])->middleware('staff')->name('notifications');

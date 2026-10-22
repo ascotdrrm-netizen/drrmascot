@@ -8,6 +8,7 @@ use App\Models\Campus;
 use App\Models\Drill\Drill;
 use App\Models\Incident\Incident;
 use App\Models\Reporter\SosEvent;
+use App\Models\Responder;
 use App\Support\RecordAccess;
 use App\Support\TrashPurge;
 use Illuminate\Http\RedirectResponse;
@@ -18,15 +19,15 @@ use Illuminate\View\View;
 
 /**
  * One Archive for everything deleted (thesis panel, IT experts): buildings,
- * incidents, drills and advisories together, filtered by type, campus and
- * when they were deleted. Each module keeps its own Trash page and its own
+ * incidents, drills, advisories, SOS alerts and Dispatch responders together,
+ * filtered by type, campus and when they were deleted. Each module keeps its own Trash page and its own
  * restore action; this page lists what each of those would show this person
  * (the same RecordAccess rules) and restores through the same routes.
  *
  * The Admin may also delete a record permanently from here, through the same
  * TrashPurge::purge() the retention job uses (children, files and the log
- * entry included). SOS alerts too, though the retention run never removes
- * them: until restored or deleted here, they are kept.
+ * entry included). SOS alerts and responders too, though the retention run
+ * never removes them: until restored or deleted here, they are kept.
  */
 class ArchiveController extends Controller
 {
@@ -36,6 +37,7 @@ class ArchiveController extends Controller
         'drills' => 'Drills',
         'advisories' => 'Advisories',
         'sos' => 'SOS alerts',
+        'responders' => 'Responders',
     ];
 
     /** The types the Admin may delete permanently, and their models (TrashPurge::PURGEABLE). */
@@ -45,6 +47,7 @@ class ArchiveController extends Controller
         'drills' => Drill::class,
         'advisories' => DisasterAdvisory::class,
         'sos' => SosEvent::class,
+        'responders' => Responder::class,
     ];
 
     public const PERIODS = ['7' => 'Last 7 days', '30' => 'Last 30 days', '90' => 'Last 90 days'];
@@ -100,6 +103,14 @@ class ArchiveController extends Controller
             $rows = $rows->concat($q->get()->map(fn ($s) => $this->row($s, 'SOS alert', 'sos',
                 'SOS #' . $s->sos_id . ' · ' . ($s->reporter?->full_name ?: 'Former reporter') . ' · ' . $s->created_at->format('M j, Y'),
                 route("{$prefix}.sos.restore", $s->sos_id), $deleteUrl('sos', $s))));
+        }
+
+        if (! $type || $type === 'responders') {
+            // Campus records like SOS alerts: a coordinator sees their campus's.
+            $q = $scope(Responder::onlyTrashed()->with('campus'))
+                ->when(! $isAdmin, fn ($q) => $q->where('campus_id', $user->campus_id));
+            $rows = $rows->concat($q->get()->map(fn ($r) => $this->row($r, 'Responder', 'badge',
+                $r->full_name . ' · ' . $r->team, route("{$prefix}.responders.restore", $r->responder_id), $deleteUrl('responders', $r))));
         }
 
         return view('archive.index', [
