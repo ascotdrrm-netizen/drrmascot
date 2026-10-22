@@ -260,6 +260,9 @@ Route::middleware('auth')->group(function () use ($drillRoutes, $advisoryRoutes,
         $advisoryRoutes();
         $drillRoutes();
         $hotlineRoutes();
+        // Permanent delete from the Archive: the Admin only.
+        Route::delete('/archive/{type}/{id}', [ArchiveController::class, 'destroy'])
+            ->whereIn('type', array_keys(ArchiveController::PERMANENT))->whereNumber('id')->name('archive.destroy');
         Route::resource('incidents.alerts', AlertController::class)->only(['create', 'store']);
         Route::get('/personnel', [PersonnelController::class, 'index'])->name('personnel.index');
         Route::get('/personnel/report', [PersonnelController::class, 'downloadReport'])->name('personnel.report');

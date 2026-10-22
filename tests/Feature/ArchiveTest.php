@@ -84,4 +84,40 @@ class ArchiveTest extends TestCase
         $this->post(route('admin.incidents.restore', $incident->incident_id))->assertRedirect();
         $this->assertFalse($incident->fresh()->trashed());
     }
+
+    public function test_the_admin_can_delete_a_record_permanently(): void
+    {
+        $incident = $this->deletedIncident($this->zabali, $this->admin, 'Flood');
+        $url = route('admin.archive.destroy', ['incidents', $incident->incident_id]);
+
+        $this->actingAs($this->admin)->get(route('admin.archive.index'))->assertSee('action="' . $url . '"', false);
+        $this->from(route('admin.archive.index'))->delete($url)
+            ->assertRedirect(route('admin.archive.index'))->assertSessionHas('status');
+
+        $this->assertNull(Incident::withTrashed()->find($incident->incident_id));
+        $this->assertDatabaseHas('activity_logs', ['action' => 'permanently_deleted', 'subject_type' => 'Incident',
+            'subject_id' => $incident->incident_id, 'personnel_id' => $this->admin->personnel_id]);
+    }
+
+    public function test_a_building_damage_reports_point_at_is_kept(): void
+    {
+        $building = Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Gym', 'risk_level' => 'Minimal Risk', 'created_by' => $this->admin->personnel_id]);
+        $incident = $this->deletedIncident($this->zabali, $this->admin, 'Earthquake');
+        \App\Models\Incident\DamageReport::forceCreate(['incident_id' => $incident->incident_id, 'building_id' => $building->building_id,
+            'damage_level' => 'Minor', 'casualty_count' => 0, 'est_cost' => 5000]);
+        $building->delete();
+
+        $this->actingAs($this->admin)->delete(route('admin.archive.destroy', ['buildings', $building->building_id]))
+            ->assertSessionHasErrors('archive');
+        $this->assertTrue(Building::onlyTrashed()->whereKey($building->building_id)->exists());
+    }
+
+    public function test_only_the_admin_can_delete_permanently(): void
+    {
+        $incident = $this->deletedIncident($this->zabali, $this->coordinator, 'Landslide');
+
+        $this->actingAs($this->coordinator)->get(route('coordinator.archive.index'))->assertOk()->assertDontSee('Delete permanently');
+        $this->delete(route('admin.archive.destroy', ['incidents', $incident->incident_id]))->assertForbidden();
+        $this->assertTrue($incident->fresh()->trashed());
+    }
 }

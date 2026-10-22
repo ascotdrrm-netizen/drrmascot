@@ -70,10 +70,19 @@
                                 @endif
                             @endif
                             <td class="table-td text-right">
-                                <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ $row['restore_url'] }}">
-                                    @csrf
-                                    <button type="submit" class="link">Restore</button>
-                                </form>
+                                <div class="inline-flex items-center gap-4">
+                                    <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ $row['restore_url'] }}">
+                                        @csrf
+                                        <button type="submit" class="link">Restore</button>
+                                    </form>
+                                    @if ($row['delete_url'])
+                                        <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ $row['delete_url'] }}" data-confirm-form="This permanently deletes {{ $row['title'] }}, with everything attached to it and its files. It cannot be restored afterwards." data-confirm-title="Delete permanently?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="link-danger">Delete permanently</button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
