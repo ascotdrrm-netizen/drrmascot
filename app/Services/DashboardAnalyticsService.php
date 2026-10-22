@@ -143,8 +143,10 @@ class DashboardAnalyticsService
             ->first();
 
         $open = $this->openFindingSql('hi');
+        // A building in Trash takes its inspections off the dashboard; restored, they're back.
         $inspections = $this->ownInspections(DB::table('hazard_inspections as hi')
-            ->join('buildings as b', 'b.building_id', '=', 'hi.building_id'))
+            ->join('buildings as b', 'b.building_id', '=', 'hi.building_id')
+            ->whereNull('b.deleted_at'))
             ->when($campusId !== null, fn ($q) => $q->where('b.campus_id', $campusId))
             ->whereBetween('hi.inspection_date', [$prevStart, $curEnd])
             ->selectRaw(
@@ -290,8 +292,10 @@ class DashboardAnalyticsService
 
     protected function findingsByRiskLevel(array $period, ?int $campusId): array
     {
+        // Not a building in Trash (as the KPIs above): restoring it brings its findings back.
         $rows = $this->ownInspections(DB::table('hazard_inspections as hi')
-            ->join('buildings as b', 'b.building_id', '=', 'hi.building_id'))
+            ->join('buildings as b', 'b.building_id', '=', 'hi.building_id')
+            ->whereNull('b.deleted_at'))
             ->when($campusId !== null, fn ($q) => $q->where('b.campus_id', $campusId))
             ->whereBetween('hi.inspection_date', [$period['start']->toDateString(), $period['end']->toDateString()])
             ->selectRaw('hi.risk_level, COUNT(*) AS total')

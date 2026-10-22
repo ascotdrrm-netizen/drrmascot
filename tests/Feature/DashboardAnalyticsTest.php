@@ -199,6 +199,33 @@ class DashboardAnalyticsTest extends TestCase
         $this->assertStringContainsString('No drills scheduled.', $html);
     }
 
+    public function test_a_building_in_trash_takes_its_findings_off_the_dashboard_until_restored(): void
+    {
+        $this->seedSampleData();
+        $analytics = fn () => $this->actingAs($this->admin)->get(route('admin.dashboard', ['campus_id' => $this->zabali->campus_id]))->assertOk()->viewData('analytics');
+        $high = array_search('High Risk', \App\Support\RiskMatrix::LEVELS, true);
+        $minimal = array_search('Minimal Risk', \App\Support\RiskMatrix::LEVELS, true);
+
+        // Zabali in the last 30 days: Gym High, Library High then Minimal.
+        $before = $analytics();
+        $this->assertSame(2, $before['charts']['findings_by_risk']['data'][$high]);
+        $this->assertSame(1, $before['charts']['findings_by_risk']['data'][$minimal]);
+        $this->assertSame(3, $this->kpis($before)['inspections']['current']);
+
+        // The Library goes to Trash: its two findings leave the chart and the count.
+        $library = Building::where('building_name', 'Zabali Library')->firstOrFail();
+        $this->actingAs($this->admin)->delete(route('admin.buildings.destroy', $library))->assertRedirect();
+        $trashed = $analytics();
+        $this->assertSame(1, $trashed['charts']['findings_by_risk']['data'][$high], 'only the Gym');
+        $this->assertSame(0, $trashed['charts']['findings_by_risk']['data'][$minimal]);
+        $this->assertSame(1, $this->kpis($trashed)['inspections']['current']);
+
+        // Restored: back exactly as before.
+        $this->post(route('admin.buildings.restore', $library->building_id))->assertRedirect();
+        $this->assertSame($before['charts']['findings_by_risk'], $analytics()['charts']['findings_by_risk']);
+        $this->assertSame(3, $this->kpis($analytics())['inspections']['current']);
+    }
+
     public function test_invalid_range_is_rejected(): void
     {
         $this->actingAs($this->admin)

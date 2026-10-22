@@ -19,10 +19,10 @@ use Tests\TestCase;
 
 /**
  * Records whose parent is in Trash. A child that is its own dated event (an
- * inspection conducted, an alert sent) keeps counting; a child that is part
- * of its parent's record (an incident's damage, a drill's documentation)
- * follows its parent. Present-tense lists ("open") leave out anything whose
- * parent is in Trash. Permanent deletion cascades, so those rows are gone.
+ * inspection conducted, an alert sent) keeps counting in the reports; a child
+ * that is part of its parent's record (an incident's damage, a drill's
+ * documentation) follows its parent. The dashboard and present-tense lists
+ * ("open") leave out anything whose parent is in Trash. Permanent deletion cascades, so those rows are gone.
  */
 class TrashedParentsTest extends TestCase
 {
@@ -55,16 +55,18 @@ class TrashedParentsTest extends TestCase
 
     // ======================= inspections: their own event =====================
 
-    public function test_a_trashed_buildings_inspection_still_counts_in_its_period_and_leaves_the_open_findings(): void
+    public function test_a_trashed_buildings_inspection_still_counts_in_reports_but_leaves_the_dashboard(): void
     {
         $this->assertSame(1, $this->dashboard()['lists']['open_high_risk']['total'], 'before: the High finding is open');
 
         Building::find($this->trashedBuilding)->delete();
 
-        // Past tense: counted everywhere.
+        // The dashboard shows the buildings there are: the trashed one's inspection is off it.
         $kpis = collect($this->dashboard()['kpis'])->keyBy('key');
-        $this->assertSame(2, $kpis['inspections']['current'], 'Inspections conducted KPI');
-        $this->assertSame([1, 0, 1, 0], $this->dashboard()['charts']['findings_by_risk']['data'], 'findings by risk level: Low, Moderate, High, Very High');
+        $this->assertSame(1, $kpis['inspections']['current'], 'Inspections conducted KPI');
+        $this->assertSame([1, 0, 0, 0], $this->dashboard()['charts']['findings_by_risk']['data'], 'findings by risk level: Minimal, Moderate, High, Critical');
+
+        // Reports are a record of the period: the work happened, so it counts.
         $hazard = $this->consolidated()['hazard_auditor'];
         $this->assertSame(2, $hazard['inspections_conducted']);
         $this->assertSame(2, $hazard['buildings_inspected'], 'a trashed building still counts as inspected');
