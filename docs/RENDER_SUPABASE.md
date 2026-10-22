@@ -78,8 +78,8 @@ removes it (and replaces the keys that were once pasted in chat).
    pg_restore --no-owner --no-privileges --clean --if-exists --dbname="NEW_SINGAPORE_DB_URL" drrms.dump
    ```
    Delete `drrms.dump` afterwards: it holds personal data.
-3. Copy the files (photos, attachments, stored backups). A normal backup holds
-   the rows only, so copy the bucket itself with [rclone](https://rclone.org/s3/#supabase):
+3. Copy the files (photos, attachments, stored backups). Backups made before
+   October 2026 hold the rows only, so copy the bucket itself with [rclone](https://rclone.org/s3/#supabase):
    add two S3 remotes (provider `Other`, the old and the new endpoint and keys),
    then `rclone copy seoul:drrms singapore:drrms --progress`.
 4. In Render > Environment, replace `DB_URL`, `SUPABASE_S3_ENDPOINT`,

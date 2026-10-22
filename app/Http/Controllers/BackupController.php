@@ -295,7 +295,8 @@ class BackupController extends Controller
 
         $this->assertZipEncryptionSupported('backup_zip');
 
-        $backup = $this->createStoredBackup();
+        // With the record files (photos, attachments), so restoring it brings them back too.
+        $backup = $this->createStoredBackup(files: \App\Support\RecordsClear::currentFiles());
 
         $this->logBackupDownload($backup, $request);
 
@@ -307,8 +308,9 @@ class BackupController extends Controller
     /**
      * Builds a password-protected backup zip in storage/app/private/backups/,
      * records it as a stored Backup, and applies the retention cap. Shared by
-     * Download Backup and Clear All Records (whose copy is named PRE_CLEAR_PREFIX,
-     * is never pruned, and carries $files — list of [disk, path, bytes] — under files/).
+     * Download Backup and Clear All Records (whose copy is named PRE_CLEAR_PREFIX
+     * and is never pruned). Both carry the record files $files — list of
+     * [disk, path, bytes] — under files/.
      */
     protected function createStoredBackup(bool $preClear = false, array $files = []): Backup
     {
@@ -497,7 +499,7 @@ class BackupController extends Controller
      * $mode "records" (the default) replaces only the record tables, after
      * checking every campus/school they point at still exists (App\Support\
      * RecordsRestore); "everything" replaces every app table. In both, a zip
-     * with a files/ directory (only pre-clear copies have one) also gets its
+     * with a files/ directory (every backup since October 2026) also gets its
      * record files written back.
      *
      * @param  array{manifest: ?array, rows: array, legacy: bool}  $read
@@ -547,8 +549,8 @@ class BackupController extends Controller
         // retention so the next purge can't undo this restore overnight.
         \App\Support\TrashPurge::pauseAfterRestore($sourceLabel);
 
-        // Record files carried by a pre-clear copy (after the database commit:
-        // files can't join the transaction). Ordinary backups have none.
+        // Record files carried by the backup (after the database commit: files
+        // can't join the transaction). Backups from before October 2026 have none.
         $files = $zipPath
             ? BackupArchive::restoreFiles($zipPath, fn (string $disk, string $path) => \App\Support\RecordsClear::restoreTarget($disk, $path))
             : ['restored' => 0, 'refused' => []];

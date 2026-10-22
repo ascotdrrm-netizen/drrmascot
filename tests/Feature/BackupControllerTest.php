@@ -42,6 +42,8 @@ class BackupControllerTest extends TestCase
         // Stored backups go through Storage::disk('local') — fake it so tests never
         // write into the real storage/app/private/backups/ directory.
         Storage::fake('local');
+        Storage::fake('records'); // and every backup reads the record files
+
 
         $this->campus = Campus::create(['campus_name' => 'ASCOT Test Campus']);
 

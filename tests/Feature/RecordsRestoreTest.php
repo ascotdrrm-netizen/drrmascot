@@ -20,8 +20,8 @@ use ZipArchive;
 /**
  * Restore → "Records only" (the default) versus "Everything in the backup":
  * what each replaces, account references to deleted accounts, campuses and
- * schools that no longer exist, and the files/ directory that only pre-clear
- * copies carry.
+ * schools that no longer exist, and the record files every backup carries
+ * under files/.
  */
 class RecordsRestoreTest extends TestCase
 {
@@ -271,21 +271,22 @@ class RecordsRestoreTest extends TestCase
 
     // ============================== files/ directory ==========================
 
-    public function test_an_ordinary_backup_has_no_files_and_restores_exactly_as_before(): void
+    public function test_a_backup_holds_the_record_files_and_restoring_it_brings_them_back(): void
     {
         $this->incident($this->zabali, 'In the backup');
         Storage::disk('records')->put('incidents/photo.jpg', 'PHOTO');
+        Storage::disk('records')->put('personnel/face.jpg', 'AN ACCOUNT PHOTO');
         $backup = $this->backup();
 
-        $names = array_keys($this->entriesOf($backup));
-        $this->assertContains('manifest.json', $names);
-        $this->assertSame([], array_filter($names, fn ($n) => str_starts_with($n, 'files/')), 'only the data — no files/');
+        $entries = $this->entriesOf($backup);
+        $this->assertSame('PHOTO', $entries['files/records/incidents/photo.jpg'] ?? null);
+        $this->assertArrayNotHasKey('files/records/personnel/face.jpg', $entries, 'account photos are not record files');
 
-        Storage::disk('records')->put('incidents/photo.jpg', 'CHANGED AFTER');
         foreach (['everything', 'records'] as $mode) {
+            Storage::disk('records')->delete('incidents/photo.jpg');
             $this->restoreStored($backup, $mode)->assertSessionHasNoErrors()
-                ->assertSessionHas('status', fn ($s) => ! str_contains($s, 'file'));
-            $this->assertSame('CHANGED AFTER', Storage::disk('records')->get('incidents/photo.jpg'), "$mode: files untouched");
+                ->assertSessionHas('status', fn ($s) => str_contains($s, '1 uploaded file restored.'));
+            $this->assertSame('PHOTO', Storage::disk('records')->get('incidents/photo.jpg'), "$mode: the photo is back");
         }
     }
 

@@ -250,14 +250,24 @@ class BackupArchive
                 self::put($zip, "data/{$table}.jsonl", fn () => $zip->addFile($path, "data/{$table}.jsonl"));
                 $manifest['tables'][$table] = $rows;
             }
+            // Each file through a temporary copy: the zip reads them only when
+            // closed, so holding their bytes instead would keep every photo in memory.
             foreach ($files as $file) {
                 [$disk, $path] = $file;
-                $bytes = Storage::disk($disk)->get($path);
-                if ($bytes === null) {
+                $copy = tempnam(sys_get_temp_dir(), 'drrms-file-');
+                $input = Storage::disk($disk)->readStream($path);
+                $output = $copy === false ? false : fopen($copy, 'wb');
+                $bytes = is_resource($input) && is_resource($output) ? stream_copy_to_stream($input, $output) : false;
+                is_resource($input) && fclose($input);
+                is_resource($output) && fclose($output);
+                if ($copy !== false) {
+                    $exported["file:{$disk}/{$path}"] = [$copy, 0]; // removed by cleanup()
+                }
+                if ($bytes === false) {
                     throw new RuntimeException("Could not read {$path} to add it to the backup.");
                 }
-                self::put($zip, "files/{$disk}/{$path}", fn () => $zip->addFromString("files/{$disk}/{$path}", $bytes));
-                $manifest['files'][] = ['disk' => $disk, 'path' => $path, 'bytes' => strlen($bytes)];
+                self::put($zip, "files/{$disk}/{$path}", fn () => $zip->addFile($copy, "files/{$disk}/{$path}"));
+                $manifest['files'][] = ['disk' => $disk, 'path' => $path, 'bytes' => $bytes];
             }
             $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             self::put($zip, self::MANIFEST, fn () => $zip->addFromString(self::MANIFEST, $json));
