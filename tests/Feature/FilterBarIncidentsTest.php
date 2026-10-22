@@ -221,7 +221,8 @@ class FilterBarIncidentsTest extends TestCase
 
     protected function incident(Personnel $by, string $date, string $status, ?School $school): Incident
     {
-        return Incident::forceCreate(['campus_id' => $by->campus_id, 'school_id' => $school?->school_id, 'hazard_type' => 'Fire',
+        // The Admin has no campus of their own: theirs is recorded on Zabali.
+        return Incident::forceCreate(['campus_id' => $by->campus_id ?? $this->zabali->campus_id, 'school_id' => $school?->school_id, 'hazard_type' => 'Fire',
             'date_occurred' => $date, 'status' => $status, 'created_by' => $by->personnel_id]);
     }
 

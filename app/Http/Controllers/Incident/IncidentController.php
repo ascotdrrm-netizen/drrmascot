@@ -244,6 +244,7 @@ class IncidentController extends Controller
             // A damage report's building may be in Trash; keep its name showing.
             'damageReports.building' => fn ($query) => $query->withTrashed(),
             'alerts' => fn ($query) => $query->orderByDesc('sent_at'),
+            'alerts.recipients',
         ]);
 
         return view('incident.show', [

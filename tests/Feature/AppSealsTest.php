@@ -104,11 +104,11 @@ class AppSealsTest extends TestCase
      */
     public function test_on_the_busiest_pages_the_buttons_have_their_own_row_below_the_title(): void
     {
-        $incident = Incident::forceCreate(['campus_id' => $this->admin->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->admin->personnel_id]);
+        $incident = Incident::forceCreate(['campus_id' => $this->coordinator->campus_id, 'hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Active', 'created_by' => $this->admin->personnel_id]);
         $incident->delete();
-        $building = Building::create(['campus_id' => $this->admin->campus_id, 'building_name' => 'Old Annex', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
+        $building = Building::create(['campus_id' => $this->coordinator->campus_id, 'building_name' => 'Old Annex', 'hazard_type' => 'Fire', 'risk_level' => 'Minimal Risk']);
         $building->delete();
-        $drill = Drill::forceCreate(['campus_id' => $this->admin->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-09-20', 'scheduled_time' => '09:00:00', 'venue' => 'Gym', 'created_by' => $this->admin->personnel_id]);
+        $drill = Drill::forceCreate(['campus_id' => $this->coordinator->campus_id, 'drill_type' => 'Fire', 'scheduled_date' => '2026-09-20', 'scheduled_time' => '09:00:00', 'venue' => 'Gym', 'created_by' => $this->admin->personnel_id]);
         $drill->delete();
         $advisory = DisasterAdvisory::forceCreate(['hazard_type' => 'Typhoon', 'campus_id' => null, 'headline' => 'Typhoon Egay — Signal No. 2 over Aurora', 'measurements' => ['wind_signal' => '2'], 'source' => 'PAGASA', 'issued_at' => now(), 'valid_until' => now()->addDay(), 'status' => 'Active', 'instructions' => 'Stay indoors.', 'created_by' => $this->admin->personnel_id]);
 

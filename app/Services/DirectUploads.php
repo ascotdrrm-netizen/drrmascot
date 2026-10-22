@@ -37,8 +37,11 @@ class DirectUploads
         } catch (\Throwable $e) {
             $this->invalid();
         }
-        if (! is_array($data) || ! isset($data['owner'], $data['campus'], $data['expires'], $data['target'], $data['method'], $data['key'], $data['field'], $data['size'], $data['name'])
-            || (int) $data['owner'] !== (int) $person->getKey() || (int) $data['campus'] !== (int) $person->campus_id
+        // campus is null for an Admin (no campus of their own): present, and equal, is what counts.
+        if (! is_array($data) || ! isset($data['owner'], $data['expires'], $data['target'], $data['method'], $data['key'], $data['field'], $data['size'], $data['name'])
+            || ! array_key_exists('campus', $data)
+            || ($data['campus'] === null ? null : (int) $data['campus']) !== ($person->campus_id === null ? null : (int) $person->campus_id)
+            || (int) $data['owner'] !== (int) $person->getKey()
             || $data['expires'] < now()->timestamp || $data['target'] !== $target || $data['method'] !== $method
             || ! str_starts_with($data['key'], '_staging/')) {
             $this->invalid();

@@ -24,6 +24,15 @@ class Personnel extends Authenticatable implements MustVerifyEmail
             if ($person->isDirty('contact_number')) $person->phone_verified_at = null;
             if ($person->isDirty('email')) $person->email_verified_at = null;
         });
+        // A DRRMO Admin covers every campus: no campus, no school — so a
+        // Coordinator or Reporter made Admin stops being attributed to their
+        // old school (School::attributedTo) and campus.
+        static::saving(function (Personnel $person) {
+            if ($person->role === 'DRRMO Admin') {
+                $person->campus_id = null;
+                $person->school_id = null;
+            }
+        });
         // Only the account's own photo goes. Their reports, SOS records and the
         // photos/proof attached to them are DRRMO records and stay (the
         // reporter_id becomes null: "Former reporter").

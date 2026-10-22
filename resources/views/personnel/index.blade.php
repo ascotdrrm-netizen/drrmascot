@@ -86,7 +86,7 @@
                                 ]" />
                             </td>
                             <td class="table-td text-gray-600">
-                                {{ $person->campus->campus_name ?? '—' }}
+                                {{ $person->campus->campus_name ?? ($person->role === 'DRRMO Admin' ? 'All campuses' : '—') }}
                                 <span class="block text-xs text-gray-600">{{ $person->school->school_name ?? '—' }}</span>
                             </td>
                             <td class="table-td text-gray-600">{{ $person->contact_number ?? '—' }}</td>

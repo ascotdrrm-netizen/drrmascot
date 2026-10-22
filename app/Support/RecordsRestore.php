@@ -35,7 +35,7 @@ class RecordsRestore
 {
     /** Added after the first portable backup format; older backups have no rows for them. */
     public const OPTIONAL_NEW_TABLES = ['disaster_advisories', 'broadcasts', 'broadcast_deliveries', 'staff_notifications', 'report_events', 'report_photos', 'citizen_reports', 'sos_events', 'campus_statuses',
-        'assignments', 'responders', 'roll_calls', 'roll_call_responses'];
+        'assignments', 'responders', 'roll_calls', 'roll_call_responses', 'alert_recipients'];
 
     /**
      * Account columns that are nulled when the account is gone: every foreign

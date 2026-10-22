@@ -30,6 +30,7 @@ class RecordsClear
         'citizen_reports' => ['Reporter submission', 'Reporter submissions', false],
         'sos_events' => ['SOS event', 'SOS events', false],
         'campus_statuses' => ['campus status', 'campus statuses', false],
+        'alert_recipients' => ['SMS alert recipient', 'SMS alert recipients', false],
         'alerts' => ['SMS & broadcast alert', 'SMS & broadcast alerts', false],
         'damage_reports' => ['damage report', 'damage reports', false],
         'incidents' => ['incident', 'incidents', true],

@@ -40,4 +40,10 @@ class Alert extends Model
     {
         return $this->belongsTo(Incident::class, 'incident_id', 'incident_id');
     }
+
+    /** Who it went to (alerts sent before October 22, 2026 have none recorded). */
+    public function recipients()
+    {
+        return $this->hasMany(AlertRecipient::class, 'alert_id', 'alert_id')->orderBy('full_name');
+    }
 }

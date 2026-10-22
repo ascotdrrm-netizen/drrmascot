@@ -29,9 +29,12 @@ class AlertController extends Controller
     {
         $this->authorizeRecordAccess($incident);
 
+        $recipients = $this->recipients($incident);
+
         return view('alerts.create', [
             'incident' => $incident,
-            'recipientCount' => $this->recipients($incident)->count(),
+            'recipients' => $recipients,
+            'recipientCount' => $recipients->count(),
         ]);
     }
 
@@ -52,25 +55,31 @@ class AlertController extends Controller
         }
 
         $successCount = 0;
+        $sent = []; // who it went to, and how: saved with the alert
 
         // Numbers go out in international form (639…), as every other text does:
         // a gateway rejects "09…". One failure never stops the rest.
         foreach ($recipients as $person) {
+            $status = 'Failed';
             $number = PhoneNumber::normalize($person->contact_number);
             if ($number === null) {
                 Log::warning('Alert SMS skipped: not a mobile number', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id]);
-                continue;
-            }
-            try {
-                if ($this->smsGateway->send($number, $data['message'])) {
-                    $successCount++;
-                } else {
-                    Log::warning('Alert SMS was not accepted by the gateway', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id]);
+                $status = 'Skipped';
+            } else {
+                try {
+                    if ($this->smsGateway->send($number, $data['message'])) {
+                        $successCount++;
+                        $status = 'Sent';
+                    } else {
+                        Log::warning('Alert SMS was not accepted by the gateway', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id]);
+                    }
+                } catch (\Throwable $exception) {
+                    Log::error('Alert SMS failed', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id,
+                        'error' => $exception->getMessage()]);
                 }
-            } catch (\Throwable $exception) {
-                Log::error('Alert SMS failed', ['incident_id' => $incident->incident_id, 'recipient_id' => $person->personnel_id,
-                    'error' => $exception->getMessage()]);
             }
+            $sent[] = ['personnel_id' => $person->personnel_id, 'full_name' => $person->full_name, 'role' => $person->role,
+                'contact_number' => $person->contact_number, 'status' => $status];
         }
 
         $totalAttempted = $recipients->count();
@@ -81,13 +90,14 @@ class AlertController extends Controller
             default => 'Partial',
         };
 
-        Alert::create([
+        $alert = Alert::create([
             'incident_id' => $incident->incident_id,
             'message' => $data['message'],
             'sent_at' => now(),
             'recipient_count' => $totalAttempted,
             'delivery_status' => $deliveryStatus,
         ]);
+        $alert->recipients()->createMany($sent);
 
         return redirect()
             ->route('admin.incidents.show', $incident)
@@ -103,6 +113,7 @@ class AlertController extends Controller
         }
 
         $incident->loadMissing(['campus', 'school']);
+        $alert->load('recipients');
 
         $pdf = $this->loadPdfViewWithPageCount('reports.records.alert', [
             'alert' => $alert,
@@ -125,11 +136,14 @@ class AlertController extends Controller
         return $pdf->download($filename);
     }
 
+    /** Everyone approved on the incident's campus with a number — except whoever is sending it. */
     protected function recipients(Incident $incident)
     {
         return Personnel::where('campus_id', $incident->campus_id)
             ->where('is_approved', true) // never alert a registration the DRRMO hasn't approved
             ->whereNotNull('contact_number')
+            ->where('personnel_id', '!=', Auth::id())
+            ->orderBy('full_name')
             ->get();
     }
 }

@@ -45,7 +45,7 @@ class ExpertFeedbackTest extends TestCase
 
     public function test_incident_photo_ajax_retry_and_notification_are_saved_once(): void
     {
-        $data = ['client_key' => (string) Str::uuid(), 'campus_id' => $this->admin->campus_id,
+        $data = ['client_key' => (string) Str::uuid(), 'campus_id' => \App\Models\Campus::value('campus_id'),
             'hazard_type' => 'Flood', 'date_occurred' => today()->toDateString(), 'status' => 'Active',
             'description' => 'Water covered the gymnasium entrance.', 'photo' => UploadedFile::fake()->image('flood.jpg')];
         $headers = ['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json', 'Referer' => route('admin.incidents.index')];
@@ -65,7 +65,7 @@ class ExpertFeedbackTest extends TestCase
         Storage::shouldReceive('disk')->with('records')->andReturn($disk);
         $this->withoutExceptionHandling();
         try {
-            $this->actingAs($this->admin)->post('/admin/incidents', ['campus_id' => $this->admin->campus_id,
+            $this->actingAs($this->admin)->post('/admin/incidents', ['campus_id' => \App\Models\Campus::value('campus_id'),
                 'hazard_type' => 'Flood', 'date_occurred' => today()->toDateString(), 'status' => 'Active', 'photo' => UploadedFile::fake()->image('flood.jpg')]);
             $this->fail('A failed file write must not show a saved incident.');
         } catch (\RuntimeException $exception) {
@@ -77,11 +77,11 @@ class ExpertFeedbackTest extends TestCase
 
     public function test_description_and_student_officer_promotion_are_supported(): void
     {
-        $this->actingAs($this->admin)->post('/admin/buildings', ['campus_id' => $this->admin->campus_id,
+        $this->actingAs($this->admin)->post('/admin/buildings', ['campus_id' => \App\Models\Campus::value('campus_id'),
             'building_name' => 'Gym', 'description' => 'Assembly hall with a side exit.', 'hazard_type' => 'Flood', 'risk_level' => 'Medium'])->assertRedirect();
         $building = Building::sole();
         $this->get(route('admin.buildings.show', $building))->assertOk()->assertSee('Assembly hall with a side exit.');
-        $student = Personnel::forceCreate(['campus_id' => $this->admin->campus_id, 'full_name' => 'Student Officer', 'role' => 'Reporter',
+        $student = Personnel::forceCreate(['campus_id' => \App\Models\Campus::value('campus_id'), 'full_name' => 'Student Officer', 'role' => 'Reporter',
             'email' => 'officer@example.test', 'password_hash' => Hash::make('password'), 'reporter_kind' => 'Student', 'is_approved' => false]);
         $data = ['campus_id' => $student->campus_id, 'full_name' => $student->full_name, 'role' => 'Coordinator'];
         $this->put(route('admin.personnel.update', $student), $data)->assertUnprocessable();

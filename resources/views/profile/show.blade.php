@@ -51,7 +51,7 @@
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-gray-600">Campus</dt>
-                    <dd class="font-medium text-gray-900">{{ $personnel->campus->campus_name ?? '—' }}</dd>
+                    <dd class="font-medium text-gray-900">{{ $personnel->campus->campus_name ?? ($personnel->role === 'DRRMO Admin' ? 'All campuses' : '—') }}</dd>
                 </div>
                 <div class="flex justify-between gap-4">
                     <dt class="text-gray-600">School</dt>

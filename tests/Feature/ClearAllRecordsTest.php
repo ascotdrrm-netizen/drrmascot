@@ -191,7 +191,7 @@ class ClearAllRecordsTest extends TestCase
 
     public function test_clear_includes_reporter_submissions_sos_status_and_their_files(): void
     {
-        $reporter = Personnel::create(['campus_id' => $this->admin->campus_id,
+        $reporter = Personnel::create(['campus_id' => \App\Models\Campus::value('campus_id'),
             'full_name' => 'Reporter Test', 'role' => 'Reporter', 'email' => 'reporter@example.test',
             'password_hash' => Hash::make('password')]);
         $id = DB::table('citizen_reports')->insertGetId([
@@ -248,7 +248,7 @@ class ClearAllRecordsTest extends TestCase
         $this->assertSame('completed', $m['status']);
         $this->assertSame('Clear Admin', $m['cleared_by']['name']);
         $this->assertSame(
-            ['staff_notifications' => 0, 'broadcast_deliveries' => 0, 'broadcasts' => 0, 'assignments' => 0, 'responders' => 0, 'roll_call_responses' => 0, 'roll_calls' => 0, 'report_events' => 0, 'report_photos' => 0, 'citizen_reports' => 0, 'sos_events' => 0, 'campus_statuses' => 0, 'alerts' => 1, 'damage_reports' => 1, 'incidents' => 2, 'disaster_advisories' => 2, 'hazard_inspections' => 1, 'buildings' => 2, 'drill_attachments' => 1, 'drill_documentations' => 1, 'drill_after_activity_reports' => 1, 'drills' => 2],
+            ['staff_notifications' => 0, 'broadcast_deliveries' => 0, 'broadcasts' => 0, 'assignments' => 0, 'responders' => 0, 'roll_call_responses' => 0, 'roll_calls' => 0, 'report_events' => 0, 'report_photos' => 0, 'citizen_reports' => 0, 'sos_events' => 0, 'campus_statuses' => 0, 'alert_recipients' => 0, 'alerts' => 1, 'damage_reports' => 1, 'incidents' => 2, 'disaster_advisories' => 2, 'hazard_inspections' => 1, 'buildings' => 2, 'drill_attachments' => 1, 'drill_documentations' => 1, 'drill_after_activity_reports' => 1, 'drills' => 2],
             array_map(fn ($t) => $t['deleted'], $m['tables'])
         );
         $this->assertSame(1, $m['tables']['incidents']['of_which_in_trash']);

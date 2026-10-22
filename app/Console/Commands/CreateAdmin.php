@@ -45,8 +45,8 @@ class CreateAdmin extends Command
         }
         DB::transaction(function () use ($data) {
             self::ensureCampuses();
-            $campus = Campus::where('campus_name', 'ASCOT Zabali Campus')->firstOrFail();
-            $person = new Personnel(['campus_id' => $campus->getKey(), 'full_name' => $data['full_name'],
+            // An Admin covers every campus: no campus of their own.
+            $person = new Personnel(['full_name' => $data['full_name'],
                 'email' => $data['email'], 'role' => 'DRRMO Admin', 'password_hash' => Hash::make($data['password'])]);
             $person->forceFill(['is_approved' => true, 'approved_at' => now(), 'email_verified_at' => now()])->save();
         });

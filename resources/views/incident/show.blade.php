@@ -199,7 +199,7 @@
     <div class="section-header">
         <div>
             <h2 class="section-title">Alert History</h2>
-            <p class="guide-note">SMS alerts about this incident, sent by the DRRMO to everyone on the campus with a contact number.</p>
+            <p class="guide-note">SMS alerts about this incident, sent by the DRRMO to everyone on the campus with a contact number. Open a recipient count to see who received it.</p>
         </div>
         @if ($canSendAlerts)
             <a href="{{ route('admin.incidents.alerts.create', $incident) }}" class="btn btn-primary">Send Alert</a>
@@ -224,7 +224,16 @@
                         <tr class="hover:bg-gray-50">
                             <td class="table-td text-gray-600">{{ $alert->sent_at->format('M d, Y g:i A') }}</td>
                             <td class="table-td text-gray-900">{{ $alert->message }}</td>
-                            <td class="table-td num text-gray-600">{{ $alert->recipient_count }}</td>
+                            <td class="table-td num text-gray-600">
+                                @if ($alert->recipients->isNotEmpty())
+                                    <details data-alert-recipients>
+                                        <summary class="link cursor-pointer">{{ $alert->recipient_count }}</summary>
+                                        <div class="mt-2 text-left">@include('alerts._recipients', ['recipients' => $alert->recipients, 'withStatus' => true])</div>
+                                    </details>
+                                @else
+                                    {{ $alert->recipient_count }}
+                                @endif
+                            </td>
                             <td class="table-td">
                                 <x-badge :value="$alert->delivery_status" :map="[
                                     'Sent' => 'bg-green-100 text-green-700',

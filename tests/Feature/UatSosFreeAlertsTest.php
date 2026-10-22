@@ -134,15 +134,18 @@ class UatSosFreeAlertsTest extends TestCase
         Http::fake(['api.textbee.dev/*' => Http::response(['data' => ['success' => true, 'smsBatchId' => 'b1', 'recipientCount' => 1]])]);
         $admin = $this->person('DRRMO Admin', 'admin@example.test', '09171234567');
         $this->person('Coordinator', 'coord@example.test', '0918 765 4321');
+        $this->person('Reporter', 'reporter@example.test', '09171112222');
         $incidentId = DB::table('incidents')->insertGetId(['campus_id' => $this->campus->campus_id, 'hazard_type' => 'Fire',
             'date_occurred' => '2026-10-21', 'description' => 'Fire at the science building'], 'incident_id');
 
         $this->actingAs($admin)->post(route('admin.incidents.alerts.store', $incidentId), ['message' => 'Evacuate the science building.'])
             ->assertSessionHasNoErrors();
 
+        // Everyone but the Admin sending it.
         Http::assertSentCount(2);
-        Http::assertSent(fn (HttpRequest $request) => $request['recipients'] === ['+639171234567']);
         Http::assertSent(fn (HttpRequest $request) => $request['recipients'] === ['+639187654321']);
+        Http::assertSent(fn (HttpRequest $request) => $request['recipients'] === ['+639171112222']);
+        Http::assertNotSent(fn (HttpRequest $request) => $request['recipients'] === ['+639171234567']);
         $this->assertDatabaseHas('alerts', ['incident_id' => $incidentId, 'recipient_count' => 2, 'delivery_status' => 'Sent']);
 
         $this->person('Reporter', 'landline@example.test', '(078) 123 4567');

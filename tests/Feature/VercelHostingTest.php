@@ -28,13 +28,16 @@ class VercelHostingTest extends TestCase
 
     private Personnel $person;
 
+    /** The campus records are made on (the Admin, $person, has none of their own). */
+    private Campus $campus;
+
     protected function setUp(): void
     {
         parent::setUp();
         config(['hosting.direct_uploads' => true, 'hosting.serverless' => true, 'filesystems.records_disk' => 's3']);
         Storage::fake('s3');
         Storage::disk('s3')->buildTemporaryUrlsUsing(fn ($path, $expires, $options) => 'https://storage.example.test/'.rawurlencode($path).'?'.http_build_query($options));
-        $campus = Campus::create(['campus_name' => 'Zabali']);
+        $campus = $this->campus = Campus::create(['campus_name' => 'Zabali']);
         $this->person = Personnel::create(['campus_id' => $campus->getKey(), 'full_name' => 'Admin', 'email' => 'admin@example.test', 'role' => 'DRRMO Admin', 'password_hash' => Hash::make('Password1!')]);
         $this->person->forceFill(['is_approved' => true, 'email_verified_at' => now()])->save();
         Route::post('/test-direct-upload', function (Request $request) {
@@ -143,7 +146,7 @@ class VercelHostingTest extends TestCase
 
     public function test_coordinator_work_is_scoped_and_one_delivery_is_processed_per_request(): void
     {
-        $this->person->update(['role' => 'Coordinator']);
+        $this->person->update(['role' => 'Coordinator', 'campus_id' => $this->campus->campus_id]);
         $away = Campus::create(['campus_name' => 'Bazal']);
         foreach ([$away->getKey(), $this->person->campus_id] as $campus) {
             $broadcast = Broadcast::create(['campus_id' => $campus, 'created_by' => $this->person->getKey(), 'client_key' => (string) Str::uuid(),
@@ -215,7 +218,7 @@ class VercelHostingTest extends TestCase
     {
         config(['backup.disk' => 's3', 'backup.max_file_bytes' => 1024, 'privacy.data_privacy_password_hash' => Hash::make('privacy-secret')]);
         Storage::disk('s3')->put('buildings/photo.jpg', random_bytes(4096));
-        DB::table('buildings')->insert(['campus_id' => $this->person->campus_id, 'building_name' => 'Gym', 'risk_level' => 'High Risk', 'photo_path' => 'buildings/photo.jpg']);
+        DB::table('buildings')->insert(['campus_id' => $this->campus->campus_id, 'building_name' => 'Gym', 'risk_level' => 'High Risk', 'photo_path' => 'buildings/photo.jpg']);
 
         $this->actingAs($this->person)->from(route('admin.backup.clear-records'))->post(route('admin.backup.clear-records.run'), [
             'data_privacy_password' => 'privacy-secret', 'confirmation' => 'CLEAR ALL RECORDS',
@@ -275,7 +278,7 @@ class VercelHostingTest extends TestCase
 
     public function test_the_demo_accounts_are_deleted_once_and_never_made_again(): void
     {
-        $campusId = $this->person->campus_id;
+        $campusId = $this->campus->campus_id;
         $make = fn (string $email, string $role) => Personnel::create(['campus_id' => $campusId, 'full_name' => $email, 'email' => $email, 'role' => $role, 'password_hash' => 'x']);
         $make('demo.admin@drrms.test', 'DRRMO Admin');
         $make('demo.zabali@drrms.test', 'Coordinator');
@@ -298,8 +301,8 @@ class VercelHostingTest extends TestCase
 
     public function test_demo_admin_stays_while_it_is_the_only_admin(): void
     {
-        $this->person->update(['role' => 'Coordinator']);
-        Personnel::create(['campus_id' => $this->person->campus_id, 'full_name' => 'Demo Admin', 'email' => 'demo.admin@drrms.test', 'role' => 'DRRMO Admin', 'password_hash' => 'x']);
+        $this->person->update(['role' => 'Coordinator', 'campus_id' => $this->campus->campus_id]);
+        Personnel::create(['campus_id' => $this->campus->campus_id, 'full_name' => 'Demo Admin', 'email' => 'demo.admin@drrms.test', 'role' => 'DRRMO Admin', 'password_hash' => 'x']);
 
         (require database_path('migrations/2026_10_22_000001_delete_demo_accounts.php'))->up();
 

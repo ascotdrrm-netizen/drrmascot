@@ -12,8 +12,15 @@
         <p class="mb-6 text-sm text-gray-600">
             Incident: <span class="font-medium text-gray-900">{{ $incident->hazard_type }} — {{ $incident->campus->campus_name ?? 'Unknown campus' }}</span><br>
             This will be sent to <span class="font-medium text-gray-900">{{ $recipientCount }} personnel</span> at {{ $incident->campus->campus_name ?? 'this campus' }}
-            with a contact number on file.
+            with a contact number on file. You are not one of them: the sender doesn't get their own alert.
         </p>
+
+        @if ($recipientCount > 0)
+            <details class="mb-6 rounded-lg border border-gray-200" data-alert-recipients>
+                <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-gray-900">Who will receive it ({{ $recipientCount }})</summary>
+                @include('alerts._recipients', ['recipients' => $recipients, 'withStatus' => false])
+            </details>
+        @endif
 
         @if (config('services.sms.driver') === 'log')
             <p class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" data-sms-log-mode>

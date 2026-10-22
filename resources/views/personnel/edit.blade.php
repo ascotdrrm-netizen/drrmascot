@@ -43,10 +43,10 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2" x-data="{ role: @js(old('role', $personnel->role)) }">
                 <div>
                     <label for="role" class="form-label">Role</label>
-                    <select name="role" id="role" required
+                    <select name="role" id="role" required x-model="role"
                             class="form-input">
                         <option value="Reporter" @selected(old('role', $personnel->role) === 'Reporter')>Reporter (student or staff)</option>
                         <option value="Coordinator" @selected(old('role', $personnel->role) === 'Coordinator')>Coordinator</option>
@@ -58,9 +58,13 @@
                     @enderror
                 </div>
 
-                <div>
+                <p class="form-help self-end" x-show="role === 'DRRMO Admin'" x-cloak data-admin-no-campus>
+                    A DRRMO Admin covers every campus, so the account has no campus or school. Saving clears them.
+                </p>
+
+                <div x-show="role !== 'DRRMO Admin'">
                     <label for="campus_id" class="form-label">Campus</label>
-                    <select name="campus_id" id="campus_id" required
+                    <select name="campus_id" id="campus_id" x-bind:required="role !== 'DRRMO Admin'"
                             class="form-input">
                         @foreach ($campuses as $campus)
                             <option value="{{ $campus->campus_id }}" @selected((string) old('campus_id', $personnel->campus_id) === (string) $campus->campus_id)>
@@ -73,7 +77,7 @@
                     @enderror
                 </div>
 
-                <div class="md:col-span-2">
+                <div class="md:col-span-2" x-show="role !== 'DRRMO Admin'">
                     {{-- Changing the campus clears (or, for a one-school campus, re-selects) the school. --}}
                     <x-school-select :schools="$schools" campus-source="campus_id"
                                      :campus-id="old('campus_id', $personnel->campus_id)"

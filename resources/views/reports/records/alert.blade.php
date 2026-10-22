@@ -31,4 +31,28 @@
             </td>
         </tr>
     </table>
+
+    <h2 class="section">Recipients</h2>
+    <table class="data">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th style="width: 16%;">Role</th>
+                <th style="width: 22%;">Contact number</th>
+                <th style="width: 14%;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($alert->recipients as $recipient)
+                <tr>
+                    <td class="wrap">{{ $recipient->full_name }}</td>
+                    <td>{{ $recipient->role }}</td>
+                    <td class="nowrap">{{ $recipient->contact_number }}</td>
+                    <td><x-pdf.tag :value="$recipient->status" /></td>
+                </tr>
+            @empty
+                <tr><td class="none" colspan="4">Not recorded: this alert was sent before recipients were kept.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
 @endsection

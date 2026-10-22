@@ -73,7 +73,7 @@ class PersonnelController extends Controller
             ->sortBy(fn ($person) => ($person->campus->campus_name ?? '') . '|' . $person->full_name)
             ->values();
 
-        $groupedByCampus = $personnel->groupBy(fn ($person) => $person->campus->campus_name ?? 'Unassigned');
+        $groupedByCampus = $personnel->groupBy(fn ($person) => $person->campus->campus_name ?? ($person->role === 'DRRMO Admin' ? 'All campuses (DRRMO Admin)' : 'Unassigned'));
 
         $pdf = $this->loadPdfViewWithPageCount('personnel.report', [
             'groupedByCampus' => $groupedByCampus,
@@ -165,7 +165,8 @@ class PersonnelController extends Controller
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:150', new ValidName()],
             'role' => ['required', 'in:Coordinator,DRRMO Admin,Reporter'],
-            'campus_id' => ['required', 'exists:campuses,campus_id'],
+            // An Admin covers every campus: no campus or school (Personnel::booted clears them).
+            'campus_id' => ['required_unless:role,DRRMO Admin', 'nullable', 'exists:campuses,campus_id'],
             'contact_number' => ['nullable', 'string', 'max:20', new \App\Rules\ValidPhone()],
             // Must be a school on the (possibly new) campus. When the campus
             // changes, the dropdown clears the school; a stale school from the
@@ -195,7 +196,7 @@ class PersonnelController extends Controller
         $personnel->update([
             'full_name' => $data['full_name'],
             'role' => $data['role'],
-            'campus_id' => $data['campus_id'],
+            'campus_id' => $data['campus_id'] ?? null,
             'school_id' => $data['school_id'] ?? null,
             'contact_number' => $data['contact_number'] ?? null,
         ]);
