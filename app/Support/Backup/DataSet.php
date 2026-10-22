@@ -119,6 +119,26 @@ class DataSet
      */
     public static function replace(array $rows, ?array $tables = null): array
     {
+        return self::write($rows, $tables, deleteFirst: true);
+    }
+
+    /**
+     * Adds $rows to the given tables without deleting anything (Restore →
+     * "Merge"), in the same order and the same transaction rules as
+     * replace(). The caller passes only rows whose keys are not taken.
+     *
+     * @param  array<string, list<array<string, mixed>>>  $rows
+     * @param  list<string>|null  $tables
+     * @return array<string, int> rows written per table
+     */
+    public static function insert(array $rows, ?array $tables = null): array
+    {
+        return self::write($rows, $tables, deleteFirst: false);
+    }
+
+    /** @return array<string, int> */
+    protected static function write(array $rows, ?array $tables, bool $deleteFirst): array
+    {
         // Restoring a snapshot must never repeat external messages that may have
         // been accepted since the backup. Preserve them for provider reconciliation.
         $unconfirmed = [];
@@ -136,8 +156,8 @@ class DataSet
         $position = array_flip($order);
         $written = [];
 
-        DB::transaction(function () use ($rows, $order, $position, &$written) {
-            foreach (array_reverse($order) as $table) {          // children first
+        DB::transaction(function () use ($rows, $order, $position, $deleteFirst, &$written) {
+            foreach ($deleteFirst ? array_reverse($order) : [] as $table) {   // children first
                 DB::table($table)->delete();
             }
 

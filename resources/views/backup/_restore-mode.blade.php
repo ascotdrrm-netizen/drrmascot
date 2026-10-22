@@ -1,8 +1,9 @@
 {{--
     What a restore replaces. Shared by the upload Restore form and each stored
     backup's Restore. "records" is the default and matches Clear All Records;
-    "everything" adds the activity log, settings and hotlines. Neither touches
-    user accounts (no backup holds them), campuses or schools.
+    "merge" deletes and changes nothing, only adds the backup's records that are
+    no longer here; "everything" adds the activity log, settings and hotlines.
+    None touches user accounts (no backup holds them), campuses or schools.
     $prefix: unique id prefix. $compact: the narrow Stored Backups panel.
 --}}
 @php $compact = $compact ?? false; @endphp
@@ -21,6 +22,25 @@
                 <span class="mt-1 block text-gray-600">If the backup needs a campus or school that no longer exists, nothing is restored and you're told which.</span>
             @else
                 <span class="mt-1 block text-xs text-gray-600">Accounts, campuses, schools and the activity log stay as they are.</span>
+            @endunless
+        </span>
+    </label>
+
+    <label for="{{ $prefix }}-mode-merge" class="flex cursor-pointer gap-4 rounded-lg border border-gray-200 bg-white p-4 has-[:checked]:border-accent-line has-[:checked]:bg-accent-soft">
+        <input type="radio" id="{{ $prefix }}-mode-merge" name="mode" value="merge" class="mt-1 h-4 w-4 shrink-0 text-accent focus:ring-accent-line">
+        <span class="text-sm">
+            <span class="block font-medium text-gray-900">Merge: add what's missing</span>
+            @unless ($compact)
+                <span class="mt-1 block text-gray-700">
+                    Keeps every current record exactly as it is — new ones, edits and Trash — and adds back the backup's records that are
+                    no longer here, such as ones deleted permanently, with their photos and attachments. Nothing is deleted or overwritten.
+                </span>
+                <span class="mt-1 block text-gray-600">
+                    If the backup and the current records use the same number for different records (after Clear All Records), nothing is
+                    merged and you're told how many.
+                </span>
+            @else
+                <span class="mt-1 block text-xs text-gray-600">Keeps current records; adds back the backup's missing ones.</span>
             @endunless
         </span>
     </label>

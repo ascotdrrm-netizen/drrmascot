@@ -253,6 +253,102 @@ class RecordsRestoreTest extends TestCase
         $this->assertSame(1, DB::table('incidents')->count());
     }
 
+    // ================================== merge =================================
+
+    public function test_merge_keeps_every_current_record_and_adds_back_only_the_missing_ones(): void
+    {
+        $edited = $this->incident($this->zabali, 'Edited since');
+        $trashed = $this->incident($this->zabali, 'Trashed since');
+        $deleted = $this->incident($this->zabali, 'Deleted permanently since');
+        $backup = $this->backup();
+
+        DB::table('incidents')->where('incident_id', $edited)->update(['description' => 'Edited since (new text)']);
+        DB::table('incidents')->where('incident_id', $trashed)->update(['deleted_at' => now()]);
+        DB::table('incidents')->where('incident_id', $deleted)->delete();
+        $this->incident($this->zabali, 'Added since');
+        $logBefore = ActivityLog::count();
+
+        $this->restoreStored($backup, 'merge')->assertSessionHasNoErrors()
+            ->assertSessionHas('status', fn ($s) => str_starts_with($s, "Merged from {$backup->filename}: 1 missing record added. The 2 records already here were kept as they are")
+                && str_ends_with($s, ' Trash retention is paused until someone resumes it.'));
+
+        $this->assertSame(
+            ['Edited since (new text)' => false, 'Trashed since' => true, 'Deleted permanently since' => false, 'Added since' => false],
+            DB::table('incidents')->orderBy('incident_id')->get()->mapWithKeys(fn ($r) => [$r->description => $r->deleted_at !== null])->all());
+        $this->assertSame($logBefore, ActivityLog::count(), 'the activity log is not touched');
+        $this->assertNotNull(\App\Support\TrashPurge::pause());
+    }
+
+    public function test_merge_adds_back_a_missing_child_and_only_its_file_never_overwriting_a_current_one(): void
+    {
+        $kept = $this->incident($this->zabali, 'Kept parent');
+        $gone = $this->incident($this->zabali, 'Gone with its photo');
+        DB::table('incidents')->where('incident_id', $kept)->update(['photo_path' => 'incidents/kept.jpg']);
+        DB::table('incidents')->where('incident_id', $gone)->update(['photo_path' => 'incidents/gone.jpg']);
+        Storage::disk('records')->put('incidents/kept.jpg', 'KEPT AS BACKED UP');
+        Storage::disk('records')->put('incidents/gone.jpg', 'GONE PHOTO');
+        $hall = DB::table('buildings')->insertGetId(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Hall', 'risk_level' => 'Minimal Risk'], 'building_id');
+        DB::table('damage_reports')->insert(['incident_id' => $kept, 'building_id' => $hall, 'damage_level' => 'Minor']);
+        $backup = $this->backup();
+
+        DB::table('damage_reports')->delete();
+        DB::table('incidents')->where('incident_id', $gone)->delete();
+        Storage::disk('records')->delete('incidents/gone.jpg');
+        Storage::disk('records')->put('incidents/kept.jpg', 'CHANGED SINCE');
+
+        $this->restoreStored($backup, 'merge')->assertSessionHasNoErrors()
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '2 missing records added') && str_contains($s, ' 1 uploaded file restored.')
+                && ! str_contains($s, 'ignored'));
+
+        $this->assertSame(1, DB::table('damage_reports')->where('incident_id', $kept)->count(), 'the damage report is back under its incident');
+        $this->assertSame('GONE PHOTO', Storage::disk('records')->get('incidents/gone.jpg'));
+        $this->assertSame('CHANGED SINCE', Storage::disk('records')->get('incidents/kept.jpg'), 'a current file is never overwritten');
+    }
+
+    public function test_merge_refuses_when_the_same_number_now_belongs_to_a_different_record(): void
+    {
+        $id = $this->incident($this->zabali, 'In the backup');
+        DB::table('incidents')->where('incident_id', $id)->update(['created_at' => '2026-09-01 08:00:00']);
+        $backup = $this->backup();
+
+        // As after Clear All Records: the number is used again by a new record.
+        DB::table('incidents')->delete();
+        DB::table('incidents')->insert(['incident_id' => $id, 'campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Flood',
+            'date_occurred' => '2026-10-20', 'description' => 'A different record', 'created_at' => '2026-10-20 09:00:00']);
+
+        $this->restoreStored($backup, 'merge')
+            ->assertSessionHasErrors(['backup_file' => 'Nothing was restored. The backup and the current records use the same numbers for different records (1 incident). '
+                . 'This happens when records were cleared and new ones added since the backup. Choose Records only to bring the backup back as it was.']);
+
+        $this->assertSame(['A different record'], DB::table('incidents')->pluck('description')->all());
+        $this->assertNull(\App\Support\TrashPurge::pause());
+    }
+
+    public function test_merge_with_nothing_missing_changes_nothing_and_leaves_retention_running(): void
+    {
+        $this->incident($this->zabali, 'Here and in the backup');
+        $backup = $this->backup();
+        $before = $this->snapshotOfRecords();
+
+        $this->restoreUpload(new UploadedFile(Storage::disk('local')->path($backup->storage_path), $backup->filename, null, null, true), 'merge')
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', "Nothing to add from {$backup->filename}: every record in it is already here. Nothing was changed.");
+
+        $this->assertSame($before, $this->snapshotOfRecords());
+        $this->assertNull(\App\Support\TrashPurge::pause());
+    }
+
+    public function test_the_restore_forms_offer_merge(): void
+    {
+        $this->backup();
+
+        $this->actingAs($this->admin)->get(route('admin.backup.index'))->assertOk()
+            ->assertSee('id="upload-mode-merge"', false)
+            ->assertSee("Merge: add what's missing", false)
+            ->assertSee('Merge only adds what\'s missing.', false)
+            ->assertSee('Keeps current records; adds back the backup\'s missing ones.', false);
+    }
+
     // ================================ everything ==============================
 
     public function test_everything_winds_back_the_log_but_never_touches_accounts_campuses_or_schools(): void

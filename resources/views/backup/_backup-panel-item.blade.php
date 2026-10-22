@@ -12,7 +12,7 @@
         <details>
             <summary class="link-danger cursor-pointer list-none text-xs">Restore</summary>
             <div class="mt-4 space-y-4 rounded-xl border border-red-200 bg-red-50 p-4">
-                <form method="POST" action="{{ route('admin.backup.stored.restore', $backup) }}" data-confirm-form="Restore from this backup? The data you chose above will be replaced." class="space-y-4">
+                <form method="POST" action="{{ route('admin.backup.stored.restore', $backup) }}" data-confirm-form="Restore from this backup? What you chose above is replaced, or with Merge, added to." class="space-y-4">
                     @csrf
                     @include('backup._restore-mode', ['prefix' => 'stored-' . $backup->getKey(), 'compact' => true])
                     <div>

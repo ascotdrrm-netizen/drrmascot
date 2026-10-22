@@ -92,8 +92,8 @@
                 <h2 class="card-title mb-4">Restore from Backup</h2>
 
                 <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    <p class="font-medium">This permanently replaces current data with the backup's.</p>
-                    <p>Choose below what is replaced. It cannot be undone — if you haven't already, download a fresh
+                    <p class="font-medium">Records only and Everything permanently replace current data with the backup's.</p>
+                    <p>Merge only adds what's missing. A restore cannot be undone — if you haven't already, download a fresh
                         backup of the current data before proceeding.</p>
                 </div>
 

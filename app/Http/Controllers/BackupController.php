@@ -380,7 +380,7 @@ class BackupController extends Controller
             'backup_file' => ['required', 'file'],
             'confirmation' => ['required', 'string'],
             'data_privacy_password' => ['required', 'string'],
-            'mode' => ['nullable', 'in:records,everything'],
+            'mode' => ['nullable', 'in:records,everything,merge'],
         ]);
 
         $this->assertConfirmedForRestore($request);
@@ -429,7 +429,7 @@ class BackupController extends Controller
         $request->validate([
             'confirmation' => ['required', 'string'],
             'data_privacy_password' => ['required', 'string'],
-            'mode' => ['nullable', 'in:records,everything'],
+            'mode' => ['nullable', 'in:records,everything,merge'],
         ]);
 
         $this->assertConfirmedForRestore($request);
@@ -500,18 +500,25 @@ class BackupController extends Controller
      * $mode "records" (the default) replaces only the record tables, after
      * checking every campus/school they point at still exists (App\Support\
      * RecordsRestore); "everything" also the activity log, settings and
-     * hotlines. Neither touches accounts, campuses or schools. In both, a zip
-     * with a files/ directory (every backup since October 2026) also gets its
-     * record files written back.
+     * hotlines; "merge" changes nothing current and only adds the backup's
+     * records that are no longer here. None touches accounts, campuses or
+     * schools. In all, a zip with a files/ directory (every backup since
+     * October 2026) also gets its record files written back (a merge: only
+     * those of the records it adds, never over a file that is there).
      *
      * @param  array{manifest: ?array, rows: array, legacy: bool}  $read
      */
     protected function performRestore(array $read, string $sourceLabel, string $mode = 'records', ?string $zipPath = null): RedirectResponse
     {
         $read['rows'] = \App\Support\RiskMatrix::normaliseRows($read['rows']);
+        $merge = $mode === 'merge';
+        $kept = 0;
 
         try {
             $rows = \App\Support\RecordsRestore::fromRows($read['rows'], everything: $mode === 'everything');
+            if ($merge) {
+                ['rows' => $rows, 'kept' => $kept] = \App\Support\RecordsRestore::missing($rows);
+            }
         } catch (RuntimeException $e) {
             return back()->withErrors(['backup_file' => 'Nothing was restored. ' . $e->getMessage()]);
         }
@@ -521,7 +528,7 @@ class BackupController extends Controller
         }
 
         try {
-            $result = \App\Support\RecordsRestore::apply($rows);
+            $result = \App\Support\RecordsRestore::apply($rows, merge: $merge);
         } catch (Throwable $e) {
             Log::error('Database restore failed', [
                 'user_id' => Auth::id(),
@@ -536,14 +543,20 @@ class BackupController extends Controller
             ]);
         }
 
+        $added = array_sum($result['tables']);
         // Trashed rows are back with their original deleted_at: pause Trash
         // retention so the next purge can't undo this restore overnight.
-        \App\Support\TrashPurge::pauseAfterRestore($sourceLabel);
+        // A merge that added nothing changed nothing to protect.
+        if (! $merge || $added) {
+            \App\Support\TrashPurge::pauseAfterRestore($sourceLabel);
+        }
 
         // Record files carried by the backup (after the database commit: files
         // can't join the transaction). Backups from before October 2026 have none.
         $files = $zipPath
-            ? BackupArchive::restoreFiles($zipPath, fn (string $disk, string $path) => \App\Support\RecordsClear::restoreTarget($disk, $path))
+            ? BackupArchive::restoreFiles($zipPath, $merge
+                ? \App\Support\RecordsRestore::mergeFileTarget($rows)
+                : fn (string $disk, string $path) => \App\Support\RecordsClear::restoreTarget($disk, $path))
             : ['restored' => 0, 'refused' => []];
 
         Log::info('Database restore completed', [
@@ -556,11 +569,14 @@ class BackupController extends Controller
             'at' => now()->toDateTimeString(),
         ]);
 
-        $message = sprintf($mode === 'records'
-                ? 'Records restored from %s: %d records%s. Accounts, campuses, schools and the activity log were left as they were.'
-                : 'Restored from %s: %d rows%s. Accounts, campuses and schools were left as they were.',
-            $sourceLabel, array_sum($result['tables']),
-            $result['accounts_cleared'] ? sprintf(' (%d by accounts that no longer exist, kept under their names)', $result['accounts_cleared']) : '');
+        $byGoneAccounts = $result['accounts_cleared'] ? sprintf(' (%d by accounts that no longer exist, kept under their names)', $result['accounts_cleared']) : '';
+        $message = match (true) {
+            $merge && ! $added => sprintf('Nothing to add from %s: every record in it is already here. Nothing was changed.', $sourceLabel),
+            $merge => sprintf('Merged from %s: %d missing %s added%s. The %d records already here were kept as they are, and accounts, campuses, schools and the activity log were left as they were.',
+                $sourceLabel, $added, $added === 1 ? 'record' : 'records', $byGoneAccounts, $kept),
+            $mode === 'records' => sprintf('Records restored from %s: %d records%s. Accounts, campuses, schools and the activity log were left as they were.', $sourceLabel, $added, $byGoneAccounts),
+            default => sprintf('Restored from %s: %d rows%s. Accounts, campuses and schools were left as they were.', $sourceLabel, $added, $byGoneAccounts),
+        };
         if ($result['notifications_skipped'] ?? 0) {
             $n = $result['notifications_skipped'];
             $message .= " {$n} staff " . ($n === 1 ? 'notification' : 'notifications') . ' for accounts that no longer exist were left out.';
@@ -571,17 +587,19 @@ class BackupController extends Controller
         if ($files['refused']) {
             $message .= ' ' . count($files['refused']) . ' file entries outside the record folders were ignored.';
         }
-        $message .= ' Trash retention is paused until someone resumes it.';
+        if (! $merge || $added) {
+            $message .= ' Trash retention is paused until someone resumes it.';
+        }
 
         return redirect()
             ->route('admin.backup.index')
             ->with('status', $message);
     }
 
-    /** "records" unless the form explicitly chose "everything" (a request naming no mode gets the safer one). */
+    /** "records" unless the form explicitly chose "everything" or "merge" (a request naming no mode gets records only). */
     protected function restoreMode(Request $request): string
     {
-        return $request->input('mode') === 'everything' ? 'everything' : 'records';
+        return in_array($request->input('mode'), ['everything', 'merge'], true) ? $request->input('mode') : 'records';
     }
 
     /**
