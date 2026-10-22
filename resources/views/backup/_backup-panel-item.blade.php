@@ -12,9 +12,9 @@
         <details>
             <summary class="link-danger cursor-pointer list-none text-xs">Restore</summary>
             <div class="mt-4 space-y-4 rounded-xl border border-red-200 bg-red-50 p-4">
-                <form method="POST" action="{{ route('admin.backup.stored.restore', $backup) }}" data-confirm-form="Restore from this backup? What you chose above is replaced, or with Merge, added to." class="space-y-4">
+                <form method="POST" action="{{ route('admin.backup.stored.restore', $backup) }}" data-confirm-form="Restore from this backup? Every record, the activity log, settings and hotlines will be replaced with the backup's. Accounts, campuses and schools stay." class="space-y-4">
                     @csrf
-                    @include('backup._restore-mode', ['prefix' => 'stored-' . $backup->getKey(), 'compact' => true])
+                    <p class="text-xs text-red-700">Replaces every record, the activity log, settings and hotlines. Accounts, campuses and schools stay.</p>
                     <div>
                         <label class="block text-xs font-medium leading-6 text-gray-700">
                             Type <span class="font-mono font-semibold">RESTORE</span>

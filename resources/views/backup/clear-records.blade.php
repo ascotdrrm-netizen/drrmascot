@@ -109,7 +109,7 @@
                 <li>
                     A full backup is made with Download Backup's own routine and saved under Stored Backups as
                     <span class="font-mono text-xs">{{ \App\Http\Controllers\BackupController::PRE_CLEAR_PREFIX }}….7z</span>.
-                    It also holds the uploaded files listed above, so restoring it ("Records only") brings back the records and their photos.
+                    It also holds the uploaded files listed above, so restoring it brings back the records and their photos (and the activity log as it was before the clear).
                     It is checked: it must open, contain every table, hold exactly as many rows as the database, and contain every file at its full size.
                     It is never removed by the 20-backup limit.
                 </li>

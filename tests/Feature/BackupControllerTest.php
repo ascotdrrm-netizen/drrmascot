@@ -145,7 +145,6 @@ class BackupControllerTest extends TestCase
         $zipFile = UploadedFile::fake()->createWithContent('ascot-drrms-backup.7z', $zipBytes);
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything',
             'backup_file' => $zipFile,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -207,7 +206,6 @@ class BackupControllerTest extends TestCase
         $marker->forceDelete();
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything',
             'backup_file' => UploadedFile::fake()->createWithContent('ascot-drrms-backup.zip', $zipBytes),
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -247,7 +245,6 @@ class BackupControllerTest extends TestCase
         $sqlFile = UploadedFile::fake()->createWithContent('ascot-drrms-backup.sql', $sql);
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything',
             'backup_file' => $sqlFile,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -285,7 +282,6 @@ class BackupControllerTest extends TestCase
         );
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'backup_file' => $oldFormatZip,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -337,7 +333,6 @@ class BackupControllerTest extends TestCase
         $this->assertFalse($this->markerExists('AES256 Restored Hall'));
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'backup_file' => $oldAesZip,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -373,7 +368,6 @@ class BackupControllerTest extends TestCase
         );
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'backup_file' => $wrongPasswordZip,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -410,7 +404,6 @@ class BackupControllerTest extends TestCase
         $bytes = $this->corruptFirstEntry($this->buildZipBytes($sql, 'ascot-drrms-backup.sql', self::ZIP_PASSWORD));
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything',
             'backup_file' => UploadedFile::fake()->createWithContent('ascot-drrms-backup.zip', $bytes),
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -477,7 +470,6 @@ class BackupControllerTest extends TestCase
         );
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.restore'), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'backup_file' => $zipFile,
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
@@ -552,7 +544,6 @@ class BackupControllerTest extends TestCase
 
         // Wrong confirmation phrase must be rejected.
         $wrongPhrase = $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'confirmation' => 'NOPE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
         ]);
@@ -560,7 +551,6 @@ class BackupControllerTest extends TestCase
 
         // Wrong data privacy password must be rejected.
         $wrongPassword = $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'confirmation' => 'RESTORE',
             'data_privacy_password' => 'not-the-right-password',
         ]);
@@ -571,7 +561,6 @@ class BackupControllerTest extends TestCase
         $this->assertFalse($this->markerExists('Stored Restore Marker'));
 
         $restoreResponse = $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
-            'mode' => 'everything', // the full restore, exactly as before records-only existed
             'confirmation' => 'RESTORE',
             'data_privacy_password' => self::PRIVACY_PASSWORD,
         ]);

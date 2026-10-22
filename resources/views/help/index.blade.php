@@ -190,8 +190,8 @@
                             <dt class="{{ $strong }}">Backup &amp; Restore</dt>
                             <dd class="text-gray-700">
                                 Download a copy of the system's data, or restore one. Both ask for the <em>Data Privacy Password</em>, which is set by
-                                the system administrator on the server. Restoring replaces every record in the system with the backup's;
-                                choose <em>Merge</em> instead to keep every current record and only add back the backup's records that are missing.
+                                the system administrator on the server. Restoring puts back everything in the backup: every record (Trash included), the activity log, settings and hotlines.
+                                Anything added or changed since the backup is gone.
                                 User accounts are never in a backup: restoring and Clear All Records leave them as they are in User Management.
                             </dd>
                         </div>

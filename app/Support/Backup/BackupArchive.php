@@ -468,11 +468,10 @@ class BackupArchive
 
     /**
      * Writes a backup's files/<disk>/<path> entries back to storage — only
-     * where $target says (the disk to write to, null to refuse, or false to
-     * leave it out quietly: a merge skipping a file that is already there),
-     * never anywhere else.
+     * where $target says (the disk to write to, or null to refuse), never
+     * anywhere else.
      *
-     * @param  callable(string $disk, string $path): (string|false|null)  $target
+     * @param  callable(string $disk, string $path): ?string  $target
      * @return array{restored: int, refused: list<string>}
      */
     public static function restoreFiles(string $absolutePath, callable $target): array
@@ -495,9 +494,6 @@ class BackupArchive
                     continue;
                 }
                 $disk = $target($m[1], $m[2]);
-                if ($disk === false) {
-                    continue;
-                }
                 if ($disk === null) {
                     $result['refused'][] = $name;
 

@@ -298,7 +298,7 @@ class ClearAllRecordsTest extends TestCase
         $this->assertSame(2, DB::table('buildings')->count());
     }
 
-    public function test_clear_then_records_only_restore_returns_everything_including_trash_and_photos(): void
+    public function test_clear_then_restore_returns_everything_including_trash_and_photos(): void
     {
         $before = collect(self::CLEARED_TABLES)->mapWithKeys(fn ($t) => [$t => DB::table($t)->orderByRaw('1')->get()->map(fn ($r) => (array) $r)->all()])->all();
         $files = ['records' => array_merge(['buildings/gym.jpg', 'hazard-inspections/exit.jpg', 'incidents/fire.jpg', 'buildings/orphan-left-behind.jpg'], Storage::disk('records')->allFiles('drill-attachments'))];
@@ -315,7 +315,7 @@ class ClearAllRecordsTest extends TestCase
 
         $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
             'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD,
-        ])->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, '14 records') && str_contains($s, '5 uploaded files restored'));
+        ])->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_starts_with($s, 'Restored from ') && str_contains($s, '5 uploaded files restored'));
 
         $after = collect(self::CLEARED_TABLES)->mapWithKeys(fn ($t) => [$t => DB::table($t)->orderByRaw('1')->get()->map(fn ($r) => (array) $r)->all()])->all();
         $this->assertSame($before, $after, 'every row back exactly, Trash included');
@@ -323,7 +323,7 @@ class ClearAllRecordsTest extends TestCase
             [$disk, $path] = explode(':', $key, 2);
             $this->assertSame($content, Storage::disk($disk)->get($path), "$key back byte for byte");
         }
-        $this->assertTrue(ActivityLog::where('action', 'records_cleared')->exists(), 'the Records Cleared entry survives a records-only restore');
+        $this->assertFalse(ActivityLog::where('action', 'records_cleared')->exists(), 'the activity log goes back to before the clear');
         $this->assertSame(2, Personnel::count());
     }
 
@@ -364,7 +364,7 @@ class ClearAllRecordsTest extends TestCase
     {
         config(['backup.dir' => null]);
 
-        $this->actingAs($this->admin)->get(route('admin.backup.clear-records'))->assertOk()->assertSee('restoring it ("Records only") brings back the records and their photos', false)->assertDontSee('pre-clear-…</span> folder', false);
+        $this->actingAs($this->admin)->get(route('admin.backup.clear-records'))->assertOk()->assertSee('restoring it brings back the records and their photos (and the activity log as it was before the clear)', false)->assertDontSee('pre-clear-…</span> folder', false);
         $this->clear()->assertSessionHasNoErrors();
 
         $this->assertSame(0, DB::table('incidents')->count());

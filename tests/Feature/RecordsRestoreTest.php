@@ -18,10 +18,10 @@ use Tests\TestCase;
 use ZipArchive;
 
 /**
- * Restore → "Records only" (the default) versus "Everything in the backup":
- * what each replaces, account references to deleted accounts, campuses and
- * schools that no longer exist, and the record files every backup carries
- * under files/.
+ * Restore, which has no choices: what it replaces (everything the backup
+ * holds) and keeps (accounts, campuses, schools), account references to
+ * deleted accounts, campuses and schools that no longer exist, and the record
+ * files every backup carries under files/.
  */
 class RecordsRestoreTest extends TestCase
 {
@@ -55,9 +55,9 @@ class RecordsRestoreTest extends TestCase
         $this->coordinator = $this->person('Coordinator Alpha', 'Coordinator', 'alpha@ascot-test.local');
     }
 
-    // ============================== records only ==============================
+    // ============================= what it replaces ===========================
 
-    public function test_records_only_replaces_records_and_leaves_accounts_campuses_schools_and_the_log(): void
+    public function test_restore_puts_back_everything_but_never_touches_accounts_campuses_or_schools(): void
     {
         $this->incident($this->zabali, 'In the backup');
         $backup = $this->backup();
@@ -65,35 +65,34 @@ class RecordsRestoreTest extends TestCase
         // After the backup: a record, an account, a campus, a school and log entries change.
         $this->incident($this->zabali, 'Added after the backup');
         $later = $this->person('Added Later', 'Coordinator', 'later@ascot-test.local');
-        $this->admin->update(['full_name' => 'Renamed Admin']);
+        $this->admin->forceFill(['full_name' => 'Renamed Admin'])->save();
         $newCampus = Campus::create(['campus_name' => 'ASCOT Casiguran Campus']);
         School::create(['campus_id' => $newCampus->campus_id, 'school_name' => 'School of Fisheries']);
-        ActivityLog::create(['personnel_id' => $this->admin->personnel_id, 'action' => 'records_cleared', 'description' => 'Cleared after the backup']);
-        $logBefore = ActivityLog::orderBy('activity_log_id')->pluck('description')->all();
+        ActivityLog::create(['personnel_id' => $this->admin->personnel_id, 'action' => 'login', 'description' => 'After the backup']);
 
         $this->restoreStored($backup)->assertSessionHasNoErrors()
-            ->assertSessionHas('status', fn ($s) => str_starts_with($s, "Records restored from {$backup->filename}: 1 records."));
+            ->assertSessionHas('status', fn ($s) => str_starts_with($s, "Restored from {$backup->filename}: ") && str_contains($s, 'Accounts, campuses and schools were left as they were.'));
 
         $this->assertSame(['In the backup'], DB::table('incidents')->pluck('description')->all());
+        $this->assertFalse(ActivityLog::where('description', 'After the backup')->exists(), 'the log is wound back');
         $this->assertTrue(Personnel::whereKey($later->personnel_id)->exists(), 'an account added since is kept');
-        $this->assertSame('Renamed Admin', $this->admin->fresh()->full_name);
+        $this->assertSame('Renamed Admin', $this->admin->fresh()->full_name, 'an account is not wound back');
         $this->assertSame(3, Campus::count());
         $this->assertSame(2, School::count());
-        $this->assertSame($logBefore, ActivityLog::orderBy('activity_log_id')->pluck('description')->all(), 'the activity log is not wound back');
-        $this->assertTrue(ActivityLog::where('action', 'records_cleared')->exists());
     }
 
-    public function test_a_request_naming_no_mode_gets_records_only(): void
+    public function test_the_restore_forms_offer_no_choice_and_a_mode_sent_anyway_is_ignored(): void
     {
-        $this->incident($this->zabali, 'In the backup');
         $backup = $this->backup();
-        $later = $this->person('Added Later', 'Coordinator', 'later@ascot-test.local');
+        $this->actingAs($this->admin)->get(route('admin.backup.index'))->assertOk()
+            ->assertDontSee('Restore what?')->assertDontSee('name="mode"', false);
 
+        ActivityLog::create(['personnel_id' => $this->admin->personnel_id, 'action' => 'login', 'description' => 'After the backup']);
         $this->actingAs($this->admin)->post(route('admin.backup.stored.restore', $backup), [
-            'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD,
+            'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD, 'mode' => 'records',
         ])->assertSessionHasNoErrors();
 
-        $this->assertTrue(Personnel::whereKey($later->personnel_id)->exists());
+        $this->assertFalse(ActivityLog::where('description', 'After the backup')->exists(), 'still everything');
     }
 
     public function test_a_record_by_a_deleted_account_restores_with_the_account_cleared_and_the_name_kept(): void
@@ -238,7 +237,7 @@ class RecordsRestoreTest extends TestCase
         $this->assertSame(1, DB::table('incidents')->count());
     }
 
-    public function test_a_backup_from_an_older_version_is_refused_by_records_only(): void
+    public function test_a_backup_from_an_older_version_with_retired_columns_is_refused(): void
     {
         $this->incident($this->zabali, 'Must survive');
         $entries = $this->entriesOf($this->backup());
@@ -251,125 +250,6 @@ class RecordsRestoreTest extends TestCase
 
         $this->assertStringContainsString('columns that no longer exist (incidents.retired_column)', session('errors')->first('backup_file'));
         $this->assertSame(1, DB::table('incidents')->count());
-    }
-
-    // ================================== merge =================================
-
-    public function test_merge_keeps_every_current_record_and_adds_back_only_the_missing_ones(): void
-    {
-        $edited = $this->incident($this->zabali, 'Edited since');
-        $trashed = $this->incident($this->zabali, 'Trashed since');
-        $deleted = $this->incident($this->zabali, 'Deleted permanently since');
-        $backup = $this->backup();
-
-        DB::table('incidents')->where('incident_id', $edited)->update(['description' => 'Edited since (new text)']);
-        DB::table('incidents')->where('incident_id', $trashed)->update(['deleted_at' => now()]);
-        DB::table('incidents')->where('incident_id', $deleted)->delete();
-        $this->incident($this->zabali, 'Added since');
-        $logBefore = ActivityLog::count();
-
-        $this->restoreStored($backup, 'merge')->assertSessionHasNoErrors()
-            ->assertSessionHas('status', fn ($s) => str_starts_with($s, "Merged from {$backup->filename}: 1 missing record added. The 2 records already here were kept as they are")
-                && str_ends_with($s, ' Trash retention is paused until someone resumes it.'));
-
-        $this->assertSame(
-            ['Edited since (new text)' => false, 'Trashed since' => true, 'Deleted permanently since' => false, 'Added since' => false],
-            DB::table('incidents')->orderBy('incident_id')->get()->mapWithKeys(fn ($r) => [$r->description => $r->deleted_at !== null])->all());
-        $this->assertSame($logBefore, ActivityLog::count(), 'the activity log is not touched');
-        $this->assertNotNull(\App\Support\TrashPurge::pause());
-    }
-
-    public function test_merge_adds_back_a_missing_child_and_only_its_file_never_overwriting_a_current_one(): void
-    {
-        $kept = $this->incident($this->zabali, 'Kept parent');
-        $gone = $this->incident($this->zabali, 'Gone with its photo');
-        DB::table('incidents')->where('incident_id', $kept)->update(['photo_path' => 'incidents/kept.jpg']);
-        DB::table('incidents')->where('incident_id', $gone)->update(['photo_path' => 'incidents/gone.jpg']);
-        Storage::disk('records')->put('incidents/kept.jpg', 'KEPT AS BACKED UP');
-        Storage::disk('records')->put('incidents/gone.jpg', 'GONE PHOTO');
-        $hall = DB::table('buildings')->insertGetId(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Hall', 'risk_level' => 'Minimal Risk'], 'building_id');
-        DB::table('damage_reports')->insert(['incident_id' => $kept, 'building_id' => $hall, 'damage_level' => 'Minor']);
-        $backup = $this->backup();
-
-        DB::table('damage_reports')->delete();
-        DB::table('incidents')->where('incident_id', $gone)->delete();
-        Storage::disk('records')->delete('incidents/gone.jpg');
-        Storage::disk('records')->put('incidents/kept.jpg', 'CHANGED SINCE');
-
-        $this->restoreStored($backup, 'merge')->assertSessionHasNoErrors()
-            ->assertSessionHas('status', fn ($s) => str_contains($s, '2 missing records added') && str_contains($s, ' 1 uploaded file restored.')
-                && ! str_contains($s, 'ignored'));
-
-        $this->assertSame(1, DB::table('damage_reports')->where('incident_id', $kept)->count(), 'the damage report is back under its incident');
-        $this->assertSame('GONE PHOTO', Storage::disk('records')->get('incidents/gone.jpg'));
-        $this->assertSame('CHANGED SINCE', Storage::disk('records')->get('incidents/kept.jpg'), 'a current file is never overwritten');
-    }
-
-    public function test_merge_refuses_when_the_same_number_now_belongs_to_a_different_record(): void
-    {
-        $id = $this->incident($this->zabali, 'In the backup');
-        DB::table('incidents')->where('incident_id', $id)->update(['created_at' => '2026-09-01 08:00:00']);
-        $backup = $this->backup();
-
-        // As after Clear All Records: the number is used again by a new record.
-        DB::table('incidents')->delete();
-        DB::table('incidents')->insert(['incident_id' => $id, 'campus_id' => $this->zabali->campus_id, 'hazard_type' => 'Flood',
-            'date_occurred' => '2026-10-20', 'description' => 'A different record', 'created_at' => '2026-10-20 09:00:00']);
-
-        $this->restoreStored($backup, 'merge')
-            ->assertSessionHasErrors(['backup_file' => 'Nothing was restored. The backup and the current records use the same numbers for different records (1 incident). '
-                . 'This happens when records were cleared and new ones added since the backup. Choose Records only to bring the backup back as it was.']);
-
-        $this->assertSame(['A different record'], DB::table('incidents')->pluck('description')->all());
-        $this->assertNull(\App\Support\TrashPurge::pause());
-    }
-
-    public function test_merge_with_nothing_missing_changes_nothing_and_leaves_retention_running(): void
-    {
-        $this->incident($this->zabali, 'Here and in the backup');
-        $backup = $this->backup();
-        $before = $this->snapshotOfRecords();
-
-        $this->restoreUpload(new UploadedFile(Storage::disk('local')->path($backup->storage_path), $backup->filename, null, null, true), 'merge')
-            ->assertSessionHasNoErrors()
-            ->assertSessionHas('status', "Nothing to add from {$backup->filename}: every record in it is already here. Nothing was changed.");
-
-        $this->assertSame($before, $this->snapshotOfRecords());
-        $this->assertNull(\App\Support\TrashPurge::pause());
-    }
-
-    public function test_the_restore_forms_offer_merge(): void
-    {
-        $this->backup();
-
-        $this->actingAs($this->admin)->get(route('admin.backup.index'))->assertOk()
-            ->assertSee('id="upload-mode-merge"', false)
-            ->assertSee("Merge: add what's missing", false)
-            ->assertSee('Merge only adds what\'s missing.', false)
-            ->assertSee('Keeps current records; adds back the backup\'s missing ones.', false);
-    }
-
-    // ================================ everything ==============================
-
-    public function test_everything_winds_back_the_log_but_never_touches_accounts_campuses_or_schools(): void
-    {
-        $this->incident($this->zabali, 'In the backup');
-        $backup = $this->backup();
-        $later = $this->person('Added Later', 'Coordinator', 'later@ascot-test.local');
-        $renamed = $this->admin->full_name;
-        $this->admin->forceFill(['full_name' => 'Renamed Admin'])->save();
-        $newCampus = \App\Models\Campus::create(['campus_name' => 'Campus Added Later']);
-        ActivityLog::create(['personnel_id' => $this->admin->personnel_id, 'action' => 'login', 'description' => 'After the backup']);
-
-        $this->restoreStored($backup, 'everything')->assertSessionHasNoErrors()
-            ->assertSessionHas('status', fn ($s) => str_starts_with($s, "Restored from {$backup->filename}: ") && str_contains($s, 'Accounts, campuses and schools were left as they were.'));
-
-        $this->assertTrue(Personnel::whereKey($later->personnel_id)->exists(), 'an account added since is kept');
-        $this->assertSame('Renamed Admin', $this->admin->fresh()->full_name, 'an account is not wound back');
-        $this->assertNotSame($renamed, $this->admin->fresh()->full_name);
-        $this->assertTrue(\App\Models\Campus::whereKey($newCampus->campus_id)->exists(), 'campuses are kept with their accounts');
-        $this->assertFalse(ActivityLog::where('description', 'After the backup')->exists(), 'the log is wound back');
-        $this->assertSame(['In the backup'], DB::table('incidents')->pluck('description')->all());
     }
 
     // ============================== files/ directory ==========================
@@ -385,12 +265,10 @@ class RecordsRestoreTest extends TestCase
         $this->assertSame('PHOTO', $entries['files/records/incidents/photo.jpg'] ?? null);
         $this->assertArrayNotHasKey('files/records/personnel/face.jpg', $entries, 'account photos are not record files');
 
-        foreach (['everything', 'records'] as $mode) {
-            Storage::disk('records')->delete('incidents/photo.jpg');
-            $this->restoreStored($backup, $mode)->assertSessionHasNoErrors()
-                ->assertSessionHas('status', fn ($s) => str_contains($s, '1 uploaded file restored.'));
-            $this->assertSame('PHOTO', Storage::disk('records')->get('incidents/photo.jpg'), "$mode: the photo is back");
-        }
+        Storage::disk('records')->delete('incidents/photo.jpg');
+        $this->restoreStored($backup)->assertSessionHasNoErrors()
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '1 uploaded file restored.'));
+        $this->assertSame('PHOTO', Storage::disk('records')->get('incidents/photo.jpg'), 'the photo is back');
     }
 
     public function test_files_entries_are_written_back_only_into_the_record_folders(): void
@@ -455,17 +333,17 @@ class RecordsRestoreTest extends TestCase
         return new UploadedFile($path, $name, 'application/zip', null, true);
     }
 
-    protected function restoreStored(Backup $backup, ?string $mode = 'records'): \Illuminate\Testing\TestResponse
+    protected function restoreStored(Backup $backup): \Illuminate\Testing\TestResponse
     {
-        return $this->actingAs($this->admin)->from(route('admin.backup.index'))->post(route('admin.backup.stored.restore', $backup), array_filter([
-            'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD, 'mode' => $mode,
-        ]));
+        return $this->actingAs($this->admin)->from(route('admin.backup.index'))->post(route('admin.backup.stored.restore', $backup), [
+            'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD,
+        ]);
     }
 
-    protected function restoreUpload(UploadedFile $file, string $mode = 'records'): \Illuminate\Testing\TestResponse
+    protected function restoreUpload(UploadedFile $file): \Illuminate\Testing\TestResponse
     {
         return $this->actingAs($this->admin)->from(route('admin.backup.index'))->post(route('admin.backup.restore'), [
-            'backup_file' => $file, 'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD, 'mode' => $mode,
+            'backup_file' => $file, 'confirmation' => 'RESTORE', 'data_privacy_password' => self::PRIVACY_PASSWORD,
         ]);
     }
 

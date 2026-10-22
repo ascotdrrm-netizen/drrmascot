@@ -5,18 +5,18 @@ namespace App\Support;
 use App\Support\Backup\DataSet;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * Restore → "Records only": replaces exactly the tables Clear All Records
- * clears (RecordsClear::TABLES, Trash included) with a backup's rows, and
- * leaves accounts, campuses, schools, the activity log and backups alone.
+ * Replaces exactly the tables Clear All Records clears (RecordsClear::TABLES,
+ * Trash included) with a backup's rows, and leaves accounts, campuses,
+ * schools, the activity log and backups alone.
  *
- * Restore → "Everything": the same, plus every other table the backup holds
- * (the activity log, settings, hotlines) — except accounts, which a restore
- * never touches (a backup doesn't hold them: DataSet::EXCLUDED_TABLES), and
- * the campuses and schools those accounts belong to (KEPT_TABLES).
+ * With $everything (what Restore always uses): the same, plus every other
+ * table the backup holds (the activity log, settings, hotlines) — except
+ * accounts, which a restore never touches (a backup doesn't hold them:
+ * DataSet::EXCLUDED_TABLES), and the campuses and schools those accounts
+ * belong to (KEPT_TABLES).
  *
  * The backup's rows (App\Support\Backup\BackupArchive::read(), new format or
  * an old MySQL one) are checked and fixed BEFORE anything changes:
@@ -31,10 +31,6 @@ use RuntimeException;
  * Then one transaction, foreign keys ON (DataSet::replace): delete children
  * first, insert parents first. Anything still wrong makes the database
  * refuse, and nothing changes.
- *
- * Restore → "Merge": the record tables again, but nothing current is deleted
- * or changed: only the backup's records that are no longer here are added
- * (missing()), with the same checks and fixes (DataSet::insert).
  */
 class RecordsRestore
 {
@@ -111,107 +107,6 @@ class RecordsRestore
     }
 
     /**
-     * Restore → "Merge": the rows of $rows (from fromRows()) that are no longer
-     * here. A row whose key is taken stays as it is now: the same record,
-     * edited or moved to Trash since. A key taken by a DIFFERENT record
-     * (created at another time; for a table without created_at, under another
-     * parent) means the backup and the current records number their records
-     * differently, as after Clear All Records, and no merge is safe: that
-     * refuses the whole merge, naming how many. A table keyed by its parent
-     * (campus_statuses: one row per campus) keeps the current row.
-     *
-     * @param  array<string, list<array<string, mixed>>>  $rows
-     * @return array{rows: array<string, list<array<string, mixed>>>, kept: int}
-     */
-    public static function missing(array $rows): array
-    {
-        $missing = [];
-        $kept = 0;
-        $clashes = [];
-        foreach ($rows as $table => $tableRows) {
-            $missing[$table] = [];
-            if ($tableRows === []) {
-                continue;
-            }
-            $key = DataSet::primaryKey($table);
-            if ($key === null) {
-                throw new RuntimeException("The $table table has no key to tell its records apart, so it can't be merged.");
-            }
-            $parents = collect(DataSet::foreignKeys($table))->filter(fn ($fk) => isset($rows[$fk['table']]))->pluck('column')->unique()->all();
-            $identity = match (true) {
-                in_array($key, collect(DataSet::foreignKeys($table))->pluck('column')->all(), true) => [],
-                Schema::hasColumn($table, 'created_at') => ['created_at'],
-                default => array_values($parents),
-            };
-            $current = DB::table($table)->get([$key, ...$identity])->keyBy(fn ($r) => (string) $r->{$key});
-
-            foreach ($tableRows as $row) {
-                $here = $current[(string) $row[$key]] ?? null;
-                if ($here === null) {
-                    $missing[$table][] = $row;
-
-                    continue;
-                }
-                foreach ($identity as $column) {
-                    if (! self::sameValue($column, $here->{$column}, $row[$column] ?? null)) {
-                        $clashes[$table] = ($clashes[$table] ?? 0) + 1;
-
-                        continue 2;
-                    }
-                }
-                $kept++;
-            }
-        }
-
-        if ($clashes) {
-            $named = implode(', ', array_map(fn ($table, $n) => $n . ' ' . (RecordsClear::TABLES[$table][$n === 1 ? 0 : 1] ?? $table), array_keys($clashes), $clashes));
-            throw new RuntimeException("The backup and the current records use the same numbers for different records ($named). "
-                . 'This happens when records were cleared and new ones added since the backup. Choose Records only to bring the backup back as it was.');
-        }
-
-        return ['rows' => $missing, 'kept' => $kept];
-    }
-
-    /**
-     * Where a merge writes a backup's files/<disk>/<path> entry back: only a
-     * file of a record it adds (in $rows, from missing()) that isn't already
-     * on the records disk. Others are left out quietly (false); paths outside
-     * the record folders are refused as in every restore (null).
-     */
-    public static function mergeFileTarget(array $rows): callable
-    {
-        $wanted = [];
-        foreach (RecordsClear::FILES as $table => [$column]) {
-            foreach ($rows[$table] ?? [] as $row) {
-                if (($row[$column] ?? null) !== null) {
-                    $wanted[$row[$column]] = true;
-                }
-            }
-        }
-
-        return function (string $disk, string $path) use ($wanted): string|false|null {
-            $target = RecordsClear::restoreTarget($disk, $path);
-            if ($target === null) {
-                return null;
-            }
-
-            return isset($wanted[$path]) && ! Storage::disk($target)->exists($path) ? $target : false;
-        };
-    }
-
-    /** Whether a current value and a backup's are the same (timestamps by the moment, whatever their format). */
-    protected static function sameValue(string $column, mixed $current, mixed $backup): bool
-    {
-        if ($current === null || $backup === null) {
-            return $current === $backup;
-        }
-
-        return $column === 'created_at'
-            ? strtotime((string) $current) === strtotime((string) $backup)
-            : (string) $current === (string) $backup;
-    }
-
-    /**
      * Problems that refuse the whole restore. Empty means it can go ahead.
      *
      * @return list<string>
@@ -265,14 +160,13 @@ class RecordsRestore
     }
 
     /**
-     * Replace the tables in $rows (from fromRows()) with them, all or nothing;
-     * with $merge, add them instead (the rows from missing()). Returns the counts
+     * Replace the tables in $rows (from fromRows()) with them, all or nothing. Returns the counts
      * restored per table, how many account references were set to NULL, and
      * how many notifications were left out with their account.
      *
      * @return array{tables: array<string, int>, accounts_cleared: int, notifications_skipped: int}
      */
-    public static function apply(array $rows, bool $merge = false): array
+    public static function apply(array $rows): array
     {
         $accounts = DB::table('personnel')->pluck('personnel_id')->map(fn ($id) => (string) $id)->flip();
         $notifications = count($rows['staff_notifications']);
@@ -290,7 +184,7 @@ class RecordsRestore
             }
         }
 
-        $merge ? DataSet::insert($rows, array_keys($rows)) : DataSet::replace($rows, array_keys($rows));
+        DataSet::replace($rows, array_keys($rows));
 
         return ['tables' => array_map('count', $rows), 'accounts_cleared' => $cleared,
             'notifications_skipped' => $notifications - count($rows['staff_notifications'])];

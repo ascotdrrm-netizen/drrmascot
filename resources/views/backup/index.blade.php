@@ -92,9 +92,11 @@
                 <h2 class="card-title mb-4">Restore from Backup</h2>
 
                 <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    <p class="font-medium">Records only and Everything permanently replace current data with the backup's.</p>
-                    <p>Merge only adds what's missing. A restore cannot be undone — if you haven't already, download a fresh
-                        backup of the current data before proceeding.</p>
+                    <p class="font-medium">This permanently replaces current data with everything in the backup.</p>
+                    <p>Every record (incidents, buildings/areas, inspections, drills, alerts and their reports and attachments,
+                        Trash included), the activity log, settings and emergency hotlines go back to how they were in the backup;
+                        anything added or changed since is gone. User accounts, campuses and schools stay as they are.</p>
+                    <p class="mt-2">It cannot be undone — if you haven't already, download a fresh backup of the current data before proceeding.</p>
                 </div>
 
                 <form method="POST" action="{{ route('admin.backup.restore') }}" enctype="multipart/form-data" class="space-y-4">
@@ -113,11 +115,6 @@
                             <p class="form-error">{{ $message }}</p>
                         @enderror
                     </div>
-
-                    @include('backup._restore-mode', ['prefix' => 'upload'])
-                    @error('mode')
-                        <p class="form-error">{{ $message }}</p>
-                    @enderror
 
                     <div>
                         <label for="confirmation" class="form-label">
