@@ -114,10 +114,13 @@ class AppSealsTest extends TestCase
 
         $pages = [
             route('admin.advisories.show', $advisory) => ['Record what happened', 'Print advisory memo', 'Edit', 'Delete'],
-            route('admin.incidents.index') => ['View Trash (1)', '+ Report incident', 'Generate Report'],
+            // No "+ Report incident" here: the page's own "Report an incident here" does the same.
+            route('admin.incidents.index') => ['View Trash (1)', 'Generate Report'],
             route('admin.buildings.index') => ['View Trash (1)', '+ Add Building/Area', 'Generate Report'],
             route('admin.drills.index') => ['View Trash (1)', '+ Schedule Drill', 'Generate Report'],
         ];
+        $this->actingAs($this->admin)->get(route('admin.incidents.index'))->assertOk()
+            ->assertSee('Report an incident here')->assertDontSee('+ Report incident');
 
         foreach ($pages as $url => $buttons) {
             $xpath = $this->dom($this->actingAs($this->admin)->get($url)->assertOk()->getContent());

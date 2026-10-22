@@ -154,7 +154,9 @@ class DuplicateControlsTest extends TestCase
             $html = $this->actingAs($user)->get(route("$prefix.incidents.index"))->assertOk()->getContent();
             // A coordinator sees only their own incidents, so their empty state says so.
             $this->assertStringContainsString($prefix === 'admin' ? 'No incidents recorded yet.' : e("You haven't reported any incidents yet."), $html);
-            $this->assertSame(1, $this->countLinks($html, route("$prefix.incidents.create")), "$prefix incidents");
+            // Reporting is the page's own "Report an incident here", so no link to the separate form.
+            $this->assertSame(0, $this->countLinks($html, route("$prefix.incidents.create")), "$prefix incidents");
+            $this->assertSame(1, preg_match_all('#<summary[^>]*>(?:(?!</summary>).)*Report an incident here#s', $html), "$prefix incidents: one way to report");
             $this->assertSame(1, preg_match_all('/>\s*Generate Report\s*</', $html), "$prefix incidents: Generate Report");
             $this->assertUniqueIds($html, "$prefix incidents index");
 

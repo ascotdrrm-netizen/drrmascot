@@ -88,7 +88,7 @@
                     <ol class="mt-4 list-decimal pl-6 text-sm leading-6 text-gray-700">
                         <li>Open <span class="{{ $strong }}">Buildings/Areas</span>. If a building on your campus is missing, add it.</li>
                         <li>Open a building and use <span class="{{ $strong }}">+ Record an inspection</span> to note the hazards you find.</li>
-                        <li>When something happens — a typhoon, earthquake, flood or fire — use <span class="{{ $strong }}">+ Report incident</span>, then add a damage report for each building it affected.</li>
+                        <li>When something happens — a typhoon, earthquake, flood or fire — open <span class="{{ $strong }}">Incidents</span> and use <span class="{{ $strong }}">Report an incident here</span>, then add a damage report for each building it affected.</li>
                         <li>Check <span class="{{ $strong }}">Drills</span> for your campus’s drill calendar. After each drill, add its documentation and After Activity Report.</li>
                     </ol>
                 @endif

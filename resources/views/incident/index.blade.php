@@ -15,7 +15,6 @@
         <a href="{{ route("{$routePrefix}.incidents.trash") }}" class="btn btn-secondary">View Trash ({{ $trashedCount }})</a>
     @endif
     <x-generate-report-modal :modules="['incidents' => 'Incident Reporting', 'alerts' => 'SMS & Broadcast Alert']" :campuses="$campuses" :selected-campus-id="$selectedCampusId" :selected-school-id="$selectedSchoolId" />
-    <a href="{{ route("{$routePrefix}.incidents.create") }}" class="btn btn-primary">+ Report incident</a>
 @endsection
 
 @section('content')
@@ -73,10 +72,10 @@
                     <p class="form-help">Set the filters above back to All to see every incident you can open.</p>
                 @elseif ($routePrefix === 'admin')
                     <p class="text-sm text-gray-600">No incidents recorded yet.</p>
-                    <p class="form-help">Incidents reported on any campus appear here. To report one yourself, use + Report incident at the top of the page.</p>
+                    <p class="form-help">Incidents reported on any campus appear here. To report one yourself, use Report an incident here above.</p>
                 @else
                     <p class="text-sm text-gray-600">{{ "You haven't reported any incidents yet." }}</p>
-                    <p class="form-help">{{ "When a typhoon, earthquake, flood or fire affects your campus, use + Report incident at the top of the page to record it. Other coordinators' incidents are not shown to you." }}</p>
+                    <p class="form-help">{{ "When a typhoon, earthquake, flood or fire affects your campus, use Report an incident here above to record it. Other coordinators' incidents are not shown to you." }}</p>
                 @endif
             </div>
         @endforelse
