@@ -10,10 +10,21 @@
             'Resolved' => 'Response completed', 'Rejected' => 'Marked as a false alarm',
             'Closed' => 'Closed by the DRRM Office', default => 'Help is coming',
         } }}</p>
-        <p class="text-sm">Stay where you are if it is safe. Keep your phone with you.</p>
-        <p class="mt-3 font-display text-4xl font-semibold tabular-nums" x-data="{ start: {{ $sos['sent_at']->getTimestamp() }}, now: Math.floor(Date.now() / 1000) }" x-init="setInterval(() => now = Math.floor(Date.now() / 1000), 1000)"
-           x-text="String(Math.floor((now - start) / 60)).padStart(2, '0') + ':' + String((now - start) % 60).padStart(2, '0')" aria-label="Time since you sent the SOS">03:00</p>
-        <p class="text-xs">since you pressed SOS</p>
+        @php
+            // Closed (resolved, false alarm, closed by the office): the clock stops at that moment.
+            $endedAt = $sos['ended_at'] ?? null;
+            $took = $endedAt ? max(0, $endedAt->getTimestamp() - $sos['sent_at']->getTimestamp()) : null;
+        @endphp
+        @if ($endedAt)
+            <p class="text-sm">This SOS is closed. If you need help again, press SOS or call a hotline.</p>
+            <p class="mt-3 font-display text-4xl font-semibold tabular-nums" data-sos-duration aria-label="How long the SOS was open">{{ sprintf('%02d:%02d', intdiv($took, 60), $took % 60) }}</p>
+            <p class="text-xs">from pressing SOS to {{ ($sos['status'] ?? null) === 'Resolved' ? 'response completed' : 'closed' }} ({{ $endedAt->format('M j, g:i A') }})</p>
+        @else
+            <p class="text-sm">Stay where you are if it is safe. Keep your phone with you.</p>
+            <p class="mt-3 font-display text-4xl font-semibold tabular-nums" x-data="{ start: {{ $sos['sent_at']->getTimestamp() }}, now: Math.floor(Date.now() / 1000) }" x-init="setInterval(() => now = Math.floor(Date.now() / 1000), 1000)"
+               x-text="String(Math.floor((now - start) / 60)).padStart(2, '0') + ':' + String((now - start) % 60).padStart(2, '0')" aria-label="Time since you sent the SOS">03:00</p>
+            <p class="text-xs">since you pressed SOS</p>
+        @endif
     </div>
 
     <div class="mt-4 rounded-xl border border-gray-100 bg-white p-4">

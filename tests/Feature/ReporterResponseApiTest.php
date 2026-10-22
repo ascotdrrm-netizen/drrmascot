@@ -173,6 +173,33 @@ class ReporterResponseApiTest extends TestCase
         $this->get('/app/sos/status')->assertOk()->assertSee('SOS received');
     }
 
+    public function test_the_sos_clock_stops_when_the_response_is_completed(): void
+    {
+        $this->travelTo(now()->setTime(9, 0));
+        $id = $this->actingAs($this->reporter)->postJson('/api/reporter/sos', ['client_key' => (string) Str::uuid(), 'type' => 'Medical'])
+            ->assertCreated()->json('id');
+
+        // While it is open, the clock runs from the moment SOS was pressed.
+        $this->get('/app/sos/status')->assertOk()->assertSee('since you pressed SOS')->assertSee('Stay where you are')
+            ->assertDontSee('data-sos-duration', false);
+
+        // Resolved 12 min 30 s later: the clock stops there, and stays stopped.
+        $this->travel(750)->seconds();
+        $this->actingAs($this->coordinator)->patchJson("/api/command/sos/{$id}", ['status' => 'Acknowledged'])->assertOk();
+        $this->patchJson("/api/command/sos/{$id}", ['status' => 'Responding'])->assertOk();
+        $this->patchJson("/api/command/sos/{$id}", ['status' => 'Resolved'])->assertOk();
+        $this->travel(2)->hours();
+        $this->actingAs($this->reporter)->get('/app/sos/status')->assertOk()
+            ->assertSee('Response completed')->assertSee('12:30')->assertSee('from pressing SOS to response completed')
+            ->assertDontSee('since you pressed SOS')->assertDontSee('Stay where you are');
+
+        // A false alarm, or an SOS the office deleted, stops it too.
+        $other = $this->postJson('/api/reporter/sos', ['client_key' => (string) Str::uuid(), 'type' => 'Fire'])->assertCreated()->json('id');
+        $this->actingAs($this->coordinator)->deleteJson("/api/command/sos/{$other}")->assertOk();
+        $this->actingAs($this->reporter)->get('/app/sos/status?sos=' . $other)->assertOk()
+            ->assertSee('Closed by the DRRM Office')->assertSee('from pressing SOS to closed')->assertDontSee('since you pressed SOS');
+    }
+
     public function test_deleting_a_reporter_keeps_the_report_and_its_files(): void
     {
         $id = $this->actingAs($this->reporter)->postJson('/api/reporter/reports', [

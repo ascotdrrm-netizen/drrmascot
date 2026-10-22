@@ -201,8 +201,16 @@ class AppPreviewController extends Controller
                     'at' => $sos->status === 'Rejected' ? $sos->resolved_at : $sos->deleted_at, 'done' => true];
             }
 
+            // When it was closed (resolved, false alarm, or deleted by the office): the clock stops there.
+            $endedAt = match (true) {
+                $sos->trashed() => $sos->deleted_at,
+                in_array($sos->status, ['Resolved', 'Rejected'], true) => $sos->resolved_at ?? $sos->updated_at,
+                default => null,
+            };
+
             return view('reporter.sos-status', $this->shared() + ['sos' => [
                 'id' => $sos->sos_id, 'type' => $sos->type ?: 'Emergency', 'status' => $sos->trashed() ? 'Closed' : $sos->status, 'sent_at' => $sos->created_at,
+                'ended_at' => $endedAt,
                 'location' => $sos->place ?: ($sos->latitude ? 'GPS coordinates shared' : 'Location not shared'),
                 'accuracy' => $sos->accuracy_m ?: 'unknown', 'timeline' => $timeline,
             ]]);
