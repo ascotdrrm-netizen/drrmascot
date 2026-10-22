@@ -114,6 +114,23 @@ class RecordsRestoreTest extends TestCase
         $this->assertSame('Coordinator Alpha', $row->created_by_name);
     }
 
+    public function test_notifications_of_a_deleted_account_are_left_out_and_the_rest_restores(): void
+    {
+        $notice = fn (Personnel $to) => ['personnel_id' => $to->personnel_id, 'campus_id' => $this->zabali->campus_id,
+            'kind' => 'incident', 'subject_id' => 1, 'message' => 'New incident', 'created_at' => now(), 'updated_at' => now()];
+        DB::table('staff_notifications')->insert([$notice($this->coordinator), $notice($this->coordinator), $notice($this->admin)]);
+        $this->incident($this->zabali, 'Kept');
+        $backup = $this->backup();
+
+        $this->coordinator->delete(); // takes its two notifications with it
+        DB::table('incidents')->delete();
+
+        $this->restoreStored($backup)->assertSessionHasNoErrors()
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '2 staff notifications for accounts that no longer exist were left out.'));
+        $this->assertSame(1, DB::table('incidents')->count());
+        $this->assertSame([$this->admin->personnel_id], DB::table('staff_notifications')->pluck('personnel_id')->map(fn ($id) => (int) $id)->all());
+    }
+
     /**
      * Reports and SOS events of a deleted Reporter stay as "Former reporter"
      * (reporter_id NULL). A backup holding them restores, and so does one whose

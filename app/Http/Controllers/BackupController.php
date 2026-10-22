@@ -566,6 +566,10 @@ class BackupController extends Controller
                 $sourceLabel, array_sum($result['tables']),
                 $result['accounts_cleared'] ? sprintf(' (%d by accounts that no longer exist, kept under their names)', $result['accounts_cleared']) : '')
             : "Database restored successfully from {$sourceLabel}.";
+        if ($result['notifications_skipped'] ?? 0) {
+            $n = $result['notifications_skipped'];
+            $message .= " {$n} staff " . ($n === 1 ? 'notification' : 'notifications') . ' for accounts that no longer exist were left out.';
+        }
         if ($files['restored']) {
             $message .= " {$files['restored']} uploaded " . ($files['restored'] === 1 ? 'file' : 'files') . ' restored.';
         }

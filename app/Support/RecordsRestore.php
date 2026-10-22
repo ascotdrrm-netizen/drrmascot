@@ -17,6 +17,8 @@ use RuntimeException;
  *     exists is set to NULL — the *_by_name text keeps who it was; so is a
  *     Reporter's (reporter_id), shown as "Former reporter", the same as when
  *     the account is deleted;
+ *   - a staff notification for an account that no longer exists is left
+ *     out, as deleting the account deletes its notifications;
  *   - a campus or school that no longer exists (or a school now on another
  *     campus) refuses the whole restore, naming what's missing.
  * Then one transaction, foreign keys ON (DataSet::replace): delete children
@@ -85,16 +87,6 @@ class RecordsRestore
         $missingCampus = [];
         $missingSchool = [];
         $movedSchool = [];
-        $missingNoticeRecipient = [];
-        $accounts = DB::table('personnel')->pluck('personnel_id')
-            ->map(fn ($id) => (string) $id)->flip();
-
-        foreach ($rows['staff_notifications'] as $row) {
-            if (! isset($accounts[(string) $row['personnel_id']])) {
-                $missingNoticeRecipient[(string) $row['personnel_id']]['staff_notifications'] =
-                    ($missingNoticeRecipient[(string) $row['personnel_id']]['staff_notifications'] ?? 0) + 1;
-            }
-        }
 
         foreach (self::CAMPUS_TABLES as $table) {
             foreach ($rows[$table] as $row) {
@@ -133,22 +125,22 @@ class RecordsRestore
         foreach ($movedSchool as $id => $n) {
             $problems[] = "This backup has $n " . ($n === 1 ? 'incident' : 'incidents') . " for school id $id on a campus that school no longer belongs to.";
         }
-        foreach ($missingNoticeRecipient as $id => $byTable) {
-            $problems[] = "This backup has notifications for an account that no longer exists (id $id): " . $describe($byTable) . '.';
-        }
-
         return $problems;
     }
 
     /**
      * Replace the record tables with $rows, all or nothing. Returns the counts
-     * restored per table and how many account references were set to NULL.
+     * restored per table, how many account references were set to NULL, and
+     * how many notifications were left out with their account.
      *
-     * @return array{tables: array<string, int>, accounts_cleared: int}
+     * @return array{tables: array<string, int>, accounts_cleared: int, notifications_skipped: int}
      */
     public static function apply(array $rows): array
     {
         $accounts = DB::table('personnel')->pluck('personnel_id')->map(fn ($id) => (string) $id)->flip();
+        $notifications = count($rows['staff_notifications']);
+        $rows['staff_notifications'] = array_values(array_filter($rows['staff_notifications'],
+            fn ($row) => isset($accounts[(string) $row['personnel_id']])));
         $cleared = 0;
         foreach (self::ACCOUNT_COLUMNS as $table => $columns) {
             foreach ($rows[$table] as $i => $row) {
@@ -163,6 +155,7 @@ class RecordsRestore
 
         DataSet::replace($rows, array_keys(RecordsClear::TABLES));
 
-        return ['tables' => array_map('count', $rows), 'accounts_cleared' => $cleared];
+        return ['tables' => array_map('count', $rows), 'accounts_cleared' => $cleared,
+            'notifications_skipped' => $notifications - count($rows['staff_notifications'])];
     }
 }

@@ -225,6 +225,15 @@ class VercelHostingTest extends TestCase
         $this->assertGreaterThan(1, count(StoredBackups::parts($backup->storage_path)));
         $this->assertSame(0, DB::table('buildings')->count());
         Storage::disk('s3')->assertMissing('buildings/photo.jpg');
+
+        // "Restore from this" on that copy brings back the record and its photo.
+        $photo = fn () => Storage::disk('s3')->get('buildings/photo.jpg');
+        $this->post(route('admin.backup.stored.restore', $backup), [
+            'confirmation' => 'RESTORE', 'data_privacy_password' => 'privacy-secret',
+        ])->assertRedirect()->assertSessionHasNoErrors()->assertSessionHas('status', fn ($status) => str_contains($status, '1 uploaded file restored.'));
+        $this->assertSame(1, DB::table('buildings')->count());
+        Storage::disk('s3')->assertExists('buildings/photo.jpg');
+        $this->assertSame(4096, strlen($photo()));
     }
 
     public function test_large_generated_pdf_is_downloaded_from_private_storage(): void
