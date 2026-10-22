@@ -131,6 +131,29 @@ class RecordsRestoreTest extends TestCase
         $this->assertSame([$this->admin->personnel_id], DB::table('staff_notifications')->pluck('personnel_id')->map(fn ($id) => (int) $id)->all());
     }
 
+    public function test_an_sos_acknowledged_by_a_deleted_account_restores_unacknowledged_by_anyone(): void
+    {
+        $sosId = DB::table('sos_events')->insertGetId(['campus_id' => $this->zabali->campus_id, 'client_key' => (string) Str::uuid(),
+            'status' => 'Resolved', 'type' => 'Medical', 'acknowledged_by' => $this->coordinator->personnel_id,
+            'acknowledged_at' => now(), 'resolved_at' => now(), 'created_at' => now(), 'updated_at' => now()], 'sos_id');
+        $backup = $this->backup();
+
+        $this->coordinator->delete();
+        DB::table('sos_events')->delete();
+
+        $this->restoreStored($backup)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('sos_events', ['sos_id' => $sosId, 'status' => 'Resolved', 'acknowledged_by' => null]);
+    }
+
+    public function test_every_account_link_of_the_record_tables_is_checked(): void
+    {
+        $columns = \App\Support\RecordsRestore::accountColumns();
+        $this->assertContains('acknowledged_by', $columns['sos_events']);
+        $this->assertContains('reporter_id', $columns['sos_events']);
+        $this->assertEqualsCanonicalizing(['created_by', 'published_by'], $columns['broadcasts']);
+        $this->assertArrayNotHasKey('staff_notifications', $columns, 'its rows go with the account instead');
+    }
+
     /**
      * Reports and SOS events of a deleted Reporter stay as "Former reporter"
      * (reporter_id NULL). A backup holding them restores, and so does one whose

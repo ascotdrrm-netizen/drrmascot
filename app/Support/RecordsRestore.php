@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Support\Backup\DataSet;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 /**
@@ -31,17 +32,27 @@ class RecordsRestore
     public const OPTIONAL_NEW_TABLES = ['broadcasts', 'broadcast_deliveries', 'staff_notifications', 'report_events', 'report_photos', 'citizen_reports', 'sos_events', 'campus_statuses',
         'assignments', 'responders', 'roll_calls', 'roll_call_responses'];
 
-    /** Account columns that are nulled when the account is gone. */
-    public const ACCOUNT_COLUMNS = [
-        'broadcasts' => ['created_by', 'published_by'], 'broadcast_deliveries' => 'personnel_id',
-        'roll_calls' => ['created_by', 'closed_by'], 'roll_call_responses' => 'reporter_id', 'assignments' => 'assigned_by',
-        'report_events' => 'actor_id', 'campus_statuses' => 'updated_by',
-        'alerts' => 'created_by', 'damage_reports' => 'created_by', 'incidents' => 'created_by',
-        'hazard_inspections' => 'created_by', 'buildings' => 'created_by', 'drills' => 'created_by',
-        'drill_attachments' => 'uploaded_by', 'drill_documentations' => 'submitted_by',
-        'drill_after_activity_reports' => 'submitted_by',
-        'citizen_reports' => 'reporter_id', 'sos_events' => 'reporter_id',
-    ];
+    /**
+     * Account columns that are nulled when the account is gone: every foreign
+     * key from a record table to personnel, read from the database so a new
+     * one can't be missed. Not staff_notifications.personnel_id: those rows
+     * go with their account (apply()).
+     *
+     * @return array<string, list<string>> table => columns
+     */
+    public static function accountColumns(): array
+    {
+        $columns = [];
+        foreach (array_keys(RecordsClear::TABLES) as $table) {
+            foreach (Schema::getForeignKeys($table) as $key) {
+                if ($key['foreign_table'] === 'personnel' && $table !== 'staff_notifications') {
+                    $columns[$table] = array_merge($columns[$table] ?? [], $key['columns']);
+                }
+            }
+        }
+
+        return $columns;
+    }
 
     /** Tables whose campus_id (NOT NULL) must still exist. */
     public const CAMPUS_TABLES = ['incidents', 'buildings', 'drills', 'citizen_reports', 'sos_events', 'campus_statuses', 'staff_notifications',
@@ -142,9 +153,9 @@ class RecordsRestore
         $rows['staff_notifications'] = array_values(array_filter($rows['staff_notifications'],
             fn ($row) => isset($accounts[(string) $row['personnel_id']])));
         $cleared = 0;
-        foreach (self::ACCOUNT_COLUMNS as $table => $columns) {
+        foreach (self::accountColumns() as $table => $columns) {
             foreach ($rows[$table] as $i => $row) {
-                foreach ((array) $columns as $column) {
+                foreach ($columns as $column) {
                     if (($row[$column] ?? null) !== null && ! isset($accounts[(string) $row[$column]])) {
                         $rows[$table][$i][$column] = null;
                         $cleared++;
