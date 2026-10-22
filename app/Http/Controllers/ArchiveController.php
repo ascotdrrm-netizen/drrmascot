@@ -25,7 +25,8 @@ use Illuminate\View\View;
  *
  * The Admin may also delete a record permanently from here, through the same
  * TrashPurge::purge() the retention job uses (children, files and the log
- * entry included). SOS alerts are not offered: they are kept until restored.
+ * entry included). SOS alerts too, though the retention run never removes
+ * them: until restored or deleted here, they are kept.
  */
 class ArchiveController extends Controller
 {
@@ -37,12 +38,13 @@ class ArchiveController extends Controller
         'sos' => 'SOS alerts',
     ];
 
-    /** The types the Admin may delete permanently, and their models (TrashPurge::MODELS). */
+    /** The types the Admin may delete permanently, and their models (TrashPurge::PURGEABLE). */
     public const PERMANENT = [
         'buildings' => Building::class,
         'incidents' => Incident::class,
         'drills' => Drill::class,
         'advisories' => DisasterAdvisory::class,
+        'sos' => SosEvent::class,
     ];
 
     public const PERIODS = ['7' => 'Last 7 days', '30' => 'Last 30 days', '90' => 'Last 90 days'];
@@ -97,7 +99,7 @@ class ArchiveController extends Controller
                 ->when(! $isAdmin, fn ($q) => $q->where('campus_id', $user->campus_id));
             $rows = $rows->concat($q->get()->map(fn ($s) => $this->row($s, 'SOS alert', 'sos',
                 'SOS #' . $s->sos_id . ' · ' . ($s->reporter?->full_name ?: 'Former reporter') . ' · ' . $s->created_at->format('M j, Y'),
-                route("{$prefix}.sos.restore", $s->sos_id))));
+                route("{$prefix}.sos.restore", $s->sos_id), $deleteUrl('sos', $s))));
         }
 
         return view('archive.index', [

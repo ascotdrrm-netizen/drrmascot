@@ -99,6 +99,35 @@ class ArchiveTest extends TestCase
             'subject_id' => $incident->incident_id, 'personnel_id' => $this->admin->personnel_id]);
     }
 
+    public function test_the_admin_can_delete_an_sos_permanently_and_the_retention_run_never_does(): void
+    {
+        $sos = \App\Models\Reporter\SosEvent::create(['campus_id' => $this->zabali->campus_id, 'reporter_id' => $this->coordinator->personnel_id,
+            'client_key' => (string) \Illuminate\Support\Str::uuid(), 'type' => 'Medical', 'status' => 'Resolved']);
+        $responder = \App\Models\Responder::create(['campus_id' => $this->zabali->campus_id, 'full_name' => 'Campus Responder', 'team' => 'Clinic', 'contact_number' => '09171234567']);
+        $assignment = \App\Models\Assignment::create(['campus_id' => $this->zabali->campus_id, 'responder_id' => $responder->getKey(), 'sos_id' => $sos->sos_id,
+            'assigned_by' => $this->admin->personnel_id, 'assigned_at' => now(), 'status' => 'Completed']);
+        $sos->delete();
+        $url = route('admin.archive.destroy', ['sos', $sos->sos_id]);
+
+        // A coordinator can restore their campus's SOS, not delete it for good.
+        $this->actingAs($this->coordinator)->get(route('coordinator.archive.index'))->assertOk()->assertSee('SOS #' . $sos->sos_id)->assertDontSee('Delete permanently');
+        $this->delete($url)->assertForbidden();
+
+        // The scheduled run leaves it, however old.
+        $this->travel(400)->days();
+        \App\Support\TrashPurge::run(false, fn () => null);
+        $this->assertTrue(\App\Models\Reporter\SosEvent::onlyTrashed()->whereKey($sos->sos_id)->exists());
+
+        $this->actingAs($this->admin)->get(route('admin.archive.index'))->assertSee('action="' . $url . '"', false);
+        $this->from(route('admin.archive.index'))->delete($url)
+            ->assertRedirect(route('admin.archive.index'))->assertSessionHas('status', 'Permanently deleted SOS alert \'#' . $sos->sos_id . '\' (in Trash since ' . $sos->deleted_at->format('M j, Y') . '): 1 dispatch assignment.');
+
+        $this->assertNull(\App\Models\Reporter\SosEvent::withTrashed()->find($sos->sos_id));
+        $this->assertNull(\App\Models\Assignment::find($assignment->assignment_id));
+        $this->assertDatabaseHas('activity_logs', ['action' => 'permanently_deleted', 'subject_type' => 'sos',
+            'subject_id' => $sos->sos_id, 'personnel_id' => $this->admin->personnel_id]);
+    }
+
     public function test_a_building_damage_reports_point_at_is_kept(): void
     {
         $building = Building::forceCreate(['campus_id' => $this->zabali->campus_id, 'building_name' => 'Old Gym', 'risk_level' => 'Minimal Risk', 'created_by' => $this->admin->personnel_id]);

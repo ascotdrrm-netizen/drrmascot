@@ -35,6 +35,12 @@ class SosEvent extends Model
         });
     }
 
+    /** "#12" — no reporter name, like the SOS Console's own log entries. */
+    public function getActivityLogDescriptor(): string
+    {
+        return '#' . $this->getKey();
+    }
+
     public function hasGps(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;

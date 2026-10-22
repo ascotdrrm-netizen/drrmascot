@@ -10,6 +10,7 @@ use App\Models\Drill\DrillAttachment;
 use App\Models\Incident\DamageReport;
 use App\Models\Incident\Incident;
 use App\Models\Personnel;
+use App\Models\Reporter\SosEvent;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -47,7 +48,14 @@ use Throwable;
  */
 class TrashPurge
 {
+    /** What the scheduled retention run removes. */
     public const MODELS = [Building::class, Incident::class, Drill::class, DisasterAdvisory::class];
+
+    /**
+     * What purge() accepts: the retention models, plus SOS alerts, which only
+     * the Admin deletes permanently (from the Archive) — never the run.
+     */
+    public const PURGEABLE = [...self::MODELS, SosEvent::class];
 
     /** Held for the length of a real (not dry) run, so two runs never overlap. */
     public const LOCK = 'trash:purge';
@@ -111,6 +119,7 @@ class TrashPurge
                 'attachment' => $record->attachments()->count(),
             ], \App\Support\Files::diskName(), $record->storedFiles(), 0],
             $record instanceof DisasterAdvisory => [[], null, [], Incident::withTrashed()->where('advisory_id', $record->advisory_id)->count()],
+            $record instanceof SosEvent => [['dispatch assignment' => \App\Models\Assignment::where('sos_id', $record->sos_id)->count()], null, [], 0],
         };
 
         $missing = $disk ? count(array_filter($files, fn ($path) => ! Storage::disk($disk)->exists($path))) : 0;
@@ -135,7 +144,7 @@ class TrashPurge
         }
 
         return sprintf('%s \'%s\' (in Trash since %s): %s',
-            Str::headline(class_basename($record)), $record->getActivityLogDescriptor(),
+            $record instanceof SosEvent ? 'SOS alert' : Str::headline(class_basename($record)), $record->getActivityLogDescriptor(),
             $record->deleted_at->format('M j, Y'), $parts ? implode(', ', $parts) : 'nothing attached');
     }
 
@@ -151,7 +160,7 @@ class TrashPurge
      */
     public static function purge(Model $record, ?Personnel $by = null, ?CarbonInterface $trashedBefore = null): array
     {
-        if (! in_array($record::class, self::MODELS, true)) {
+        if (! in_array($record::class, self::PURGEABLE, true)) {
             throw new LogicException(class_basename($record) . ' records have no Trash to delete from.');
         }
         if (! $record->trashed()) {
@@ -172,13 +181,17 @@ class TrashPurge
             $description = self::describe($fresh, self::contents($fresh));
 
             // Its own entry below, not a second "deleted" that reads like a trashing.
-            $fresh::withoutActivityLog(fn () => $fresh->forceDelete());
+            // (An SOS logs its actions by hand, so it has nothing to switch off.)
+            method_exists($fresh, 'withoutActivityLog')
+                ? $fresh::withoutActivityLog(fn () => $fresh->forceDelete())
+                : $fresh->forceDelete();
 
             ActivityLog::create([
                 'personnel_id' => $by?->getKey(),
                 'actor_name' => $by ? null : ActivityLog::SYSTEM_ACTOR,
                 'action' => 'permanently_deleted',
-                'subject_type' => class_basename($fresh),
+                // The SOS Console's own entries say 'sos'.
+                'subject_type' => $fresh instanceof SosEvent ? 'sos' : class_basename($fresh),
                 'subject_id' => $fresh->getKey(),
                 'description' => mb_substr('Permanently deleted ' . $description, 0, 255),
                 'ip_address' => $by ? request()?->ip() : null,
