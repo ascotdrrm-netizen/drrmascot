@@ -64,11 +64,13 @@ return [
     // this many days before the copy forgets them.
     'removed_files_days' => 14,
 
-    // The largest single file this server can write. Some hosts cap every
-    // file (InfinityFree: 10 MB), so the Clear All Records copy (one zip: the
-    // data plus the record photos) can't be written past it — clearing then
-    // stops before anything is deleted. The Clear screen warns once the copy
-    // is estimated at 90% of this. Raise it on a host without such a limit.
+    // The largest single file the backup disk takes. On cloud storage (the
+    // Supabase bucket's 10 MB) a bigger backup is saved in parts of 90% of
+    // this (App\Support\Backup\StoredBackups). A local disk can't be split
+    // around a host's cap (InfinityFree: 10 MB), so there the Clear All
+    // Records copy (the data plus the record photos) can't be written past it
+    // — clearing then stops before anything is deleted, and the Clear screen
+    // warns once the copy is estimated at 90% of this. 0: no limit.
     'max_file_bytes' => (int) env('BACKUP_MAX_FILE_BYTES', 10 * 1024 * 1024),
 
 ];

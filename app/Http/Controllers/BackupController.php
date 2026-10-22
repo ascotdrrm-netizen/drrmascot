@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
@@ -82,7 +83,8 @@ class BackupController extends Controller
             'dataPrivacyPasswordConfigured' => $this->isDataPrivacyPasswordConfigured(),
             'zipSupported' => extension_loaded('zip') && BackupArchive::sevenZipAvailable(),
             'copyEstimate' => \App\Support\RecordsClear::estimatedCopyBytes(),
-            'maxFileBytes' => (int) config('backup.max_file_bytes'),
+            // Only a local disk can't take the copy: on cloud storage it is saved in parts (StoredBackups).
+            'maxFileBytes' => config('filesystems.disks.' . StoredBackups::diskName() . '.driver') === 'local' ? (int) config('backup.max_file_bytes') : 0,
         ]);
     }
 
@@ -123,7 +125,7 @@ class BackupController extends Controller
             $this->verifyStoredBackup($backup, $expected, $files);
         } catch (Throwable $e) {
             if ($backup) {
-                StoredBackups::disk()->delete($backup->storage_path);
+                StoredBackups::delete($backup->storage_path);
                 $backup->delete();
             }
             Log::warning('Clear All Records: pre-clear backup failed', ['error' => $e->getMessage()]);
@@ -287,7 +289,7 @@ class BackupController extends Controller
         RateLimiter::clear($throttleKey);
     }
 
-    public function download(Request $request): BinaryFileResponse|RedirectResponse
+    public function download(Request $request): BinaryFileResponse|StreamedResponse|RedirectResponse
     {
         $this->verifyDataPrivacyPassword($request);
 
@@ -316,7 +318,7 @@ class BackupController extends Controller
         // A backup file name is never reused: names are stamped to the second,
         // so a second backup in the same second gets -2, -3 …
         $extension = BackupArchive::EXTENSION;
-        for ($name = $base, $n = 2; StoredBackups::disk()->exists("backups/{$name}.{$extension}"); $n++) {
+        for ($name = $base, $n = 2; StoredBackups::exists("backups/{$name}.{$extension}"); $n++) {
             $name = "{$base}-{$n}";
         }
         $zipFilename = "{$name}.{$extension}";
@@ -326,24 +328,19 @@ class BackupController extends Controller
         if ($temporary === false) {
             throw new RuntimeException('Unable to prepare a backup archive.');
         }
-        $stream = null;
         try {
             $this->writeArchive($temporary, $files);
-            $stream = fopen($temporary, 'rb');
-            if (! is_resource($stream) || ! StoredBackups::disk()->put($storagePath, $stream, ['visibility' => 'private'])) {
-                throw new RuntimeException('Unable to save the backup archive.');
-            }
+            StoredBackups::put($storagePath, $temporary);
             $backup = Backup::create([
                 'filename' => $zipFilename,
                 'storage_path' => $storagePath,
                 'created_by' => Auth::id(),
-                'file_size' => StoredBackups::disk()->size($storagePath),
+                'file_size' => StoredBackups::size($storagePath),
             ]);
         } catch (Throwable $e) {
-            StoredBackups::disk()->delete($storagePath);
+            StoredBackups::delete($storagePath);
             throw $e;
         } finally {
-            if (is_resource($stream)) fclose($stream);
             @unlink($temporary);
         }
 
@@ -369,7 +366,7 @@ class BackupController extends Controller
             ->orderByDesc('backup_id')->get()->slice(self::MAX_STORED_BACKUPS);
 
         foreach ($stale as $backup) {
-            StoredBackups::disk()->delete($backup->storage_path);
+            StoredBackups::delete($backup->storage_path);
             $backup->delete();
         }
     }
@@ -437,7 +434,7 @@ class BackupController extends Controller
             ? $this->assertZipEncryptionSupported('backup_file')
             : $this->assertZipSupported('backup_file');
 
-        if (! StoredBackups::disk()->exists($backup->storage_path)) {
+        if (! StoredBackups::exists($backup->storage_path)) {
             return back()->withErrors([
                 'backup_file' => 'This stored backup file could no longer be found on disk.',
             ]);
@@ -456,9 +453,9 @@ class BackupController extends Controller
      * Re-download a server-stored backup. No extra gate beyond the Admin-only
      * route: the file is already a password-protected zip.
      */
-    public function downloadStored(Request $request, Backup $backup): BinaryFileResponse|RedirectResponse
+    public function downloadStored(Request $request, Backup $backup): BinaryFileResponse|StreamedResponse|RedirectResponse
     {
-        if (! StoredBackups::disk()->exists($backup->storage_path)) {
+        if (! StoredBackups::exists($backup->storage_path)) {
             return back()->withErrors([
                 'backup_file' => 'This stored backup file could no longer be found on disk.',
             ]);

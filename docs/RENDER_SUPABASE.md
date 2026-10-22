@@ -11,6 +11,7 @@ request (vercel-community/php#650).
 2. **Connect > Session pooler**: copy the URI on **port 5432**. This is `DB_URL`.
    Percent-encode special characters in the password (`@` → `%40`, `#` → `%23`).
 3. **Storage**: create bucket **drrms**, **Public OFF**, max file size **10 MB**.
+   Keep `BACKUP_MAX_FILE_BYTES` at this limit (10485760): backups bigger than it are saved in parts.
 4. **Storage > S3 Configuration**: copy the endpoint
    (`https://PROJECT-REF.storage.supabase.co/storage/v1/s3`) and create an access key.
    These go in `SUPABASE_S3_ENDPOINT`, `SUPABASE_S3_ACCESS_KEY_ID`, `SUPABASE_S3_SECRET_ACCESS_KEY`.

@@ -15,6 +15,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -184,6 +185,46 @@ class VercelHostingTest extends TestCase
             'confirmation' => 'RESTORE', 'data_privacy_password' => 'privacy-secret',
         ])->assertRedirect()->assertSessionHasNoErrors();
         Storage::disk('s3')->assertExists($backup->storage_path);
+    }
+
+    public function test_a_backup_over_the_buckets_file_limit_is_saved_in_parts_and_joined_back(): void
+    {
+        config(['backup.disk' => 's3', 'backup.max_file_bytes' => 1024, 'privacy.data_privacy_password_hash' => Hash::make('privacy-secret')]);
+        $response = $this->actingAs($this->person)->post(route('admin.backup.download'), ['data_privacy_password' => 'privacy-secret'])->assertOk();
+        $backup = Backup::firstOrFail();
+        $parts = StoredBackups::parts($backup->storage_path);
+        $this->assertGreaterThan(1, count($parts));
+        Storage::disk('s3')->assertMissing($backup->storage_path);
+        foreach ($parts as $part) {
+            $this->assertLessThanOrEqual(StoredBackups::partBytes(), Storage::disk('s3')->size($part));
+        }
+
+        $joined = implode('', array_map(fn ($part) => Storage::disk('s3')->get($part), $parts));
+        $this->assertSame($joined, $response->streamedContent());
+        $this->assertSame(strlen($joined), (int) $backup->file_size);
+        StoredBackups::withLocalFile($backup->storage_path, fn ($path) => $this->assertNotNull(BackupArchive::read($path)));
+        $this->actingAs($this->person)->post(route('admin.backup.stored.restore', $backup), [
+            'confirmation' => 'RESTORE', 'data_privacy_password' => 'privacy-secret',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        StoredBackups::delete($backup->storage_path);
+        $this->assertEmpty(Storage::disk('s3')->allFiles('backups'));
+    }
+
+    public function test_clear_all_records_goes_ahead_when_its_copy_is_over_the_buckets_file_limit(): void
+    {
+        config(['backup.disk' => 's3', 'backup.max_file_bytes' => 1024, 'privacy.data_privacy_password_hash' => Hash::make('privacy-secret')]);
+        Storage::disk('s3')->put('buildings/photo.jpg', random_bytes(4096));
+        DB::table('buildings')->insert(['campus_id' => $this->person->campus_id, 'building_name' => 'Gym', 'risk_level' => 'High', 'photo_path' => 'buildings/photo.jpg']);
+
+        $this->actingAs($this->person)->from(route('admin.backup.clear-records'))->post(route('admin.backup.clear-records.run'), [
+            'data_privacy_password' => 'privacy-secret', 'confirmation' => 'CLEAR ALL RECORDS',
+        ])->assertRedirect()->assertSessionHasNoErrors()->assertSessionHas('cleared');
+
+        $backup = Backup::firstOrFail();
+        $this->assertGreaterThan(1, count(StoredBackups::parts($backup->storage_path)));
+        $this->assertSame(0, DB::table('buildings')->count());
+        Storage::disk('s3')->assertMissing('buildings/photo.jpg');
     }
 
     public function test_large_generated_pdf_is_downloaded_from_private_storage(): void
