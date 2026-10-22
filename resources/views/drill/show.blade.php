@@ -164,7 +164,6 @@
                     <div><dt class="text-gray-600">Activity</dt><dd class="text-right font-medium text-gray-900">{{ $aar->activity_title }}</dd></div>
                     <div><dt class="text-gray-600">Conducted</dt><dd class="text-right font-medium text-gray-900">{{ $aar->date_conducted->format('M d, Y') }}{{ $aar->start_time ? ' · ' . $aar->start_time->format('g:i A') : '' }}{{ $aar->end_time ? '–' . $aar->end_time->format('g:i A') : '' }}</dd></div>
                     <div><dt class="text-gray-600">Participants</dt><dd class="text-right font-medium text-gray-900">{{ $aar->totalParticipants() ?? '—' }}</dd></div>
-                    <div><dt class="text-gray-600">Response time</dt><dd class="text-right font-medium text-gray-900">{{ $aar->response_time_minutes !== null ? rtrim(rtrim(number_format($aar->response_time_minutes, 1), '0'), '.') . ' min' : '—' }}</dd></div>
                 </dl>
                 <div class="mt-4 border-t border-gray-100 pt-4">
                     <p class="text-sm leading-6 text-gray-600">Activities conducted</p>

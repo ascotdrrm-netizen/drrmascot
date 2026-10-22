@@ -59,8 +59,6 @@ class DrillAfterActivityReportController extends DrillSubmissionController
             'participating_offices' => ['nullable', 'string', 'max:2000'],
             'participants_students' => $count,
             'participants_employees' => $count,
-            'participants_others' => $count,
-            'response_time_minutes' => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'results' => ['nullable', 'string', 'max:5000'],
             'problems_encountered' => ['nullable', 'string', 'max:5000'],
             'recommendations' => ['nullable', 'string', 'max:5000'],

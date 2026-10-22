@@ -63,18 +63,17 @@
                 </div>
             </x-form-section>
 
-            <x-form-section title="Participants and response" description="Counts only — no names.">
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                    @foreach (['participants_students' => 'Students', 'participants_employees' => 'Faculty and staff', 'participants_others' => 'Others', 'response_time_minutes' => 'Response time (min)'] as $field => $label)
+            <x-form-section title="Participants" description="Counts only — no names.">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    @foreach (['participants_students' => 'Students', 'participants_employees' => 'Faculty and staff'] as $field => $label)
                         <div>
                             <label for="{{ $field }}" class="form-label">{{ $label }}</label>
-                            <input type="number" id="{{ $field }}" name="{{ $field }}" min="0" step="{{ $field === 'response_time_minutes' ? '0.1' : '1' }}" inputmode="decimal"
+                            <input type="number" id="{{ $field }}" name="{{ $field }}" min="0" step="1" inputmode="numeric"
                                    value="{{ $value($field) }}" class="form-input">
                             @error($field)<p class="form-error">{{ $message }}</p>@enderror
                         </div>
                     @endforeach
                 </div>
-                <p class="form-help">Response time: from the alarm to the last person reaching the evacuation area, if measured.</p>
             </x-form-section>
 
             <x-form-section title="Assessment">

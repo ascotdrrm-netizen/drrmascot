@@ -19,7 +19,7 @@
     table.photos { width: 100%; border-collapse: collapse; }
     table.photos tr { page-break-inside: avoid; }
     table.photos td { width: 50%; vertical-align: top; text-align: center; padding: 0 4px 8px; }
-    table.counts td { width: 25%; }
+    table.counts td { width: 33.33%; }
 @endsection
 
 @section('content')
@@ -36,16 +36,12 @@
         <tr><td class="field-wide" colspan="2"><div class="field-label">Participating offices and agencies</div><div class="field-text">{!! $text($record->participating_offices) !!}</div></td></tr>
     </table>
 
-    <h2 class="section">Participants and response</h2>
+    <h2 class="section">Participants</h2>
     <table class="fields counts">
         <tr>
             <td><div class="field-label">Students</div><div class="field-value"><x-pdf.value :value="$record->participants_students" /></div></td>
             <td><div class="field-label">Faculty and staff</div><div class="field-value"><x-pdf.value :value="$record->participants_employees" /></div></td>
-            <td><div class="field-label">Others</div><div class="field-value"><x-pdf.value :value="$record->participants_others" /></div></td>
             <td><div class="field-label">Total</div><div class="field-value"><x-pdf.value :value="$record->totalParticipants()" /></div></td>
-        </tr>
-        <tr>
-            <td class="field-wide" colspan="4"><div class="field-label">Response time (minutes)</div><div class="field-value"><x-pdf.value :value="$record->response_time_minutes" /></div></td>
         </tr>
     </table>
 

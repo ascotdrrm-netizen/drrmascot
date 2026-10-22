@@ -307,7 +307,7 @@ class DrillModuleTest extends TestCase
 
         $this->actingAs($this->coordB)->put(route('coordinator.drills.after-activity.update', $drill), [
             'activity_title' => 'Earthquake Drill', 'date_conducted' => '2026-09-20', 'activities_conducted' => 'AAR-ONLY activities',
-            'participants_students' => 200, 'participants_employees' => 40, 'response_time_minutes' => 4.5,
+            'participants_students' => 200, 'participants_employees' => 40,
             'attachments' => [UploadedFile::fake()->image('critique.png', 600, 400)],
         ])->assertSessionHasNoErrors();
 

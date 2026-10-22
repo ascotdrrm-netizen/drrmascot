@@ -24,11 +24,10 @@
                 <tr>
                     <td><div class="field-label">Drill type</div><div class="field-value">{{ $row->drill->drill_type ?? '—' }}</div></td>
                     <td><div class="field-label">Participants</div><div class="field-value"><x-pdf.value :value="$row->totalParticipants()" /></div></td>
-                    <td><div class="field-label">Response time (min)</div><div class="field-value"><x-pdf.value :value="$row->response_time_minutes" /></div></td>
                 </tr>
-                <tr><td class="field-wide" colspan="3"><div class="field-label">Activities conducted</div><div class="field-text">{!! $text($row->activities_conducted) !!}</div></td></tr>
-                <tr><td class="field-wide" colspan="3"><div class="field-label">Results</div><div class="field-text">{!! $text($row->results) !!}</div></td></tr>
-                <tr><td class="field-wide" colspan="3"><div class="field-label">Recommendations</div><div class="field-text">{!! $text($row->recommendations) !!}</div></td></tr>
+                <tr><td class="field-wide" colspan="2"><div class="field-label">Activities conducted</div><div class="field-text">{!! $text($row->activities_conducted) !!}</div></td></tr>
+                <tr><td class="field-wide" colspan="2"><div class="field-label">Results</div><div class="field-text">{!! $text($row->results) !!}</div></td></tr>
+                <tr><td class="field-wide" colspan="2"><div class="field-label">Recommendations</div><div class="field-text">{!! $text($row->recommendations) !!}</div></td></tr>
             </table>
             @include('reports.pdf-partials._drill-section-files', ['thumbs' => $moduleData['thumbnails'][$row->getKey()] ?? []])
         </div>

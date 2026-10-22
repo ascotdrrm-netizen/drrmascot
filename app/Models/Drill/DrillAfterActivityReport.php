@@ -29,8 +29,6 @@ class DrillAfterActivityReport extends Model
         'participating_offices',
         'participants_students',
         'participants_employees',
-        'participants_others',
-        'response_time_minutes',
         'results',
         'problems_encountered',
         'recommendations',
@@ -42,8 +40,6 @@ class DrillAfterActivityReport extends Model
         'end_time' => 'datetime:H:i',
         'participants_students' => 'integer',
         'participants_employees' => 'integer',
-        'participants_others' => 'integer',
-        'response_time_minutes' => 'float',
     ];
 
     public function drill()
@@ -58,10 +54,10 @@ class DrillAfterActivityReport extends Model
             ->orderBy('attachment_id');
     }
 
-    /** Sum of the three participant counts, or null when none was given. */
+    /** Sum of the student and employee counts, or null when none was given. */
     public function totalParticipants(): ?int
     {
-        $counts = array_filter([$this->participants_students, $this->participants_employees, $this->participants_others], fn ($n) => $n !== null);
+        $counts = array_filter([$this->participants_students, $this->participants_employees], fn ($n) => $n !== null);
 
         return $counts === [] ? null : array_sum($counts);
     }
