@@ -21,8 +21,14 @@ use InvalidArgumentException;
  *
  *   Buildings/Areas    the whole campus (a building belongs to the campus, and
  *                      every coordinator needs the full list to inspect it)
- *   Hazard inspections only the ones they recorded (created_by)
- *   Incidents          only the ones they reported (created_by)
+ *   Hazard inspections the ones they recorded (created_by), plus every one the
+ *                      DRRMO Admin recorded on their campus
+ *   Incidents          the ones they reported (created_by), plus every one the
+ *                      DRRMO Admin reported for their campus — the DRRMO's
+ *                      input is for the campus to see. Editing, deleting and
+ *                      restoring stay with whoever recorded it, or the Admin:
+ *                      see canManage(). Trash and the Archive list only what
+ *                      the viewer may restore (applyToOwnIncidents()).
  *   Damage reports,    follow their incident
  *   alerts
  *   Drills             the whole campus — an EXCEPTION to per-person
@@ -63,12 +69,12 @@ final class RecordAccess
             return true;
         }
 
-        $mine = fn ($id) => $id !== null && (int) $id === (int) $viewer->personnel_id;
+        $mineOrAdmins = fn ($id) => self::isMine($id, $viewer) || self::isAdminId($id);
 
         return match (true) {
             $record instanceof Building => self::sameCampus($record->campus_id, $viewer),
-            $record instanceof Incident => self::sameCampus($record->campus_id, $viewer) && $mine($record->created_by),
-            $record instanceof HazardInspection => self::sameCampus(self::inspectionCampusId($record), $viewer) && $mine($record->created_by),
+            $record instanceof Incident => self::sameCampus($record->campus_id, $viewer) && $mineOrAdmins($record->created_by),
+            $record instanceof HazardInspection => self::sameCampus(self::inspectionCampusId($record), $viewer) && $mineOrAdmins($record->created_by),
             $record instanceof Drill => self::sameCampus($record->campus_id, $viewer),
             $record instanceof DisasterAdvisory => $record->campus_id === null || self::sameCampus($record->campus_id, $viewer),
             $record instanceof DamageReport, $record instanceof Alert => $record->incident !== null && self::allows($record->incident, $viewer),
@@ -76,8 +82,39 @@ final class RecordAccess
         };
     }
 
-    /** Incidents (and anything filtered through them): campus + reported by the viewer. */
+    /**
+     * May $viewer edit, delete or restore this incident or inspection (or a
+     * damage report / alert on an incident)? The Admin: any. A coordinator:
+     * only what they recorded themselves — the Admin's records are theirs to
+     * see, not to change.
+     */
+    public static function canManage(Model $record, ?Personnel $viewer): bool
+    {
+        if ($record instanceof DamageReport || $record instanceof Alert) {
+            return $record->incident !== null && self::canManage($record->incident, $viewer);
+        }
+
+        if (! $record instanceof Incident && ! $record instanceof HazardInspection) {
+            throw new InvalidArgumentException('No manage rule for ' . $record::class);
+        }
+
+        return self::isAdmin($viewer)
+            || ($viewer !== null && self::isMine($record->created_by, $viewer) && self::allows($record, $viewer));
+    }
+
+    /** Incidents (and anything filtered through them): campus + reported by the viewer or the Admin. */
     public static function applyToIncidents($query, ?Personnel $viewer, string $table = 'incidents')
+    {
+        if (self::isAdmin($viewer)) {
+            return $query;
+        }
+
+        return $query->where("{$table}.campus_id", self::campusOf($viewer))
+            ->where(fn ($q) => self::whereMineOrAdmins($q, "{$table}.created_by", $viewer));
+    }
+
+    /** Incidents the viewer may restore (Trash, Archive): campus + reported by the viewer. */
+    public static function applyToOwnIncidents($query, ?Personnel $viewer, string $table = 'incidents')
     {
         if (self::isAdmin($viewer)) {
             return $query;
@@ -88,9 +125,9 @@ final class RecordAccess
     }
 
     /**
-     * Hazard inspections: recorded by the viewer. The campus half lives on the
-     * building, so callers that join buildings pass its alias; otherwise the
-     * campus is checked with a subquery.
+     * Hazard inspections: recorded by the viewer or the Admin. The campus half
+     * lives on the building, so callers that join buildings pass its alias;
+     * otherwise the campus is checked with a subquery.
      */
     public static function applyToInspections($query, ?Personnel $viewer, string $table = 'hazard_inspections', ?string $buildingsTable = null)
     {
@@ -99,7 +136,7 @@ final class RecordAccess
         }
 
         $campusId = self::campusOf($viewer);
-        $query->where("{$table}.created_by", self::idOf($viewer));
+        $query->where(fn ($q) => self::whereMineOrAdmins($q, "{$table}.created_by", $viewer));
 
         return $buildingsTable !== null
             ? $query->where("{$buildingsTable}.campus_id", $campusId)
@@ -209,6 +246,24 @@ final class RecordAccess
         }
 
         return $query->where("{$table}.campus_id", self::campusOf($viewer));
+    }
+
+    protected static function isMine($createdBy, Personnel $viewer): bool
+    {
+        return $createdBy !== null && (int) $createdBy === (int) $viewer->personnel_id;
+    }
+
+    /** Was this recorded by a DRRMO Admin? (No recorded creator: no.) */
+    protected static function isAdminId($createdBy): bool
+    {
+        return $createdBy !== null && Personnel::whereKey($createdBy)->where('role', 'DRRMO Admin')->exists();
+    }
+
+    /** $column is the viewer's id, or any DRRMO Admin's. */
+    protected static function whereMineOrAdmins($query, string $column, ?Personnel $viewer)
+    {
+        return $query->where($column, self::idOf($viewer))
+            ->orWhereIn($column, Personnel::where('role', 'DRRMO Admin')->select('personnel_id'));
     }
 
     protected static function sameCampus($campusId, Personnel $viewer): bool

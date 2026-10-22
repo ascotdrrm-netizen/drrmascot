@@ -72,7 +72,7 @@ class HazardInspectionController extends Controller
     {
         $this->authorizeCampusAccess($building);
         $this->ensureBelongsToBuilding($building, $inspection);
-        $this->authorizeRecordAccess($inspection);
+        $this->authorizeRecordManage($inspection);
 
         return view('building.hazard-inspections.edit', [
             'building' => $building,
@@ -85,7 +85,7 @@ class HazardInspectionController extends Controller
     {
         $this->authorizeCampusAccess($building);
         $this->ensureBelongsToBuilding($building, $inspection);
-        $this->authorizeRecordAccess($inspection);
+        $this->authorizeRecordManage($inspection);
 
         $data = $this->validated($request);
 
@@ -117,7 +117,7 @@ class HazardInspectionController extends Controller
     {
         $this->authorizeCampusAccess($building);
         $this->ensureBelongsToBuilding($building, $inspection);
-        $this->authorizeRecordAccess($inspection);
+        $this->authorizeRecordManage($inspection);
 
         if ($inspection->photo_path) {
             \App\Support\Files::delete($inspection->photo_path);

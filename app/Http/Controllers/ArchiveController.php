@@ -77,7 +77,7 @@ class ArchiveController extends Controller
         }
         if (! $type || $type === 'incidents') {
             $q = $scope(Incident::onlyTrashed()->with('campus'));
-            RecordAccess::applyToIncidents($q, $user);
+            RecordAccess::applyToOwnIncidents($q, $user);
             $rows = $rows->concat($q->get()->map(fn ($i) => $this->row($i, 'Incident', 'crisis_alert', $i->hazard_type . ' · ' . $i->date_occurred->format('M j, Y'), route("{$prefix}.incidents.restore", $i->incident_id), $deleteUrl('incidents', $i))));
         }
         if (! $type || $type === 'drills') {

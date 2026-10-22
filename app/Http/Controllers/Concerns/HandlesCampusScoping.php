@@ -69,13 +69,28 @@ trait HandlesCampusScoping
 
     /**
      * Campus first, then per person (App\Support\RecordAccess): a Coordinator
-     * may open only their own incidents and inspections. Buildings and drills
-     * stay campus-wide. Any URL to someone else's record is a 403.
+     * may open only their own incidents and inspections, and the Admin's for
+     * their campus. Buildings and drills stay campus-wide. Any URL to someone
+     * else's record is a 403.
      */
     protected function authorizeRecordAccess(Model $record): void
     {
         if (! RecordAccess::allows($record, Auth::user())) {
             abort(403, "You don't have access to this page.");
+        }
+    }
+
+    /**
+     * Changing an incident or inspection (or its damage reports): only whoever
+     * recorded it, or the Admin (RecordAccess::canManage()). A coordinator can
+     * see the Admin's records but not change them.
+     */
+    protected function authorizeRecordManage(Model $record): void
+    {
+        $this->authorizeRecordAccess($record);
+
+        if (! RecordAccess::canManage($record, Auth::user())) {
+            abort(403, 'Only the person who recorded this, or the DRRMO, can change it.');
         }
     }
 }

@@ -9,12 +9,14 @@
 
 @section('actions')
     <x-download-pdf :href="route($routePrefix . '.incidents.report', $incident)" confirm="Download a PDF report of this incident and its damage reports?" />
+    @if ($canManage)
     <a href="{{ route("{$routePrefix}.incidents.edit", $incident) }}" class="btn btn-primary">Edit incident</a>
     <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.incidents.destroy", $incident) }}" data-confirm-form="This moves the incident, with its damage reports and alerts, to Trash. You can restore it from there, photo included." data-confirm-title="Move to Trash?" data-confirm-button="Move to Trash" data-confirm-tone="danger" data-confirm-focus="cancel">
         @csrf
         @method('DELETE')
         <button type="submit" class="btn btn-danger">Delete incident</button>
     </form>
+    @endif
 @endsection
 
 @section('content')
@@ -95,6 +97,10 @@
                 View on Map
             </a>
         @endif
+
+        @unless ($canManage)
+            <p class="caption mt-4" data-read-only-note>Reported by the DRRMO for your campus. Only the DRRMO can change or delete this incident or its damage reports.</p>
+        @endunless
     </x-card>
 
     {{-- Measurements, as observed — the advisory's card, for a Disaster-related

@@ -383,9 +383,72 @@ class PerPersonVisibilityTest extends TestCase
         $report = $this->actingAs($this->coordA)->get(route('reports.consolidated.index', $this->quarter() + ['campus_id' => $this->bazal->campus_id]))->viewData('report');
         $this->assertSame(1, $report['incidents']['total']);
 
-        // An Admin-reported incident on Zabali is Admin-only (no coordinator created it).
+        // An Admin-reported incident on Zabali is never shown on Bazal.
         $adminIncident = $this->reportIncident($this->admin, 'Admin incident');
-        $this->actingAs($this->coordA)->get(route('coordinator.incidents.show', $adminIncident))->assertForbidden();
+        $this->actingAs($this->bazalCoord)->get(route('coordinator.incidents.show', $adminIncident))->assertForbidden();
+        $this->assertSame(['Bazal incident'], $this->actingAs($this->bazalCoord)->get(route('coordinator.incidents.index'))->viewData('incidents')->pluck('description')->all());
+    }
+
+    // ===================== the Admin's input, per campus ======================
+
+    public function test_the_admins_incidents_and_inspections_are_seen_by_every_coordinator_of_that_campus(): void
+    {
+        $adminIncident = $this->reportIncident($this->admin, 'Admin incident');
+        $this->actingAs($this->admin)->post(route('admin.incidents.damage-reports.store', $adminIncident), [
+            'building_id' => $this->sharedBuilding->building_id, 'damage_level' => 'Major', 'casualty_count' => 2,
+        ])->assertRedirect();
+        $adminDamage = DamageReport::where('incident_id', $adminIncident->incident_id)->firstOrFail();
+        $this->actingAs($this->admin)->post(route('admin.buildings.inspections.store', $this->sharedBuilding), [
+            'inspection_date' => '2026-09-22', 'likelihood' => 5, 'impact' => 5, 'findings' => 'Admin finding',
+        ])->assertRedirect();
+        $adminInspection = HazardInspection::where('findings', 'Admin finding')->firstOrFail();
+        $this->reportIncident($this->admin, 'Admin Bazal incident', $this->bazal);
+
+        foreach ([$this->coordA, $this->coordB, $this->newbie] as $who) {
+            $this->actingAs($who);
+            // Lists, the record and its PDF — alongside their own, never a colleague's.
+            $list = $this->get(route('coordinator.incidents.index'))->assertOk()->viewData('incidents')->pluck('description');
+            $this->assertContains('Admin incident', $list);
+            $this->assertNotContains('Admin Bazal incident', $list);
+            $this->get(route('coordinator.incidents.show', $adminIncident))->assertOk()
+                ->assertSee('Only the DRRMO can change')->assertDontSee('Edit incident')->assertDontSee('+ Add damage report');
+            $this->get(route('coordinator.incidents.report', $adminIncident))->assertOk();
+            $this->get(route('coordinator.buildings.show', $this->sharedBuilding))->assertOk()->assertSee('Admin finding');
+            $this->get(route('coordinator.buildings.inspections.report', [$this->sharedBuilding, $adminInspection]))->assertOk();
+
+            // Dashboard and reports count them.
+            $this->assertGreaterThanOrEqual(1, collect($this->get(route('coordinator.dashboard'))->viewData('analytics')['kpis'])->keyBy('key')['total_incidents']['current']);
+            $report = $this->get(route('reports.consolidated.index', $this->quarter()))->viewData('report');
+            $this->assertSame($who->is($this->newbie) ? 1 : 2, $report['incidents']['total']);
+            $this->assertStringContainsString('Admin finding', $this->reportText($this->periodPdfHtml($who, 'hazard', $this->quarter())));
+        }
+        $this->actingAs($this->coordA)->get(route('coordinator.buildings.show', $this->sharedBuilding))->assertDontSee('Bravo finding');
+
+        // Seen, not changed: the Admin's records stay the Admin's.
+        $attempts = [
+            ['get', route('coordinator.incidents.edit', $adminIncident)],
+            ['put', route('coordinator.incidents.update', $adminIncident), ['hazard_type' => 'Fire', 'date_occurred' => '2026-09-20', 'status' => 'Resolved']],
+            ['delete', route('coordinator.incidents.destroy', $adminIncident)],
+            ['get', route('coordinator.incidents.damage-reports.create', $adminIncident)],
+            ['post', route('coordinator.incidents.damage-reports.store', $adminIncident), ['building_id' => $this->sharedBuilding->building_id, 'damage_level' => 'Total', 'casualty_count' => 9]],
+            ['get', route('coordinator.incidents.damage-reports.edit', [$adminIncident, $adminDamage])],
+            ['delete', route('coordinator.incidents.damage-reports.destroy', [$adminIncident, $adminDamage])],
+            ['get', route('coordinator.buildings.inspections.edit', [$this->sharedBuilding, $adminInspection])],
+            ['put', route('coordinator.buildings.inspections.update', [$this->sharedBuilding, $adminInspection]), ['inspection_date' => '2026-09-22', 'likelihood' => 1, 'impact' => 1]],
+            ['delete', route('coordinator.buildings.inspections.destroy', [$this->sharedBuilding, $adminInspection])],
+        ];
+        foreach ($attempts as $attempt) {
+            $this->actingAs($this->coordA)->{$attempt[0]}($attempt[1], $attempt[2] ?? [])->assertForbidden();
+        }
+        $this->assertSame('Active', $adminIncident->fresh()->status);
+        $this->assertSame(1, $adminIncident->damageReports()->count());
+        $this->assertSame('Critical Risk', $adminInspection->fresh()->risk_level);
+
+        // In Trash it is the Admin's to restore, so a coordinator's Trash doesn't list it.
+        $this->actingAs($this->admin)->delete(route('admin.incidents.destroy', $adminIncident))->assertRedirect();
+        $this->assertNotContains('Admin incident', $this->actingAs($this->coordA)->get(route('coordinator.incidents.trash'))->viewData('incidents')->pluck('description'));
+        $this->actingAs($this->coordA)->post(route('coordinator.incidents.restore', $adminIncident->incident_id))->assertForbidden();
+        $this->actingAs($this->coordA)->get(route('coordinator.archive.index'))->assertOk()->assertDontSee('Admin incident');
     }
 
     // ================================= admin ==================================

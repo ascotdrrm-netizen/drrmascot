@@ -108,8 +108,8 @@ class FilterBarIncidentsTest extends TestCase
                     ->assertStatus(in_array($id, $listed, true) ? 200 : 403);
             }
         }
-        // Alpha's four include the 2019 and 2027 ones: no date window was applied.
-        $this->assertSame(['2019-03-02', '2026-08-14', '2026-10-05', '2027-01-20'],
+        // Alpha's four (and the Admin's 2018 one on their campus) include the 2019 and 2027 ones: no date window was applied.
+        $this->assertSame(['2018-01-01', '2019-03-02', '2026-08-14', '2026-10-05', '2027-01-20'],
             $this->page($this->alpha, route('coordinator.incidents.index'))[1]->viewData('incidents')->pluck('date_occurred')->map->toDateString()->sort()->values()->all());
     }
 
@@ -119,15 +119,15 @@ class FilterBarIncidentsTest extends TestCase
     {
         $q3 = ['period_type' => 'quarterly', 'quarter' => 3, 'year' => 2026];
         $cases = [
-            [[], 'Showing your incidents for ASCOT Zabali Campus, all dates.'],
-            [['status' => 'Active'], 'Showing your Active incidents for ASCOT Zabali Campus, all dates.'],
-            [['school_id' => $this->engineering->school_id], 'Showing your incidents from School of Engineering for ASCOT Zabali Campus, all dates.'],
-            [['school_id' => 'none'], 'Showing your incidents with no school set for ASCOT Zabali Campus, all dates.'],
-            [$q3, 'Showing your incidents for ASCOT Zabali Campus, dated Q3 2026 (July 1 – September 30, 2026).'],
+            [[], 'Showing your and the DRRMO\'s incidents for ASCOT Zabali Campus, all dates.'],
+            [['status' => 'Active'], 'Showing your and the DRRMO\'s Active incidents for ASCOT Zabali Campus, all dates.'],
+            [['school_id' => $this->engineering->school_id], 'Showing your and the DRRMO\'s incidents from School of Engineering for ASCOT Zabali Campus, all dates.'],
+            [['school_id' => 'none'], 'Showing your and the DRRMO\'s incidents with no school set for ASCOT Zabali Campus, all dates.'],
+            [$q3, 'Showing your and the DRRMO\'s incidents for ASCOT Zabali Campus, dated Q3 2026 (July 1 – September 30, 2026).'],
             [$q3 + ['status' => 'Active', 'school_id' => $this->engineering->school_id],
-                'Showing your Active incidents from School of Engineering for ASCOT Zabali Campus, dated Q3 2026 (July 1 – September 30, 2026).'],
+                'Showing your and the DRRMO\'s Active incidents from School of Engineering for ASCOT Zabali Campus, dated Q3 2026 (July 1 – September 30, 2026).'],
             // Another campus in the URL changes nothing — not the list, not the line.
-            [['campus_id' => $this->bazal->campus_id], 'Showing your incidents for ASCOT Zabali Campus, all dates.'],
+            [['campus_id' => $this->bazal->campus_id], 'Showing your and the DRRMO\'s incidents for ASCOT Zabali Campus, all dates.'],
         ];
 
         foreach ($cases as [$query, $expected]) {
@@ -135,7 +135,7 @@ class FilterBarIncidentsTest extends TestCase
             $this->assertSame($expected, $this->summary($x), json_encode($query));
             $this->assertStringNotContainsString('all incidents', $this->summary($x));
             foreach ($r->viewData('incidents') as $incident) {
-                $this->assertSame($this->alpha->personnel_id, $incident->created_by, 'only their own');
+                $this->assertContains($incident->created_by, [$this->alpha->personnel_id, $this->admin->personnel_id], 'only their own and the Admin\'s');
             }
         }
 

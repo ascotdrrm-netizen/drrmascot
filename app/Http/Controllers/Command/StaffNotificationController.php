@@ -46,8 +46,8 @@ class StaffNotificationController extends Controller
         }
         if ($notification->kind === 'incident') {
             $incident = \App\Models\Incident\Incident::findOrFail($notification->subject_id);
-            // Coordinators can open only incidents they recorded; keep other notices on their list.
-            if (! $request->user()->isAdmin() && (int) $incident->created_by !== (int) $request->user()->personnel_id) {
+            // Coordinators can open only incidents they or the Admin recorded; keep other notices on their list.
+            if (! \App\Support\RecordAccess::allows($incident, $request->user())) {
                 return redirect()->route($prefix . '.incidents.index');
             }
             return redirect()->route($prefix . '.incidents.show', $incident);

@@ -19,7 +19,7 @@ class DamageReportController extends Controller
 
     public function create(Incident $incident): View
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
 
         return view('incident.damage-reports.create', [
             'incident' => $incident,
@@ -29,7 +29,7 @@ class DamageReportController extends Controller
 
     public function store(Request $request, Incident $incident): RedirectResponse
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
 
         $incident->damageReports()->create($this->validated($request, $incident));
 
@@ -40,7 +40,7 @@ class DamageReportController extends Controller
 
     public function edit(Incident $incident, DamageReport $damage_report): View
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
         $this->ensureBelongsToIncident($incident, $damage_report);
 
         return view('incident.damage-reports.edit', [
@@ -52,7 +52,7 @@ class DamageReportController extends Controller
 
     public function update(Request $request, Incident $incident, DamageReport $damage_report): RedirectResponse
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
         $this->ensureBelongsToIncident($incident, $damage_report);
 
         $damage_report->update($this->validated($request, $incident, $damage_report));
@@ -64,7 +64,7 @@ class DamageReportController extends Controller
 
     public function destroy(Incident $incident, DamageReport $damage_report): RedirectResponse
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
         $this->ensureBelongsToIncident($incident, $damage_report);
         $damage_report->delete();
 

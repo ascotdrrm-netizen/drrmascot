@@ -117,11 +117,11 @@
                         @php
                             $isAdminView = $routePrefix === 'admin';
                             $othersHint = $hiddenIncidentCount === 1
-                                ? '1 incident recorded by others isn’t shown to you: an incident is visible only to whoever recorded it and the DRRMO.'
-                                : $hiddenIncidentCount . ' incidents recorded by others aren’t shown to you: an incident is visible only to whoever recorded it and the DRRMO.';
+                                ? '1 incident recorded by another coordinator isn’t shown to you: an incident is visible only to whoever recorded it and the DRRMO.'
+                                : $hiddenIncidentCount . ' incidents recorded by other coordinators aren’t shown to you: an incident is visible only to whoever recorded it and the DRRMO.';
                         @endphp
                         <x-empty-state :colspan="5" icon="incidents"
-                                       :message="$isAdminView ? 'No incident recorded from this advisory.' : 'No incident you recorded from this advisory.'"
+                                       :message="$isAdminView ? 'No incident recorded from this advisory.' : 'No incident you or the DRRMO recorded from this advisory.'"
                                        :hint="$hiddenIncidentCount > 0 ? $othersHint : ($advisory->canRecordIncident() ? 'If the event hits the campus, use Record what happened: the incident form opens with the hazard and campus filled in, linked to this advisory.' : 'A cancelled advisory can’t have an incident recorded from it.')" />
                     @endforelse
                 </tbody>

@@ -75,9 +75,9 @@ class IncidentController extends Controller
             'periodValues' => ListPeriod::controlValues($period),
             'routePrefix' => $this->routePrefix(),
             'trashedCount' => $trashedQuery->count(),
-            // A coordinator sees only the incidents they recorded: say "your", never "all".
+            // A coordinator sees only the incidents they or the DRRMO recorded: never "all".
             'filterSummary' => FilterSummary::make(
-                ($isCoordinator ? 'your' : 'all') . ($status !== null ? " {$status}" : '') . ' '
+                ($isCoordinator ? 'your and the DRRMO\'s' : 'all') . ($status !== null ? " {$status}" : '') . ' '
                     . match (true) {
                         $type === null => 'incidents',
                         isset($groupFilters[$type]) => $groupFilters[$type]['noun'],
@@ -112,8 +112,9 @@ class IncidentController extends Controller
         $isCoordinator = $user->role === 'Coordinator';
 
         if ($isCoordinator) {
-            // Own campus, then only the incidents this coordinator reported.
-            RecordAccess::applyToIncidents($query, $user);
+            // Own campus, then only the incidents this coordinator reported
+            // (the Admin's they can see but not restore).
+            RecordAccess::applyToOwnIncidents($query, $user);
         } elseif ($campus) {
             $query->where('campus_id', $campus->campus_id);
         }
@@ -141,7 +142,7 @@ class IncidentController extends Controller
     public function restore(int $incident): RedirectResponse
     {
         $incident = Incident::onlyTrashed()->findOrFail($incident);
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
         $incident->restore();
 
         return redirect()
@@ -248,14 +249,15 @@ class IncidentController extends Controller
         return view('incident.show', [
             'incident' => $incident,
             'routePrefix' => $this->routePrefix(),
-            'canManageDamageReports' => true,
+            'canManage' => $canManage = RecordAccess::canManage($incident, Auth::user()),
+            'canManageDamageReports' => $canManage,
             'canSendAlerts' => Auth::user()->role === 'DRRMO Admin',
         ]);
     }
 
     public function edit(Incident $incident): View
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
         $user = Auth::user();
 
         return view('incident.edit', [
@@ -267,7 +269,7 @@ class IncidentController extends Controller
 
     public function update(Request $request, Incident $incident): RedirectResponse
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
         $user = Auth::user();
         $data = $this->validated($request, $user);
 
@@ -310,7 +312,7 @@ class IncidentController extends Controller
 
     public function destroy(Incident $incident): RedirectResponse
     {
-        $this->authorizeRecordAccess($incident);
+        $this->authorizeRecordManage($incident);
 
         // Trash keeps the photo, so restoring brings the incident back whole.
         // The file goes only on permanent delete (Incident::booted).

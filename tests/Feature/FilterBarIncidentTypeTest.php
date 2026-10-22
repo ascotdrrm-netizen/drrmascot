@@ -96,8 +96,8 @@ class FilterBarIncidentTypeTest extends TestCase
             [$this->admin, 'admin', ['incident_type' => 'group:campus-emergency'], 'Showing all campus emergencies for all campuses, all dates.'],
             [$this->admin, 'admin', ['incident_type' => 'group:disaster-related', 'status' => 'Active'], 'Showing all Active disaster-related incidents for all campuses, all dates.'],
             [$this->admin, 'admin', ['incident_type' => 'Other'], 'Showing all incidents of type Other for all campuses, all dates.'],
-            [$this->alpha, 'coordinator', ['incident_type' => 'Fire'], 'Showing your incidents of type Fire for ASCOT Zabali Campus, all dates.'],
-            [$this->alpha, 'coordinator', ['incident_type' => 'group:campus-emergency'], 'Showing your campus emergencies for ASCOT Zabali Campus, all dates.'],
+            [$this->alpha, 'coordinator', ['incident_type' => 'Fire'], 'Showing your and the DRRMO\'s incidents of type Fire for ASCOT Zabali Campus, all dates.'],
+            [$this->alpha, 'coordinator', ['incident_type' => 'group:campus-emergency'], 'Showing your and the DRRMO\'s campus emergencies for ASCOT Zabali Campus, all dates.'],
         ];
         foreach ($lines as [$user, $prefix, $query, $expected]) {
             $x = $this->page($user, route("{$prefix}.incidents.index", $query));

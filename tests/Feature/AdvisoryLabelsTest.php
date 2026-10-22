@@ -133,7 +133,7 @@ class AdvisoryLabelsTest extends TestCase
     public function test_a_coordinator_with_nothing_recorded_anywhere_sees_none_of_theirs_and_how_to_record_one(): void
     {
         $card = $this->linkedIncidents($this->alpha, 'coordinator');
-        $this->assertStringContainsString('No incident you recorded from this advisory.', $card);
+        $this->assertStringContainsString('No incident you or the DRRMO recorded from this advisory.', $card);
         $this->assertStringContainsString('use Record what happened', $card);
         $this->assertStringNotContainsString('recorded by others', $card);
     }
@@ -143,13 +143,13 @@ class AdvisoryLabelsTest extends TestCase
         $theirs = $this->incident($this->bravo, 'Roof sheets torn off the gym');
 
         $card = $this->linkedIncidents($this->alpha, 'coordinator');
-        $this->assertStringContainsString('No incident you recorded from this advisory.', $card);
-        $this->assertStringContainsString('1 incident recorded by others isn’t shown to you: an incident is visible only to whoever recorded it and the DRRMO.', $card);
+        $this->assertStringContainsString('No incident you or the DRRMO recorded from this advisory.', $card);
+        $this->assertStringContainsString('1 incident recorded by another coordinator isn’t shown to you: an incident is visible only to whoever recorded it and the DRRMO.', $card);
         $this->assertStringNotContainsString(route('coordinator.incidents.show', $theirs), $card);
         $this->assertStringNotContainsString('Coordinator Bravo', $card);
 
         $this->incident($this->bravo, 'Flooded canteen');
-        $this->assertStringContainsString('2 incidents recorded by others aren’t shown to you', $this->linkedIncidents($this->alpha, 'coordinator'));
+        $this->assertStringContainsString('2 incidents recorded by other coordinators aren’t shown to you', $this->linkedIncidents($this->alpha, 'coordinator'));
     }
 
     public function test_with_some_of_their_own_a_coordinator_sees_a_count_of_the_rest_under_the_table(): void

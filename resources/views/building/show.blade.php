@@ -57,7 +57,7 @@
     <div class="section-header">
         <div>
             <h2 class="section-title">Hazard Inspections</h2>
-            <p class="guide-note">{{ $routePrefix === 'admin' ? 'Each inspection records the hazards found on a given date.' : 'Each inspection records the hazards found on a given date. You see only the inspections you recorded.' }}</p>
+            <p class="guide-note">{{ $routePrefix === 'admin' ? 'Each inspection records the hazards found on a given date.' : 'Each inspection records the hazards found on a given date. You see the inspections you recorded and those the DRRMO recorded; only the person who recorded one, or the DRRMO, can change it.' }}</p>
         </div>
         <div class="toolbar">
             <x-view-toggle group="inspections" />
@@ -97,12 +97,14 @@
 
                     <div data-tap-row class="mt-auto flex flex-wrap items-center gap-x-4 border-t border-gray-100 pt-4">
                         <x-download-pdf :href="route($routePrefix . '.buildings.inspections.report', [$building, $inspection])" confirm="Download a PDF report of this inspection?" small />
+                        @if (\App\Support\RecordAccess::canManage($inspection, auth()->user()))
                         <a href="{{ route("{$routePrefix}.buildings.inspections.edit", [$building, $inspection]) }}" class="link text-sm">Edit</a>
                         <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.buildings.inspections.destroy", [$building, $inspection]) }}" data-confirm-form="This permanently deletes the inspection of {{ $inspection->inspection_date->format('M d, Y') }}, including its photo. It cannot be undone." data-confirm-title="Delete inspection?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="link-danger text-sm">Delete</button>
                         </form>
+                        @endif
                     </div>
                 </x-card>
             @empty
@@ -146,12 +148,14 @@
                                     <td class="table-td">
                                         <div class="table-actions">
                                             <x-download-pdf :href="route($routePrefix . '.buildings.inspections.report', [$building, $inspection])" confirm="Download a PDF report of this inspection?" small />
+                                            @if (\App\Support\RecordAccess::canManage($inspection, auth()->user()))
                                             <a href="{{ route("{$routePrefix}.buildings.inspections.edit", [$building, $inspection]) }}" class="link">Edit</a>
                                             <form method="POST" data-ajax data-ajax-refresh="#page-content" action="{{ route("{$routePrefix}.buildings.inspections.destroy", [$building, $inspection]) }}" data-confirm-form="This permanently deletes the inspection of {{ $inspection->inspection_date->format('M d, Y') }}, including its photo. It cannot be undone." data-confirm-title="Delete inspection?" data-confirm-button="Delete permanently" data-confirm-tone="danger" data-confirm-focus="cancel">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="link-danger">Delete</button>
                                             </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

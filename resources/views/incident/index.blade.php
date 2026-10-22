@@ -4,7 +4,7 @@
 @section('heading', 'Incidents')
 @section('subheading', $routePrefix === 'admin'
     ? 'Disasters and campus emergencies reported on every campus — what happened, when, and whether it is still being handled.'
-    : 'The incidents you have reported. Report one as soon as it happens; other coordinators\' reports are not shown here.')
+    : 'The incidents you have reported, and those the DRRMO reported for your campus. Report one as soon as it happens; other coordinators\' reports are not shown here.')
 
 @section('breadcrumb')
     <x-back-link href='{{ route("{$routePrefix}.dashboard") }}'>Back to dashboard</x-back-link>
