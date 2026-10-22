@@ -41,9 +41,14 @@ COPY docker/php.ini "$PHP_INI_DIR/conf.d/zz-app.ini"
 # Render sends traffic to $PORT (10000 unless it says otherwise).
 ENV PORT=10000
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+# Six PHP workers fit the free plan's 512 MB beside the queue worker and the
+# scheduler. KeepAlive off: Render's proxy holds the browser's connection, so
+# an idle kept-alive one here only pins a worker for 5 s after each answer —
+# a single page load (page, CSS, JS, icons) then filled all six
+# ("server reached MaxRequestWorkers").
 RUN a2enmod rewrite headers \
     && sed -i 's/^Listen 80$/Listen ${PORT}/' /etc/apache2/ports.conf \
-    && printf '<IfModule mpm_prefork_module>\n  MaxRequestWorkers 6\n</IfModule>\n' \
+    && printf 'KeepAlive Off\n<IfModule mpm_prefork_module>\n  MaxRequestWorkers 6\n</IfModule>\n' \
         > /etc/apache2/conf-enabled/zz-workers.conf
 
 WORKDIR /var/www/html
